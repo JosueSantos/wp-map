@@ -27,6 +27,46 @@ function cc_register_meta() {
         'type' => 'string'
     ]);
 
+    register_meta('post', 'contatos', [
+        'object_subtype' => 'comunidade',
+        'single' => true,
+        'type'   => 'array',
+        'default' => [],
+        'sanitize_callback' => function($value){
+            if(!is_array($value)) return [];
+
+            $out = [];
+            foreach($value as $item){
+                if(empty($item['valor'])) continue;
+
+                $out[] = [
+                    'tipo'  => sanitize_text_field($item['tipo'] ?? ''),
+                    'valor' => sanitize_text_field($item['valor'] ?? '')
+                ];
+            }
+            return $out;
+        },
+        'auth_callback' => '__return_true',
+        'show_in_rest' => [
+            'schema' => [
+                'type'  => 'array',
+                'context' => ['view','edit'],
+                'items' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'tipo' => [
+                            'type' => 'string'
+                        ],
+                        'valor' => [
+                            'type' => 'string'
+                        ]
+                    ],
+                    'additionalProperties' => false
+                ]
+            ]
+        ]
+    ]);
+
     // Evento
     register_post_meta('evento', 'comunidade_id', [
         'show_in_rest' => true,
@@ -81,6 +121,8 @@ function cc_render_meta_box_comunidade($post) {
     $lng = get_post_meta($post->ID, 'longitude', true);
     $parent = get_post_meta($post->ID, 'parent_paroquia', true);
     $endereco = get_post_meta($post->ID, 'endereco', true);
+    $contatos = get_post_meta($post->ID, 'contatos', true);
+    if (!is_array($contatos)) $contatos = [];
 
     ?>
     <p>
@@ -102,6 +144,74 @@ function cc_render_meta_box_comunidade($post) {
         <label><strong>Endereço:</strong></label><br>
         <input type="text" name="cc_endereco" value="<?php echo esc_attr($endereco); ?>" style="width:100%;">
     </p>
+
+    <hr>
+    <h3>Contatos e Links</h3>
+
+    <div id="cc-contatos-wrapper">
+
+    <?php foreach ($contatos as $i => $c): ?>
+        <div class="cc-contato-item" style="margin-bottom:8px;">
+            <select name="cc_contatos[tipo][]">
+                <?php
+                $tipos = ['telefone','whatsapp','instagram','facebook','youtube','site','email'];
+                foreach ($tipos as $t) {
+                    echo "<option value='$t' ".selected($c['tipo'],$t,false).">$t</option>";
+                }
+                ?>
+            </select>
+
+            <input type="text"
+                name="cc_contatos[valor][]"
+                value="<?php echo esc_attr($c['valor']); ?>"
+                placeholder="Telefone ou link"
+                style="width:60%;">
+
+            <button type="button" class="button cc-remover-contato">Remover</button>
+        </div>
+    <?php endforeach; ?>
+
+    </div>
+
+    <button type="button" class="button" id="cc-add-contato">
+        + Adicionar contato
+    </button>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", function(){
+
+        const wrapper = document.getElementById("cc-contatos-wrapper");
+        const btn = document.getElementById("cc-add-contato");
+
+        const tipos = ["telefone","whatsapp","instagram","facebook","youtube","site","email","outro"];
+
+        btn.addEventListener("click", function(){
+
+            let options = tipos.map(t => `<option value="${t}">${t}</option>`).join("");
+
+            const html = `
+            <div class="cc-contato-item" style="margin-bottom:8px;">
+                <select name="cc_contatos[tipo][]">${options}</select>
+
+                <input type="text"
+                    name="cc_contatos[valor][]"
+                    placeholder="Telefone ou link"
+                    style="width:60%;">
+
+                <button type="button" class="button cc-remover-contato">Remover</button>
+            </div>`;
+
+            wrapper.insertAdjacentHTML("beforeend", html);
+        });
+
+        wrapper.addEventListener("click", function(e){
+            if(e.target.classList.contains("cc-remover-contato")){
+                e.target.closest(".cc-contato-item").remove();
+            }
+        });
+
+    });
+    </script>
     <?php
 }
 
@@ -130,6 +240,28 @@ function cc_save_meta_comunidade($post_id) {
     if (array_key_exists('cc_endereco', $_POST)) {
         update_post_meta($post_id, 'endereco', sanitize_text_field($_POST['cc_endereco']));
     }
+
+    if (isset($_POST['cc_contatos'])) {
+
+        $tipos  = $_POST['cc_contatos']['tipo'];
+        $valores = $_POST['cc_contatos']['valor'];
+
+        $contatos = [];
+
+        foreach ($tipos as $i => $tipo) {
+
+            $valor = sanitize_text_field($valores[$i]);
+            if (empty($valor)) continue;
+
+            $contatos[] = [
+                'tipo'  => sanitize_text_field($tipo),
+                'valor' => $valor
+            ];
+        }
+
+        update_post_meta($post_id, 'contatos', $contatos);
+    }
+
 }
 
 add_action('save_post_comunidade', 'cc_save_meta_comunidade');
