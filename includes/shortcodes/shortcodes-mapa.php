@@ -9,6 +9,27 @@ function cc_mapa_shortcode($atts) {
 
     $dominio = esc_url_raw($atts['dominio']);
 
+    wp_enqueue_style(
+        'leaflet-css',
+        'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+    );
+
+    wp_enqueue_script(
+        'leaflet-js',
+        'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+        [],
+        null,
+        true
+    );
+
+    wp_enqueue_script(
+        'cc-mapa',
+        plugin_dir_url(__FILE__) . '../../assets/js/mapa.js',
+        ['leaflet-js'],
+        '1.0',
+        true
+    );
+
     ob_start();
 
     ?>

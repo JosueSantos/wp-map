@@ -19,22 +19,30 @@ add_action('rest_api_init', function () {
     register_rest_route('mapa/v1', '/comunidades', [
         'methods'  => 'GET',
         'callback' => 'cc_api_mapa_comunidades',
-        'permission_callback' => '__return_true'
+        'permission_callback' => '__return_true',
+        'args' => [
+            'lat' => ['validate_callback' => 'is_numeric'],
+            'lng' => ['validate_callback' => 'is_numeric'],
+        ]
     ]);
 
 });
 
 function cc_api_mapa_comunidades($request) {
+    $cache_key = 'mapa_api_' . md5(json_encode($request->get_params()));
+    $cache = get_transient($cache_key);
 
-    $dia            = $request->get_param('dia');
-    $tipo_evento    = $request->get_param('tipo_evento');
-    $tipo_comunidade = $request->get_param('tipo_comunidade');
-    $lat   = $request->get_param('lat');
-    $lng   = $request->get_param('lng');
-    $raio  = $request->get_param('raio');
-    $tag   = $request->get_param('tag');
-    $limite = $request->get_param('limite');
-    $proximidade = $request->get_param('proximidade');
+    if ($cache) return $cache;
+
+    $dia = $request->get_param('dia');
+    $tipo_evento = sanitize_text_field($request->get_param('tipo_evento'));
+    $tipo_comunidade = sanitize_text_field($request->get_param('tipo_comunidade'));
+    $user_lat = $request->get_param('lat');
+    $user_lng = $request->get_param('lng');
+    $raio = floatval($request->get_param('raio'));
+    $tag = $request->get_param('tag');
+    $limite = intval($request->get_param('limite'));
+    $proximidade = filter_var($request->get_param('proximidade'), FILTER_VALIDATE_BOOLEAN);
 
     // Buscar comunidades
     $args = [
@@ -62,7 +70,7 @@ function cc_api_mapa_comunidades($request) {
         $lng = get_post_meta($c->ID, 'longitude', true);
 
         // Obrigatorio possuir as coordenadas geograficas
-        if (!$lat || !$lng) continue;
+        if ($lat === '' || $lng === '') continue;
 
         // Buscar eventos da comunidade
         $eventos_args = [
@@ -79,6 +87,10 @@ function cc_api_mapa_comunidades($request) {
         $eventos = get_posts($eventos_args);
         $lista_eventos = [];
 
+        if ($dia === 'hoje') {
+            $dia = date('w'); // 0 domingo - 6 sábado
+        }
+
         foreach ($eventos as $e) {
 
             $dia_semana = get_post_meta($e->ID, 'dia_semana', true);
@@ -90,16 +102,12 @@ function cc_api_mapa_comunidades($request) {
             $tipo_evt = $tipo_evt[0] ?? '';
 
             // FILTROS
-            if ($dia === 'hoje') {
-                $dia = date('w'); // 0 domingo - 6 sábado
-            }
-
-            if ($dia !== null && $dia_semana !== $dia) continue;
+            if ($dia !== null && intval($dia_semana) !== intval($dia)) continue;
 
             if ($tipo_evento && $tipo_evt !== $tipo_evento) continue;
 
             $tags_evento = get_post_meta($e->ID, 'tags', true);
-            $tags_evento = is_array($tags_evento) ? $tags_evento : explode(',', $tags_evento);
+            $tags_evento = is_array($tags_evento) ? $tags_evento : array_filter(array_map('trim', explode(',', (string)$tags_evento)));
 
             if ($tag && !in_array($tag, $tags_evento)) continue;
 
@@ -114,9 +122,6 @@ function cc_api_mapa_comunidades($request) {
             ];
         }
 
-        // Obrigatorio tem algum evento
-        if (empty($lista_eventos)) continue;
-
         $foto = get_the_post_thumbnail_url($c->ID, 'medium');
 
         $tipo_com = wp_get_post_terms($c->ID, 'tipo_comunidade', ['fields'=>'slugs']);
@@ -124,8 +129,8 @@ function cc_api_mapa_comunidades($request) {
 
         $distancia = null;
 
-        if ($lat && $lng) {
-            $distancia = cc_calcular_distancia($lat, $lng, $c->latitude, $c->longitude);
+        if ($user_lat && $user_lng) {
+            $distancia = cc_calcular_distancia($user_lat, $user_lng, $lat, $lng);
 
             if ($raio && $distancia > $raio) continue;
         }
@@ -144,7 +149,7 @@ function cc_api_mapa_comunidades($request) {
         ];
     }
 
-    if ($proximidade && $lat && $lng) {
+    if ($proximidade && $user_lat && $user_lng) {
         usort($resultado, function($a, $b) {
             return $a['distancia_km'] <=> $b['distancia_km'];
         });
@@ -153,6 +158,8 @@ function cc_api_mapa_comunidades($request) {
     if ($limite) {
         $resultado = array_slice($resultado, 0, intval($limite));
     }
+
+    set_transient($cache_key, $resultado, 60);
 
     return rest_ensure_response($resultado);
 }

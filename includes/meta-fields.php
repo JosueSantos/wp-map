@@ -6,13 +6,13 @@ function cc_register_meta() {
     register_post_meta('comunidade', 'latitude', [
         'show_in_rest' => true,
         'single' => true,
-        'type' => 'string'
+        'type' => 'number'
     ]);
 
     register_post_meta('comunidade', 'longitude', [
         'show_in_rest' => true,
         'single' => true,
-        'type' => 'string'
+        'type' => 'number'
     ]);
 
     register_post_meta('comunidade', 'parent_paroquia', [
@@ -77,7 +77,7 @@ function cc_register_meta() {
     register_post_meta('evento', 'dia_semana', [
         'show_in_rest' => true,
         'single' => true,
-        'type' => 'string'
+        'type' => 'integer'
     ]);
 
     register_post_meta('evento', 'horario', [
@@ -123,6 +123,14 @@ function cc_render_meta_box_comunidade($post) {
     $endereco = get_post_meta($post->ID, 'endereco', true);
     $contatos = get_post_meta($post->ID, 'contatos', true);
     if (!is_array($contatos)) $contatos = [];
+
+    // Buscar todas as comunidades
+    $comunidades = get_posts([
+        'post_type' => 'comunidade',
+        'posts_per_page' => -1,
+        'orderby' => 'title',
+        'order' => 'ASC'
+    ]);
 
     // Front para Admin Wordpress
     ?>
@@ -243,11 +251,11 @@ function cc_save_meta_comunidade($post_id) {
     }
 
     if (isset($_POST['cc_latitude'])) {
-        update_post_meta($post_id, 'latitude', sanitize_text_field($_POST['cc_latitude']));
+        update_post_meta($post_id, 'latitude', floatval($_POST['cc_latitude']));
     }
 
     if (array_key_exists('cc_longitude', $_POST)) {
-        update_post_meta($post_id, 'longitude', sanitize_text_field($_POST['cc_longitude']));
+        update_post_meta($post_id, 'longitude', floatval($_POST['cc_longitude']));
     }
 
     if (array_key_exists('cc_parent_paroquia', $_POST)) {
@@ -331,10 +339,11 @@ function cc_render_meta_box_evento($post) {
         <label><strong>Dia da Semana:</strong></label><br>
         <select name="cc_dia_semana" style="width:100%">
             <?php
-            $dias = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
-            foreach ($dias as $d) {
-                echo "<option value='$d' ".selected($dia,$d,false).">$d</option>";
-            }
+                $dias = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+
+                foreach ($dias as $i => $d) {
+                    echo "<option value='$i' ".selected($dia,$i,false).">$d</option>";
+                }
             ?>
         </select>
     </p>
