@@ -1,5 +1,19 @@
 <?php
 
+// API
+// Rota /wp-json/mapa/v1/comunidades
+// Retorna a lista de Comunidades
+// 
+// Parametros
+// dia integer ou string [0 domingo - 6 sábado || hoje]
+// tipo_evento string [missa, confissão ...]
+// tipo_comunidade string [paroquia, capela, independente]
+// lat integer coordenada geografica
+// lng integer coordenada geografica
+// raio integer Raio de distancia para a busca de comunidades, só funciona se possuir lat e lng
+// tag string [libras, tridentina, crianças ...]
+// limite integer Quantidade Maxima de comunidades retornadas pela api
+// proximidade boolean Ordenada pela maior proximidade do ponto latitude e longitude oferecidos
 add_action('rest_api_init', function () {
 
     register_rest_route('mapa/v1', '/comunidades', [
@@ -30,6 +44,7 @@ function cc_api_mapa_comunidades($request) {
     ];
 
     if ($tipo_comunidade) {
+        // Filtro por Tipo de Comunidade [capela, paroquia ou independente]
         $args['tax_query'] = [[
             'taxonomy' => 'tipo_comunidade',
             'field'    => 'slug',
@@ -46,6 +61,7 @@ function cc_api_mapa_comunidades($request) {
         $lat = get_post_meta($c->ID, 'latitude', true);
         $lng = get_post_meta($c->ID, 'longitude', true);
 
+        // Obrigatorio possuir as coordenadas geograficas
         if (!$lat || !$lng) continue;
 
         // Buscar eventos da comunidade
@@ -87,7 +103,6 @@ function cc_api_mapa_comunidades($request) {
 
             if ($tag && !in_array($tag, $tags_evento)) continue;
 
-
             $lista_eventos[] = [
                 'id'        => $e->ID,
                 'titulo'    => $e->post_title,
@@ -99,6 +114,7 @@ function cc_api_mapa_comunidades($request) {
             ];
         }
 
+        // Obrigatorio tem algum evento
         if (empty($lista_eventos)) continue;
 
         $foto = get_the_post_thumbnail_url($c->ID, 'medium');

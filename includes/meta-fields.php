@@ -124,6 +124,7 @@ function cc_render_meta_box_comunidade($post) {
     $contatos = get_post_meta($post->ID, 'contatos', true);
     if (!is_array($contatos)) $contatos = [];
 
+    // Front para Admin Wordpress
     ?>
     <p>
         <label><strong>Latitude:</strong></label><br>
@@ -137,7 +138,14 @@ function cc_render_meta_box_comunidade($post) {
 
     <p>
         <label><strong>ID da Paróquia (se for Capela):</strong></label><br>
-        <input type="number" name="cc_parent_paroquia" value="<?php echo esc_attr($parent); ?>" style="width:100%;">
+        <select name="cc_parent_paroquia" style="width:100%">
+            <option value="">Selecione</option>
+            <?php foreach ($comunidades as $c): ?>
+                <option value="<?php echo $c->ID; ?>" <?php selected($parent, $c->ID); ?>>
+                    <?php echo $c->post_title; ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
     </p>
 
     <p>
@@ -183,7 +191,16 @@ function cc_render_meta_box_comunidade($post) {
         const wrapper = document.getElementById("cc-contatos-wrapper");
         const btn = document.getElementById("cc-add-contato");
 
-        const tipos = ["telefone","whatsapp","instagram","facebook","youtube","site","email","outro"];
+        const tipos = [
+            "telefone",
+            "whatsapp",
+            "instagram",
+            "facebook",
+            "youtube",
+            "site",
+            "email",
+            "outro"
+        ];
 
         btn.addEventListener("click", function(){
 
@@ -295,8 +312,9 @@ function cc_render_meta_box_evento($post) {
         'orderby' => 'title',
         'order' => 'ASC'
     ]);
-    ?>
 
+    // Front para Admin Wordpress
+    ?>
     <p>
         <label><strong>Comunidade:</strong></label><br>
         <select name="cc_comunidade_id" style="width:100%">

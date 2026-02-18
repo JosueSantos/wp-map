@@ -1,5 +1,6 @@
 <?php
 
+// Listar todas as comunidades
 function cc_lista_comunidades() {
 
     $q = new WP_Query([
@@ -11,6 +12,8 @@ function cc_lista_comunidades() {
 
     while ($q->have_posts()) {
         $q->the_post();
+
+        // Front Exibir Comunidade
         echo "<div class='comunidade'>";
         echo "<h3>" . get_the_title() . "</h3>";
         echo "<p>" . get_the_excerpt() . "</p>";
@@ -22,6 +25,8 @@ function cc_lista_comunidades() {
 
 add_shortcode('cc_comunidades', 'cc_lista_comunidades');
 
+// Listar Eventos de uma Comunidade
+// Parametro Id da Comunidade
 function cc_eventos_comunidade($atts) {
 
     $atts = shortcode_atts(['id'=>0], $atts);
@@ -43,6 +48,7 @@ function cc_eventos_comunidade($atts) {
         $dia = get_post_meta(get_the_ID(),'dia_semana',true);
         $hora = get_post_meta(get_the_ID(),'horario',true);
 
+        // Front exibir eventos da comunidade
         echo "<div class='evento'>";
         echo "<strong>" . get_the_title() . "</strong>";
         echo "<p>$dia às $hora</p>";
@@ -54,24 +60,3 @@ function cc_eventos_comunidade($atts) {
 
 add_shortcode('cc_eventos', 'cc_eventos_comunidade');
 
-function cc_mapa_shortcode($atts) {
-
-    $atts = shortcode_atts([
-        'dominio' => ''
-    ], $atts);
-
-    $dominio = esc_url_raw($atts['dominio']);
-
-    ob_start();
-
-    ?>
-    <div id="mapa-igrejas"
-         data-dominio="<?php echo esc_attr($dominio); ?>"
-         style="width:100%; height:500px;">
-    </div>
-    <?php
-
-    return ob_get_clean();
-}
-
-add_shortcode('mapa_igrejas', 'cc_mapa_shortcode');
