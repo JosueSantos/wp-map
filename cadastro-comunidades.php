@@ -13,6 +13,8 @@ require_once CC_PATH . 'includes/meta-fields.php';
 require_once CC_PATH . 'includes/post-types.php';
 require_once CC_PATH . 'includes/taxonomies.php';
 
+require_once CC_PATH . 'includes/db-alteracoes.php';
+
 require_once CC_PATH . 'includes/api/api-mapa.php';
 require_once CC_PATH . 'includes/api/api-form.php';
 
@@ -20,3 +22,4 @@ require_once CC_PATH . 'includes/shortcodes/shortcodes-comunidade.php';
 require_once CC_PATH . 'includes/shortcodes/shortcodes-mapa.php';
 require_once CC_PATH . 'includes/shortcodes/shortcodes-form.php';
 
+register_activation_hook(__FILE__, 'cc_criar_tabela_alteracoes');

@@ -5,26 +5,39 @@ add_action('rest_api_init', function () {
     register_rest_route('mapa/v1', '/comunidade', [
         'methods'  => 'POST',
         'callback' => 'cc_api_cadastrar_comunidade',
-        'permission_callback' => function () {
-            return is_user_logged_in();
-        }
+        'permission_callback' => '__return_true'
+        // 'permission_callback' => function () {
+        //     return is_user_logged_in();
+        // }
     ]);
 
 });
 
 function cc_api_cadastrar_comunidade($request) {
-    if (!is_user_logged_in()) {
-        return new WP_Error('nao_autorizado', 'Login necessário', ['status' => 401]);
-    }
+    // if (!is_user_logged_in()) {
+    //     return new WP_Error('nao_autorizado', 'Login necessário', ['status' => 401]);
+    // }
 
     $data = $request->get_json_params();
 
-    if (!$data) {
-        return new WP_Error('sem_dados', 'JSON vazio', ['status' => 400]);
+    if (empty($data)) {
+        $raw = $request->get_body();
+        $data = json_decode($raw, true);
+    }
+
+    if (empty($data)) {
+        return new WP_Error('sem_dados', 'JSON vazio ou inválido', ['status' => 400]);
     }
 
     if (empty($data['nome'])) {
         return new WP_Error('nome_obrigatorio', 'Nome da comunidade é obrigatório', ['status' => 400]);
+    }
+
+    $latitude  = isset($data['latitude']) ? floatval($data['latitude']) : null;
+    $longitude = isset($data['longitude']) ? floatval($data['longitude']) : null;
+
+    if ($latitude === null || $longitude === null) {
+        return new WP_Error('coords_invalidas', 'Latitude e longitude obrigatórias', ['status' => 400]);
     }
 
 
@@ -47,20 +60,36 @@ function cc_api_cadastrar_comunidade($request) {
     // ========================
 
     if (!empty($data['tipo']) && taxonomy_exists('tipo_comunidade')) {
-        wp_set_post_terms($comunidade_id, [$data['tipo']], 'tipo_comunidade');
+
+        $termo = term_exists($data['tipo'], 'tipo_comunidade');
+
+        if (!$termo) {
+            $termo = wp_insert_term($data['tipo'], 'tipo_comunidade');
+        }
+
+        if (!is_wp_error($termo)) {
+            wp_set_post_terms($comunidade_id, [(int)$termo['term_id']], 'tipo_comunidade');
+        }
     }
 
     // ========================
     // 3. Metadados Comunidade
     // ========================
 
-    update_post_meta($comunidade_id, 'latitude', floatval($data['latitude'] ?? 0));
-    update_post_meta($comunidade_id, 'longitude', floatval($data['longitude'] ?? 0));
+    update_post_meta($comunidade_id, 'latitude', $latitude);
+    update_post_meta($comunidade_id, 'longitude', $longitude);
+
     update_post_meta($comunidade_id, 'endereco', sanitize_text_field($data['endereco'] ?? ''));
 
     if (!empty($data['parent_paroquia'])) {
         update_post_meta($comunidade_id, 'parent_paroquia', intval($data['parent_paroquia']));
     }
+
+    cc_registrar_alteracao(
+        $comunidade_id,
+        $data['parent_paroquia'] ?? null,
+        $data
+    );
 
     
     // ========================
