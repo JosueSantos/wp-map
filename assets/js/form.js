@@ -6,70 +6,89 @@ const TIPOS_CONTATO = [
 ];
 
 function mapaAdicionarEvento() {
+    const container = document.getElementById('eventos');
 
-    const evt = {
-        titulo: prompt("Título do evento"),
-        tipo: prompt("Tipo: missa, confissao, grupo..."),
-        dia: prompt("Dia da semana 0-6"),
-        horario: prompt("Horário HH:MM"),
-        descricao: "",
-        observacao: "",
-        tags: []
-    };
+    const div = document.createElement('div');
+    div.className = "bg-gray-50 p-6 rounded-2xl space-y-4 shadow-sm";
 
-    eventos.push(evt);
+    div.innerHTML = `
+        <input type="text" placeholder="Título"
+            class="evento-titulo w-full rounded-xl border-gray-300">
 
-    document.getElementById("eventos").innerHTML =
-        JSON.stringify(eventos, null, 2);
+        <div class="grid grid-cols-2 gap-4">
+            <input type="number" min="0" max="6" placeholder="Dia da semana (0=Dom)"
+                class="evento-dia rounded-xl border-gray-300">
+
+            <input type="text" placeholder="Horário"
+                class="evento-horario rounded-xl border-gray-300">
+        </div>
+
+        <textarea placeholder="Descrição"
+            class="evento-descricao w-full rounded-xl border-gray-300"></textarea>
+    `;
+
+    container.appendChild(div);
 }
 
 function mapaAdicionarContato() {
+    const container = document.getElementById('contatos-container');
 
-    const tipo = prompt("Tipo: telefone, whatsapp, instagram, facebook, youtube, site, email");
+    const div = document.createElement('div');
+    div.className = "grid grid-cols-2 gap-3 bg-gray-50 p-4 rounded-xl";
 
-    if (!TIPOS_CONTATO.includes(tipo)) {
-        alert("Tipo inválido");
-        return;
-    }
+    div.innerHTML = `
+        <input type="text" placeholder="Tipo (email, instagram...)"
+            class="contato-tipo rounded-lg border-gray-300 focus:ring-blue-500">
 
-    const valor = prompt("Valor:");
+        <input type="text" placeholder="Valor"
+            class="contato-valor rounded-lg border-gray-300 focus:ring-blue-500">
+    `;
 
-    if (!tipo || !valor) return;
-
-    contatos.push({ tipo, valor });
-
-    document.getElementById("contatos-lista").textContent =
-        JSON.stringify(contatos, null, 2);
+    container.appendChild(div);
 }
 
-async function mapaEnviar() {
+function mapaEnviar() {
 
-    const data = {
-        nome: document.getElementById("nome").value,
-        tipo: document.getElementById("tipo").value,
-        latitude: document.getElementById("latitude").value,
-        longitude: document.getElementById("longitude").value,
-        endereco: document.getElementById("endereco").value,
-        contatos: contatos,
-        eventos: eventos
-    };
+    const contatos = [];
+    document.querySelectorAll('#contatos-container > div').forEach(div => {
+        const tipo = div.querySelector('.contato-tipo').value;
+        const valor = div.querySelector('.contato-valor').value;
 
-    const res = await fetch(MAPA_API.url, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "X-WP-Nonce": MAPA_API.nonce
-        },
-        body: JSON.stringify(data)
+        if (tipo && valor) {
+            contatos.push({ tipo, valor });
+        }
     });
 
-    if (!res.ok) {
-        alert("Erro ao salvar. Verifique os dados.");
-        return;
-    }
+    const eventos = [];
+    document.querySelectorAll('#eventos > div').forEach(div => {
+        eventos.push({
+            titulo: div.querySelector('.evento-titulo').value,
+            dia: div.querySelector('.evento-dia').value,
+            horario: div.querySelector('.evento-horario').value,
+            descricao: div.querySelector('.evento-descricao').value
+        });
+    });
 
-    const json = await res.json();
+    const dados = {
+        nome: document.getElementById('nome').value,
+        tipo: document.getElementById('tipo').value,
+        latitude: document.getElementById('latitude').value,
+        longitude: document.getElementById('longitude').value,
+        endereco: document.getElementById('endereco').value,
+        contatos,
+        eventos
+    };
 
-    document.getElementById("mapa-debug").textContent =
-        JSON.stringify(json, null, 2);
+    fetch(MAPA_API.url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-WP-Nonce': MAPA_API.nonce
+        },
+        body: JSON.stringify(dados)
+    })
+    .then(r => r.json())
+    .then(resp => {
+        document.getElementById('mapa-debug').innerText = JSON.stringify(resp, null, 2);
+    });
 }

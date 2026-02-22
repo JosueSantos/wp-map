@@ -5,18 +5,17 @@ add_action('rest_api_init', function () {
     register_rest_route('mapa/v1', '/comunidade', [
         'methods'  => 'POST',
         'callback' => 'cc_api_cadastrar_comunidade',
-        'permission_callback' => '__return_true'
-        // 'permission_callback' => function () {
-        //     return is_user_logged_in();
-        // }
+        'permission_callback' => function () {
+            return is_user_logged_in();
+        }
     ]);
 
 });
 
 function cc_api_cadastrar_comunidade($request) {
-    // if (!is_user_logged_in()) {
-    //     return new WP_Error('nao_autorizado', 'Login necessário', ['status' => 401]);
-    // }
+    if (!is_user_logged_in()) {
+        return new WP_Error('nao_autorizado', 'Login necessário', ['status' => 401]);
+    }
 
     $data = $request->get_json_params();
 
@@ -151,4 +150,35 @@ function cc_api_cadastrar_comunidade($request) {
         'status' => 'ok',
         'comunidade_id' => $comunidade_id
     ]);
+}
+
+add_action('rest_api_init', function () {
+
+    register_rest_route('mapa/v1', '/alteracoes', [
+        'methods'  => 'GET',
+        'callback' => 'cc_api_listar_alteracoes',
+        'permission_callback' => '__return_true'
+    ]);
+
+});
+
+function cc_api_listar_alteracoes() {
+    global $wpdb;
+
+    $table = $wpdb->prefix . 'mapa_alteracoes';
+
+    $resultados = $wpdb->get_results("
+        SELECT 
+            a.id,
+            a.comunidade_id,
+            p.post_title as comunidade_nome,
+            u.display_name as usuario_nome,
+            a.created_at
+        FROM $table a
+        LEFT JOIN {$wpdb->posts} p ON p.ID = a.comunidade_id
+        LEFT JOIN {$wpdb->users} u ON u.ID = a.user_id
+        ORDER BY a.created_at DESC
+    ");
+
+    return rest_ensure_response($resultados);
 }

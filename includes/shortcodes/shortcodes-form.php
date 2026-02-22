@@ -4,7 +4,7 @@ add_shortcode('mapa_form_comunidade', function () {
 
     wp_enqueue_script(
         'mapa-form',
-        plugin_dir_url(__FILE__) . '../assets/js/form.js',
+        plugin_dir_url(__FILE__) . '../../assets/js/form.js',
         [],
         '1.0',
         true
@@ -15,30 +15,94 @@ add_shortcode('mapa_form_comunidade', function () {
         'nonce' => wp_create_nonce('wp_rest')
     ]);
 
+    wp_enqueue_script('tailwind-cdn', 'https://cdn.tailwindcss.com', [], null);
+
     ob_start();
     ?>
 
-    <div id="mapa-form-comunidade">
-        <h3>Cadastrar Comunidade</h3>
+    <div class="max-w-4xl mx-auto bg-white shadow-xl rounded-2xl p-8 space-y-8">
 
-        <input type="text" id="nome" placeholder="Nome da comunidade">
-        <input type="text" id="tipo" placeholder="paroquia | capela | independente">
-        <input type="text" id="latitude" placeholder="Latitude">
-        <input type="text" id="longitude" placeholder="Longitude">
-        <input type="text" id="endereco" placeholder="Endereço">
-        
-        <h4>Contatos</h4>
-        <button onclick="mapaAdicionarContato()">+ Contato</button>
-        <pre id="contatos-lista"></pre>
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800">Cadastrar Comunidade</h2>
+            <p class="text-gray-500 text-sm">Preencha as informações abaixo</p>
+        </div>
 
-        <h4>Eventos</h4>
+        <!-- Informações principais -->
+        <div class="grid md:grid-cols-2 gap-6">
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Nome</label>
+                <input type="text" id="nome"
+                    class="mt-1 w-full rounded-xl border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm">
+            </div>
 
-        <div id="eventos"></div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Tipo</label>
+                <select id="tipo"
+                    class="mt-1 w-full rounded-xl border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm">
+                    <option value="">Selecione</option>
+                    <option value="paroquia">Paróquia</option>
+                    <option value="capela">Capela</option>
+                    <option value="independente">Independente</option>
+                </select>
+            </div>
 
-        <button onclick="mapaAdicionarEvento()">+ Evento</button>
-        <button onclick="mapaEnviar()">Salvar Comunidade</button>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Latitude</label>
+                <input type="number" step="any" id="latitude"
+                    class="mt-1 w-full rounded-xl border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm">
+            </div>
 
-        <pre id="mapa-debug"></pre>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Longitude</label>
+                <input type="number" step="any" id="longitude"
+                    class="mt-1 w-full rounded-xl border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm">
+            </div>
+
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700">Endereço</label>
+                <input type="text" id="endereco"
+                    class="mt-1 w-full rounded-xl border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm">
+            </div>
+
+        </div>
+
+        <!-- Contatos -->
+        <div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Contatos</h3>
+
+            <div id="contatos-container" class="space-y-3"></div>
+
+            <button type="button"
+                onclick="mapaAdicionarContato()"
+                class="mt-3 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm">
+                + Adicionar contato
+            </button>
+        </div>
+
+        <!-- Eventos -->
+        <div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Eventos</h3>
+
+            <div id="eventos" class="space-y-6"></div>
+
+            <button type="button"
+                onclick="mapaAdicionarEvento()"
+                class="mt-3 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm">
+                + Adicionar evento
+            </button>
+        </div>
+
+        <!-- Botão -->
+        <div class="pt-4 border-t">
+            <button onclick="mapaEnviar()"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold transition">
+                Salvar Comunidade
+            </button>
+        </div>
+
+        <div id="mapa-debug" class="text-sm text-gray-500"></div>
+
     </div>
 
     <?php
