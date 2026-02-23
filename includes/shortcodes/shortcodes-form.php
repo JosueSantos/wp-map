@@ -44,6 +44,15 @@ add_shortcode('mapa_form_comunidade', function () {
                 </select>
             </div>
 
+            <div id="campo-paroquia" class="hidden md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700">Paróquia Responsável</label>
+                <input type="text" id="busca-paroquia"
+                    placeholder="Digite para buscar paróquia..."
+                    class="mt-1 w-full rounded-xl border-gray-300 focus:ring-2 focus:ring-blue-500">
+                <input type="hidden" id="parent_paroquia">
+                <div id="resultado-paroquias" class="bg-white border rounded-xl mt-2 hidden"></div>
+            </div>
+
             <div>
                 <label class="block text-sm font-medium text-gray-700">Latitude</label>
                 <input type="number" step="any" id="latitude"

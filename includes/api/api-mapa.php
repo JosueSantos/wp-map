@@ -26,6 +26,38 @@ add_action('rest_api_init', function () {
         ]
     ]);
 
+    register_rest_route('mapa/v1', '/paroquias', [
+        'methods'  => 'GET',
+        'callback' => function ($request) {
+
+            $search = sanitize_text_field($request->get_param('search'));
+
+            $query = new WP_Query([
+                'post_type' => 'comunidade',
+                's' => $search,
+                'tax_query' => [
+                    [
+                        'taxonomy' => 'tipo_comunidade',
+                        'field'    => 'slug',
+                        'terms'    => 'paroquia',
+                    ]
+                ]
+            ]);
+
+            $resultado = [];
+
+            foreach ($query->posts as $post) {
+                $resultado[] = [
+                    'id' => $post->ID,
+                    'nome' => $post->post_title
+                ];
+            }
+
+            return $resultado;
+        },
+        'permission_callback' => '__return_true'
+    ]);
+
 });
 
 function cc_api_mapa_comunidades($request) {

@@ -34,6 +34,55 @@ async function mapaCarregarTiposComunidade() {
     }
 }
 
+document.getElementById('tipo').addEventListener('change', function () {
+
+    const textoSelecionado = this.options[this.selectedIndex].text.toLowerCase();
+
+    const campo = document.getElementById('campo-paroquia');
+
+    if (textoSelecionado.includes('capela')) {
+        campo.classList.remove('hidden');
+    } else {
+        campo.classList.add('hidden');
+        document.getElementById('parent_paroquia').value = '';
+    }
+
+});
+
+document.getElementById('busca-paroquia').addEventListener('input', async function () {
+
+    const termo = this.value;
+
+    if (termo.length < 2) return;
+
+    const resultadoBox = document.getElementById('resultado-paroquias');
+
+    const response = await fetch(
+        `/wp-json/mapa/v1/paroquias?search=${termo}&per_page=20`
+    );
+
+    const comunidades = await response.json();
+
+    resultadoBox.innerHTML = '';
+    resultadoBox.classList.remove('hidden');
+
+    comunidades.forEach(c => {
+
+        const item = document.createElement('div');
+        item.className = "p-2 hover:bg-gray-100 cursor-pointer";
+        item.textContent = c.nome;
+
+        item.onclick = () => {
+            document.getElementById('busca-paroquia').value = c.nome;
+            document.getElementById('parent_paroquia').value = c.id;
+            resultadoBox.classList.add('hidden');
+        };
+
+        resultadoBox.appendChild(item);
+    });
+
+});
+
 async function mapaCarregarTiposEvento(select) {
 
     const response = await fetch('/wp-json/wp/v2/tipo_evento?per_page=100');
@@ -90,6 +139,9 @@ function mapaAdicionarEvento() {
 
         <textarea placeholder="Descrição"
             class="evento-descricao w-full rounded-xl border-gray-300"></textarea>
+
+        <textarea placeholder="Observação"
+            class="evento-observacao w-full rounded-xl border-gray-300"></textarea>
 
         <div class="grid grid-cols-2 gap-4">
             <select class="tipo-evento rounded-xl border-gray-300">
@@ -164,6 +216,7 @@ function mapaEnviar() {
             dia: div.querySelector('.evento-dia').value,
             horario: div.querySelector('.evento-horario').value,
             descricao: div.querySelector('.evento-descricao').value,
+            observacao: div.querySelector('.evento-observacao').value,
             tipo_evento: parseInt(div.querySelector('.tipo-evento').value),
             tags_evento: tagsSelecionadas
         });
@@ -176,6 +229,7 @@ function mapaEnviar() {
         latitude: document.getElementById('latitude').value,
         longitude: document.getElementById('longitude').value,
         endereco: document.getElementById('endereco').value,
+        parent_paroquia: document.getElementById('parent_paroquia').value,
         contatos,
         eventos
     };

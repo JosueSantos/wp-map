@@ -58,10 +58,10 @@ function cc_api_cadastrar_comunidade($request) {
     // 2. Taxonomia tipo_comunidade
     // ========================
 
-    if (!empty($dados['tipo'])) {
+    if (!empty($data['tipo'])) {
         wp_set_object_terms(
             $comunidade_id,
-            [(int) $dados['tipo']],
+            [(int) $data['tipo']],
             'tipo_comunidade'
         );
     }
