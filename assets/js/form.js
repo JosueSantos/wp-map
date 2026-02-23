@@ -1,9 +1,74 @@
 let eventos = [];
 let contatos = [];
 
-const TIPOS_CONTATO = [
-  "telefone","whatsapp","instagram","facebook","youtube","site","email"
-];
+document.addEventListener('DOMContentLoaded', function () {
+    mapaCarregarTiposComunidade();
+});
+
+async function mapaCarregarTiposComunidade() {
+
+    const select = document.getElementById('tipo');
+
+    try {
+
+        const response = await fetch('/wp-json/wp/v2/tipo_comunidade?per_page=100');
+        const termos = await response.json();
+
+        select.innerHTML = '<option value="">Selecione</option>';
+
+        termos.forEach(termo => {
+
+            const option = document.createElement('option');
+            option.value = termo.id; // IMPORTANTE: usar ID
+            option.textContent = termo.name;
+
+            select.appendChild(option);
+
+        });
+
+    } catch (error) {
+
+        select.innerHTML = '<option value="">Erro ao carregar</option>';
+        console.error('Erro ao carregar tipo_comunidade:', error);
+
+    }
+}
+
+async function mapaCarregarTiposEvento(select) {
+
+    const response = await fetch('/wp-json/wp/v2/tipo_evento?per_page=100');
+    const termos = await response.json();
+
+    select.innerHTML = '<option value="">Selecione</option>';
+
+    termos.forEach(termo => {
+
+        const option = document.createElement('option');
+        option.value = termo.id;
+        option.textContent = termo.name;
+
+        select.appendChild(option);
+
+    });
+}
+
+async function mapaCarregarTagsEvento(select) {
+
+    const response = await fetch('/wp-json/wp/v2/tags_evento?per_page=100');
+    const termos = await response.json();
+
+    select.innerHTML = '';
+
+    termos.forEach(termo => {
+
+        const option = document.createElement('option');
+        option.value = termo.id;
+        option.textContent = termo.name;
+
+        select.appendChild(option);
+
+    });
+}
 
 function mapaAdicionarEvento() {
     const container = document.getElementById('eventos');
@@ -25,10 +90,31 @@ function mapaAdicionarEvento() {
 
         <textarea placeholder="Descrição"
             class="evento-descricao w-full rounded-xl border-gray-300"></textarea>
+
+        <div class="grid grid-cols-2 gap-4">
+            <select class="tipo-evento rounded-xl border-gray-300">
+                <option>Carregando tipos...</option>
+            </select>
+
+            <select class="tags-evento rounded-xl border-gray-300" multiple>
+            </select>
+        </div>
     `;
 
     container.appendChild(div);
+
+    const novoEvento = container.lastElementChild;
+
+    const selectTipo = novoEvento.querySelector('.tipo-evento');
+    const selectTags = novoEvento.querySelector('.tags-evento');
+
+    mapaCarregarTiposEvento(selectTipo);
+    mapaCarregarTagsEvento(selectTags);
 }
+
+const TIPOS_CONTATO = [
+  "telefone","whatsapp","instagram","facebook","youtube","site","email"
+];
 
 function mapaAdicionarContato() {
     const container = document.getElementById('contatos-container');
@@ -36,9 +122,15 @@ function mapaAdicionarContato() {
     const div = document.createElement('div');
     div.className = "grid grid-cols-2 gap-3 bg-gray-50 p-4 rounded-xl";
 
+    const options = TIPOS_CONTATO.map(tipo =>
+        `<option value="${tipo}">${tipo}</option>`
+    ).join('');
+
     div.innerHTML = `
-        <input type="text" placeholder="Tipo (email, instagram...)"
-            class="contato-tipo rounded-lg border-gray-300 focus:ring-blue-500">
+        <select class="contato-tipo rounded-lg border-gray-300 focus:ring-blue-500">
+            <option value="">Selecione</option>
+            ${options}
+        </select>
 
         <input type="text" placeholder="Valor"
             class="contato-valor rounded-lg border-gray-300 focus:ring-blue-500">
@@ -60,13 +152,22 @@ function mapaEnviar() {
     });
 
     const eventos = [];
+
     document.querySelectorAll('#eventos > div').forEach(div => {
+
+        const tagsSelecionadas = Array.from(
+            div.querySelector('.tags-evento').selectedOptions
+        ).map(option => parseInt(option.value));
+
         eventos.push({
             titulo: div.querySelector('.evento-titulo').value,
             dia: div.querySelector('.evento-dia').value,
             horario: div.querySelector('.evento-horario').value,
-            descricao: div.querySelector('.evento-descricao').value
+            descricao: div.querySelector('.evento-descricao').value,
+            tipo_evento: parseInt(div.querySelector('.tipo-evento').value),
+            tags_evento: tagsSelecionadas
         });
+
     });
 
     const dados = {

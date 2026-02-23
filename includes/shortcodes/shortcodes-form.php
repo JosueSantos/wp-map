@@ -40,10 +40,7 @@ add_shortcode('mapa_form_comunidade', function () {
                 <label class="block text-sm font-medium text-gray-700">Tipo</label>
                 <select id="tipo"
                     class="mt-1 w-full rounded-xl border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm">
-                    <option value="">Selecione</option>
-                    <option value="paroquia">Paróquia</option>
-                    <option value="capela">Capela</option>
-                    <option value="independente">Independente</option>
+                    <option value="">Carregando...</option>
                 </select>
             </div>
 

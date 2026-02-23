@@ -58,17 +58,12 @@ function cc_api_cadastrar_comunidade($request) {
     // 2. Taxonomia tipo_comunidade
     // ========================
 
-    if (!empty($data['tipo']) && taxonomy_exists('tipo_comunidade')) {
-
-        $termo = term_exists($data['tipo'], 'tipo_comunidade');
-
-        if (!$termo) {
-            $termo = wp_insert_term($data['tipo'], 'tipo_comunidade');
-        }
-
-        if (!is_wp_error($termo)) {
-            wp_set_post_terms($comunidade_id, [(int)$termo['term_id']], 'tipo_comunidade');
-        }
+    if (!empty($dados['tipo'])) {
+        wp_set_object_terms(
+            $comunidade_id,
+            [(int) $dados['tipo']],
+            'tipo_comunidade'
+        );
     }
 
     // ========================
@@ -136,12 +131,22 @@ function cc_api_cadastrar_comunidade($request) {
             update_post_meta($evento_id, 'descricao', sanitize_textarea_field($evt['descricao'] ?? ''));
             update_post_meta($evento_id, 'observacao', sanitize_textarea_field($evt['observacao'] ?? ''));
 
-            if (!empty($evt['tipo'])) {
-                wp_set_post_terms($evento_id, [$evt['tipo']], 'tipo_evento');
+            // Tipo do Evento
+            if (!empty($evt['tipo_evento'])) {
+                wp_set_object_terms(
+                    $evento_id,
+                    [(int) $evt['tipo_evento']],
+                    'tipo_evento'
+                );
             }
 
-            if (!empty($evt['tags'])) {
-                update_post_meta($evento_id, 'tags', array_map('sanitize_text_field', $evt['tags']));
+            // Tags do Evento
+            if (!empty($evt['tags_evento']) && is_array($evt['tags_evento'])) {
+                wp_set_object_terms(
+                    $evento_id,
+                    array_map('intval', $evt['tags_evento']),
+                    'tags_evento'
+                );
             }
         }
     }
