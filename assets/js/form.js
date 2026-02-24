@@ -52,10 +52,14 @@ document.getElementById('tipo').addEventListener('change', function () {
 document.getElementById('busca-paroquia').addEventListener('input', async function () {
 
     const termo = this.value;
-
-    if (termo.length < 2) return;
-
     const resultadoBox = document.getElementById('resultado-paroquias');
+
+    if (termo.length < 2) {
+        resultadoBox.innerHTML = '';
+        resultadoBox.classList.add('hidden');
+        document.getElementById('parent_paroquia').value = '';
+        return;
+    }
 
     const response = await fetch(
         `/wp-json/mapa/v1/paroquias?search=${termo}&per_page=20`
@@ -65,6 +69,14 @@ document.getElementById('busca-paroquia').addEventListener('input', async functi
 
     resultadoBox.innerHTML = '';
     resultadoBox.classList.remove('hidden');
+
+    if (!comunidades.length) {
+        const vazio = document.createElement('div');
+        vazio.className = 'p-2 text-sm text-gray-600';
+        vazio.textContent = 'Nenhuma paróquia encontrada. Cadastre uma nova paróquia.';
+        resultadoBox.appendChild(vazio);
+        return;
+    }
 
     comunidades.forEach(c => {
 
