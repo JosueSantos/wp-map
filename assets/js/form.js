@@ -1,8 +1,12 @@
 let eventos = [];
 let contatos = [];
+let mapaCadastro;
+let marcadorCadastro;
 
 document.addEventListener('DOMContentLoaded', function () {
     mapaCarregarTiposComunidade();
+    mapaIniciarSeletorDeCoordenadas();
+    mapaIniciarEtapasDoFormulario();
 });
 
 async function mapaCarregarTiposComunidade() {
@@ -52,10 +56,14 @@ document.getElementById('tipo').addEventListener('change', function () {
 document.getElementById('busca-paroquia').addEventListener('input', async function () {
 
     const termo = this.value;
-
-    if (termo.length < 2) return;
-
     const resultadoBox = document.getElementById('resultado-paroquias');
+
+    if (termo.length < 2) {
+        resultadoBox.innerHTML = '';
+        resultadoBox.classList.add('hidden');
+        document.getElementById('parent_paroquia').value = '';
+        return;
+    }
 
     const response = await fetch(
         `/wp-json/mapa/v1/paroquias?search=${termo}&per_page=20`
@@ -65,6 +73,14 @@ document.getElementById('busca-paroquia').addEventListener('input', async functi
 
     resultadoBox.innerHTML = '';
     resultadoBox.classList.remove('hidden');
+
+    if (!comunidades.length) {
+        const vazio = document.createElement('div');
+        vazio.className = 'p-2 text-sm text-gray-600';
+        vazio.textContent = 'Nenhuma paróquia encontrada. Cadastre uma nova paróquia.';
+        resultadoBox.appendChild(vazio);
+        return;
+    }
 
     comunidades.forEach(c => {
 
@@ -82,6 +98,160 @@ document.getElementById('busca-paroquia').addEventListener('input', async functi
     });
 
 });
+
+function mapaIniciarSeletorDeCoordenadas() {
+
+    const mapaEl = document.getElementById('mapa-cadastro');
+
+    if (!mapaEl || typeof L === 'undefined') return;
+
+    const latInput = document.getElementById('latitude');
+    const lngInput = document.getElementById('longitude');
+    const enderecoInput = document.getElementById('endereco');
+    const botaoBusca = document.getElementById('buscar-endereco-mapa');
+    const mensagemAjuste = document.getElementById('mapa-ajuste-msg');
+    const mensagemErro = document.getElementById('mapa-endereco-erro');
+
+    const latInicial = parseFloat(latInput.value);
+    const lngInicial = parseFloat(lngInput.value);
+    const centroInicial = Number.isFinite(latInicial) && Number.isFinite(lngInicial)
+        ? [latInicial, lngInicial]
+        : [-5.0892, -42.8016];
+
+    mapaCadastro = L.map('mapa-cadastro').setView(centroInicial, 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(mapaCadastro);
+
+    if (Number.isFinite(latInicial) && Number.isFinite(lngInicial)) {
+        mapaAtualizarMarcadorCadastro(latInicial, lngInicial, true);
+    }
+
+    mapaCadastro.on('click', function (event) {
+        mapaAtualizarMarcadorCadastro(event.latlng.lat, event.latlng.lng, true);
+        mensagemErro.classList.add('hidden');
+    });
+
+    botaoBusca.addEventListener('click', function () {
+        mapaBuscarEnderecoNoOpenStreetMap(enderecoInput.value, mensagemErro);
+    });
+
+    enderecoInput.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            mapaBuscarEnderecoNoOpenStreetMap(enderecoInput.value, mensagemErro);
+        }
+    });
+
+    function mapaAtualizarMarcadorCadastro(lat, lng, mostrarMensagem = false) {
+
+        latInput.value = Number(lat).toFixed(6);
+        lngInput.value = Number(lng).toFixed(6);
+
+        if (!marcadorCadastro) {
+            marcadorCadastro = L.marker([lat, lng], { draggable: true }).addTo(mapaCadastro);
+            marcadorCadastro.on('dragend', function (event) {
+                const ponto = event.target.getLatLng();
+                mapaAtualizarMarcadorCadastro(ponto.lat, ponto.lng, true);
+            });
+        } else {
+            marcadorCadastro.setLatLng([lat, lng]);
+        }
+
+        mapaCadastro.setView([lat, lng], mapaCadastro.getZoom() < 15 ? 15 : mapaCadastro.getZoom());
+
+        if (mostrarMensagem) {
+            mensagemAjuste.classList.remove('hidden');
+        }
+    }
+
+    async function mapaBuscarEnderecoNoOpenStreetMap(endereco, erroEl) {
+
+        const enderecoBusca = endereco.trim();
+
+        if (!enderecoBusca) {
+            erroEl.textContent = 'Digite um endereço para buscar no mapa.';
+            erroEl.classList.remove('hidden');
+            return;
+        }
+
+        erroEl.classList.add('hidden');
+
+        try {
+
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(enderecoBusca)}`, {
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) throw new Error('Falha ao consultar o endereço.');
+
+            const resultados = await response.json();
+
+            if (!resultados.length) {
+                erroEl.textContent = 'Endereço não encontrado. Ajuste o texto ou marque no mapa manualmente.';
+                erroEl.classList.remove('hidden');
+                return;
+            }
+
+            const local = resultados[0];
+            mapaAtualizarMarcadorCadastro(parseFloat(local.lat), parseFloat(local.lon), true);
+
+        } catch (error) {
+            erroEl.textContent = 'Não foi possível buscar o endereço agora. Tente novamente ou marque no mapa.';
+            erroEl.classList.remove('hidden');
+        }
+    }
+}
+
+
+function mapaIniciarEtapasDoFormulario() {
+
+    const barra = document.getElementById('progresso-cadastro');
+    const botoesEtapa = document.querySelectorAll('[data-step-nav]');
+    const secoes = document.querySelectorAll('[data-step]');
+
+    if (!barra || !botoesEtapa.length || !secoes.length) return;
+
+    botoesEtapa.forEach(botao => {
+        botao.addEventListener('click', function () {
+            const step = parseInt(this.dataset.stepNav, 10);
+            mapaAtualizarEtapaVisual(step);
+            const secao = document.querySelector(`#secao-etapa-${step}`);
+            if (secao) {
+                secao.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    });
+
+    const observador = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const step = parseInt(entry.target.dataset.step, 10);
+                mapaAtualizarEtapaVisual(step);
+            }
+        });
+    }, { threshold: 0.5 });
+
+    secoes.forEach(secao => observador.observe(secao));
+
+    function mapaAtualizarEtapaVisual(stepAtual) {
+        const progresso = Math.max(1, Math.min(4, stepAtual)) * 25;
+        barra.style.width = `${progresso}%`;
+
+        botoesEtapa.forEach(botao => {
+            const stepBtn = parseInt(botao.dataset.stepNav, 10);
+            if (stepBtn <= stepAtual) {
+                botao.className = 'step-nav w-full text-left px-3 py-2 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 font-medium';
+            } else {
+                botao.className = 'step-nav w-full text-left px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-500';
+            }
+        });
+    }
+}
+
 
 async function mapaCarregarTiposEvento(select) {
 
@@ -191,7 +361,27 @@ function mapaAdicionarContato() {
     container.appendChild(div);
 }
 
+
+function mapaValidarRegraCapela() {
+
+    const selectTipo = document.getElementById('tipo');
+    const parentParoquia = document.getElementById('parent_paroquia').value;
+
+    const textoSelecionado = selectTipo.options[selectTipo.selectedIndex]?.text?.toLowerCase() || '';
+
+    if (textoSelecionado.includes('capela') && !parentParoquia) {
+        document.getElementById('mapa-debug').innerText = 'Para cadastrar uma Capela, selecione uma Paróquia Responsável. Se não existir, cadastre primeiro a paróquia.';
+        document.getElementById('campo-paroquia').classList.remove('hidden');
+        document.getElementById('busca-paroquia').focus();
+        return false;
+    }
+
+    return true;
+}
+
 function mapaEnviar() {
+
+    if (!mapaValidarRegraCapela()) return;
 
     const contatos = [];
     document.querySelectorAll('#contatos-container > div').forEach(div => {
