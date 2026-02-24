@@ -40,7 +40,7 @@ add_shortcode('mapa_form_comunidade', function () {
             <p class="text-gray-600 text-base">Fluxo guiado por etapas para facilitar o preenchimento.</p>
         </div>
 
-        <div class="sticky top-4 z-20 bg-white/95 backdrop-blur-sm py-3 border-b border-gray-100 rounded-xl px-2 shadow-sm">
+        <div class="sticky top-8 z-20 bg-white/95 backdrop-blur-sm py-3 border-b border-gray-100 rounded-xl px-2 shadow-sm">
             <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div id="progresso-cadastro" class="h-full bg-indigo-600 rounded-full transition-all duration-300" style="width: 25%;"></div>
             </div>
