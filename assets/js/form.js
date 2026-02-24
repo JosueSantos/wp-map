@@ -1,8 +1,11 @@
 let eventos = [];
 let contatos = [];
+let mapaCadastro;
+let marcadorCadastro;
 
 document.addEventListener('DOMContentLoaded', function () {
     mapaCarregarTiposComunidade();
+    mapaIniciarSeletorDeCoordenadas();
 });
 
 async function mapaCarregarTiposComunidade() {
@@ -94,6 +97,114 @@ document.getElementById('busca-paroquia').addEventListener('input', async functi
     });
 
 });
+
+function mapaIniciarSeletorDeCoordenadas() {
+
+    const mapaEl = document.getElementById('mapa-cadastro');
+
+    if (!mapaEl || typeof L === 'undefined') return;
+
+    const latInput = document.getElementById('latitude');
+    const lngInput = document.getElementById('longitude');
+    const enderecoInput = document.getElementById('endereco');
+    const botaoBusca = document.getElementById('buscar-endereco-mapa');
+    const mensagemAjuste = document.getElementById('mapa-ajuste-msg');
+    const mensagemErro = document.getElementById('mapa-endereco-erro');
+
+    const latInicial = parseFloat(latInput.value);
+    const lngInicial = parseFloat(lngInput.value);
+    const centroInicial = Number.isFinite(latInicial) && Number.isFinite(lngInicial)
+        ? [latInicial, lngInicial]
+        : [-5.0892, -42.8016];
+
+    mapaCadastro = L.map('mapa-cadastro').setView(centroInicial, 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(mapaCadastro);
+
+    if (Number.isFinite(latInicial) && Number.isFinite(lngInicial)) {
+        mapaAtualizarMarcadorCadastro(latInicial, lngInicial, true);
+    }
+
+    mapaCadastro.on('click', function (event) {
+        mapaAtualizarMarcadorCadastro(event.latlng.lat, event.latlng.lng, true);
+        mensagemErro.classList.add('hidden');
+    });
+
+    botaoBusca.addEventListener('click', function () {
+        mapaBuscarEnderecoNoOpenStreetMap(enderecoInput.value, mensagemErro);
+    });
+
+    enderecoInput.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            mapaBuscarEnderecoNoOpenStreetMap(enderecoInput.value, mensagemErro);
+        }
+    });
+
+    function mapaAtualizarMarcadorCadastro(lat, lng, mostrarMensagem = false) {
+
+        latInput.value = Number(lat).toFixed(6);
+        lngInput.value = Number(lng).toFixed(6);
+
+        if (!marcadorCadastro) {
+            marcadorCadastro = L.marker([lat, lng], { draggable: true }).addTo(mapaCadastro);
+            marcadorCadastro.on('dragend', function (event) {
+                const ponto = event.target.getLatLng();
+                mapaAtualizarMarcadorCadastro(ponto.lat, ponto.lng, true);
+            });
+        } else {
+            marcadorCadastro.setLatLng([lat, lng]);
+        }
+
+        mapaCadastro.setView([lat, lng], mapaCadastro.getZoom() < 15 ? 15 : mapaCadastro.getZoom());
+
+        if (mostrarMensagem) {
+            mensagemAjuste.classList.remove('hidden');
+        }
+    }
+
+    async function mapaBuscarEnderecoNoOpenStreetMap(endereco, erroEl) {
+
+        const enderecoBusca = endereco.trim();
+
+        if (!enderecoBusca) {
+            erroEl.textContent = 'Digite um endereço para buscar no mapa.';
+            erroEl.classList.remove('hidden');
+            return;
+        }
+
+        erroEl.classList.add('hidden');
+
+        try {
+
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(enderecoBusca)}`, {
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) throw new Error('Falha ao consultar o endereço.');
+
+            const resultados = await response.json();
+
+            if (!resultados.length) {
+                erroEl.textContent = 'Endereço não encontrado. Ajuste o texto ou marque no mapa manualmente.';
+                erroEl.classList.remove('hidden');
+                return;
+            }
+
+            const local = resultados[0];
+            mapaAtualizarMarcadorCadastro(parseFloat(local.lat), parseFloat(local.lon), true);
+
+        } catch (error) {
+            erroEl.textContent = 'Não foi possível buscar o endereço agora. Tente novamente ou marque no mapa.';
+            erroEl.classList.remove('hidden');
+        }
+    }
+}
+
 
 async function mapaCarregarTiposEvento(select) {
 
