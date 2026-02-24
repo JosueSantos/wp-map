@@ -462,24 +462,28 @@ function mapaEnviar() {
 
     });
 
-    const dados = {
-        nome: document.getElementById('nome').value,
-        tipo: document.getElementById('tipo').value,
-        latitude: document.getElementById('latitude').value,
-        longitude: document.getElementById('longitude').value,
-        endereco: document.getElementById('endereco').value,
-        parent_paroquia: document.getElementById('parent_paroquia').value,
-        contatos,
-        eventos
-    };
+    const formData = new FormData();
+
+    formData.append('nome', document.getElementById('nome').value);
+    formData.append('tipo', document.getElementById('tipo').value);
+    formData.append('latitude', document.getElementById('latitude').value);
+    formData.append('longitude', document.getElementById('longitude').value);
+    formData.append('endereco', document.getElementById('endereco').value);
+    formData.append('parent_paroquia', document.getElementById('parent_paroquia').value);
+    formData.append('contatos', JSON.stringify(contatos));
+    formData.append('eventos', JSON.stringify(eventos));
+
+    const imagemInput = document.getElementById('imagem-comunidade');
+    if (imagemInput?.files?.length) {
+        formData.append('imagem_comunidade', imagemInput.files[0]);
+    }
 
     fetch(MAPA_API.url, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
             'X-WP-Nonce': MAPA_API.nonce
         },
-        body: JSON.stringify(dados)
+        body: formData
     })
     .then(r => r.json())
     .then(resp => {
