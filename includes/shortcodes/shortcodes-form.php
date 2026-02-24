@@ -136,6 +136,24 @@ add_shortcode('mapa_form_comunidade', function () {
 
             <div id="eventos" class="space-y-6"></div>
 
+            <div class="pt-4 mt-4 border-t">
+                <button onclick="mapaEnviar()"
+                    class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-semibold transition">
+                    Salvar Comunidade
+                </button>
+            </div>
+        </section>
+
+
+        <section id="secao-imagem" class="rounded-2xl border border-gray-200 p-4 sm:p-6 space-y-3">
+            <h3 class="text-lg font-semibold text-gray-800">Imagem da comunidade (opcional)</h3>
+            <p class="text-base text-gray-600">Aceita JPG, PNG, WEBP ou GIF. Máximo sugerido: 5MB.</p>
+            <input type="file" id="imagem-comunidade" accept="image/jpeg,image/png,image/webp,image/gif"
+                class="block w-full text-base text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
+            <p id="imagem-comunidade-msg" class="text-base hidden"></p>
+        </section>
+
+        <div class="pt-1">
             <button type="button"
                 onclick="mapaAdicionarEvento()"
                 class="w-full sm:w-auto mt-3 px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-base font-medium transition">
