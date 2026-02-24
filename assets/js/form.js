@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function () {
     mapaCarregarTiposComunidade();
     mapaIniciarSeletorDeCoordenadas();
     mapaIniciarEtapasDoFormulario();
+    mapaIniciarValidadorImagem();
 });
 
 async function mapaCarregarTiposComunidade() {
@@ -76,7 +77,7 @@ document.getElementById('busca-paroquia').addEventListener('input', async functi
 
     if (!comunidades.length) {
         const vazio = document.createElement('div');
-        vazio.className = 'p-2 text-sm text-gray-600';
+        vazio.className = 'p-3 text-base text-gray-700';
         vazio.textContent = 'Nenhuma paróquia encontrada. Cadastre uma nova paróquia.';
         resultadoBox.appendChild(vazio);
         return;
@@ -299,12 +300,20 @@ function mapaAdicionarEvento() {
         <input type="text" placeholder="Título"
             class="evento-titulo w-full rounded-xl border-gray-300">
 
-        <div class="grid grid-cols-2 gap-4">
-            <input type="number" min="0" max="6" placeholder="Dia da semana (0=Dom)"
-                class="evento-dia rounded-xl border-gray-300">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <select class="evento-dia rounded-xl border-gray-300 focus:ring-indigo-500">
+                <option value="">Selecione o dia</option>
+                <option value="0">Domingo</option>
+                <option value="1">Segunda-feira</option>
+                <option value="2">Terça-feira</option>
+                <option value="3">Quarta-feira</option>
+                <option value="4">Quinta-feira</option>
+                <option value="5">Sexta-feira</option>
+                <option value="6">Sábado</option>
+            </select>
 
-            <input type="text" placeholder="Horário"
-                class="evento-horario rounded-xl border-gray-300">
+            <input type="time" placeholder="Horário"
+                class="evento-horario rounded-xl border-gray-300 focus:ring-indigo-500">
         </div>
 
         <textarea placeholder="Descrição"
@@ -361,6 +370,46 @@ function mapaAdicionarContato() {
     container.appendChild(div);
 }
 
+
+function mapaIniciarValidadorImagem() {
+
+    const inputImagem = document.getElementById('imagem-comunidade');
+    const mensagem = document.getElementById('imagem-comunidade-msg');
+
+    if (!inputImagem || !mensagem) return;
+
+    const tiposAceitos = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const tamanhoMaximo = 5 * 1024 * 1024;
+
+    inputImagem.addEventListener('change', function () {
+        mensagem.classList.add('hidden');
+        mensagem.classList.remove('text-red-700', 'text-emerald-700', 'font-medium');
+
+        if (!this.files || !this.files.length) return;
+
+        const arquivo = this.files[0];
+
+        if (!tiposAceitos.includes(arquivo.type)) {
+            this.value = '';
+            mensagem.textContent = 'Arquivo inválido. Envie uma imagem JPG, PNG, WEBP ou GIF.';
+            mensagem.classList.remove('hidden');
+            mensagem.classList.add('text-red-700', 'font-medium');
+            return;
+        }
+
+        if (arquivo.size > tamanhoMaximo) {
+            this.value = '';
+            mensagem.textContent = 'Imagem muito grande. Envie um arquivo com até 5MB.';
+            mensagem.classList.remove('hidden');
+            mensagem.classList.add('text-red-700', 'font-medium');
+            return;
+        }
+
+        mensagem.textContent = 'Imagem válida selecionada.';
+        mensagem.classList.remove('hidden');
+        mensagem.classList.add('text-emerald-700', 'font-medium');
+    });
+}
 
 function mapaValidarRegraCapela() {
 
