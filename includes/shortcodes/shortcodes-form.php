@@ -159,7 +159,6 @@ add_shortcode('mapa_form_comunidade', function () {
                 class="w-full sm:w-auto px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-base font-medium">
                 + Adicionar evento
             </button>
-        </div>
 
         <div id="mapa-debug" class="text-base text-gray-600"></div>
 
