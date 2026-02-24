@@ -6,6 +6,7 @@ let marcadorCadastro;
 document.addEventListener('DOMContentLoaded', function () {
     mapaCarregarTiposComunidade();
     mapaIniciarSeletorDeCoordenadas();
+    mapaIniciarEtapasDoFormulario();
 });
 
 async function mapaCarregarTiposComunidade() {
@@ -206,6 +207,52 @@ function mapaIniciarSeletorDeCoordenadas() {
 }
 
 
+function mapaIniciarEtapasDoFormulario() {
+
+    const barra = document.getElementById('progresso-cadastro');
+    const botoesEtapa = document.querySelectorAll('[data-step-nav]');
+    const secoes = document.querySelectorAll('[data-step]');
+
+    if (!barra || !botoesEtapa.length || !secoes.length) return;
+
+    botoesEtapa.forEach(botao => {
+        botao.addEventListener('click', function () {
+            const step = parseInt(this.dataset.stepNav, 10);
+            mapaAtualizarEtapaVisual(step);
+            const secao = document.querySelector(`#secao-etapa-${step}`);
+            if (secao) {
+                secao.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    });
+
+    const observador = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const step = parseInt(entry.target.dataset.step, 10);
+                mapaAtualizarEtapaVisual(step);
+            }
+        });
+    }, { threshold: 0.5 });
+
+    secoes.forEach(secao => observador.observe(secao));
+
+    function mapaAtualizarEtapaVisual(stepAtual) {
+        const progresso = Math.max(1, Math.min(4, stepAtual)) * 25;
+        barra.style.width = `${progresso}%`;
+
+        botoesEtapa.forEach(botao => {
+            const stepBtn = parseInt(botao.dataset.stepNav, 10);
+            if (stepBtn <= stepAtual) {
+                botao.className = 'step-nav w-full text-left px-3 py-2 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 font-medium';
+            } else {
+                botao.className = 'step-nav w-full text-left px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-500';
+            }
+        });
+    }
+}
+
+
 async function mapaCarregarTiposEvento(select) {
 
     const response = await fetch('/wp-json/wp/v2/tipo_evento?per_page=100');
@@ -314,7 +361,27 @@ function mapaAdicionarContato() {
     container.appendChild(div);
 }
 
+
+function mapaValidarRegraCapela() {
+
+    const selectTipo = document.getElementById('tipo');
+    const parentParoquia = document.getElementById('parent_paroquia').value;
+
+    const textoSelecionado = selectTipo.options[selectTipo.selectedIndex]?.text?.toLowerCase() || '';
+
+    if (textoSelecionado.includes('capela') && !parentParoquia) {
+        document.getElementById('mapa-debug').innerText = 'Para cadastrar uma Capela, selecione uma Paróquia Responsável. Se não existir, cadastre primeiro a paróquia.';
+        document.getElementById('campo-paroquia').classList.remove('hidden');
+        document.getElementById('busca-paroquia').focus();
+        return false;
+    }
+
+    return true;
+}
+
 function mapaEnviar() {
+
+    if (!mapaValidarRegraCapela()) return;
 
     const contatos = [];
     document.querySelectorAll('#contatos-container > div').forEach(div => {
