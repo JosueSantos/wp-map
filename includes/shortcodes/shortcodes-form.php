@@ -40,7 +40,7 @@ add_shortcode('mapa_form_comunidade', function () {
             <p class="text-gray-600 text-base">Fluxo guiado por etapas para facilitar o preenchimento.</p>
         </div>
 
-        <div class="sticky top-0 z-20 bg-white/95 backdrop-blur-sm py-3 border-b border-gray-100">
+        <div class="sticky top-4 z-20 bg-white/95 backdrop-blur-sm py-3 border-b border-gray-100 rounded-xl px-2 shadow-sm">
             <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div id="progresso-cadastro" class="h-full bg-indigo-600 rounded-full transition-all duration-300" style="width: 25%;"></div>
             </div>
@@ -59,14 +59,14 @@ add_shortcode('mapa_form_comunidade', function () {
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Nome</label>
                     <input type="text" id="nome"
-                        class="mt-1 w-full rounded-xl border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                        class="mt-1 w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-base"
                         placeholder="Ex.: Comunidade São José">
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Tipo</label>
                     <select id="tipo"
-                        class="mt-1 w-full rounded-xl border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm">
+                        class="mt-1 w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-base">
                         <option value="">Carregando...</option>
                     </select>
                 </div>
@@ -75,7 +75,7 @@ add_shortcode('mapa_form_comunidade', function () {
                     <label class="block text-sm font-medium text-amber-900">Paróquia Responsável (obrigatório para Capela)</label>
                     <input type="text" id="busca-paroquia"
                         placeholder="Digite para buscar paróquia..."
-                        class="mt-1 w-full rounded-xl border-amber-300 focus:ring-2 focus:ring-amber-500">
+                        class="mt-1 w-full rounded-xl border-2 border-amber-300 bg-white px-3 py-2 focus:ring-2 focus:ring-amber-500 text-base">
                     <input type="hidden" id="parent_paroquia">
                     <div id="resultado-paroquias" class="bg-white border rounded-xl mt-2 hidden"></div>
                     <p class="mt-2 text-sm sm:text-base text-amber-900 leading-relaxed">
@@ -92,23 +92,23 @@ add_shortcode('mapa_form_comunidade', function () {
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Latitude</label>
                     <input type="number" step="any" id="latitude"
-                        class="mt-1 w-full rounded-xl border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm">
+                        class="mt-1 w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-base">
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Longitude</label>
                     <input type="number" step="any" id="longitude"
-                        class="mt-1 w-full rounded-xl border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm">
+                        class="mt-1 w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-base">
                 </div>
 
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700">Endereço</label>
                     <div class="mt-1 flex flex-col sm:flex-row gap-2">
                         <input type="text" id="endereco"
-                            class="w-full rounded-xl border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                            class="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-base"
                             placeholder="Digite o endereço e busque no mapa">
                         <button type="button" id="buscar-endereco-mapa"
-                            class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm whitespace-nowrap">
+                            class="px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-base font-medium whitespace-nowrap transition">
                             Buscar no mapa
                         </button>
                     </div>
@@ -126,7 +126,7 @@ add_shortcode('mapa_form_comunidade', function () {
 
             <button type="button"
                 onclick="mapaAdicionarContato()"
-                class="mt-3 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm">
+                class="mt-3 w-full sm:w-auto px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-base font-medium transition">
                 + Adicionar contato
             </button>
         </section>
@@ -156,9 +156,28 @@ add_shortcode('mapa_form_comunidade', function () {
         <div class="pt-1">
             <button type="button"
                 onclick="mapaAdicionarEvento()"
-                class="w-full sm:w-auto px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-base font-medium">
+                class="w-full sm:w-auto mt-3 px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-base font-medium transition">
                 + Adicionar evento
             </button>
+        </section>
+
+
+        <section id="secao-imagem" class="rounded-2xl border border-gray-200 p-4 sm:p-6 space-y-3">
+            <h3 class="text-lg font-semibold text-gray-800">Imagem da comunidade (opcional)</h3>
+            <p class="text-base text-gray-600">Aceita JPG, PNG, WEBP ou GIF. Máximo sugerido: 5MB.</p>
+            <input type="file" id="imagem-comunidade" accept="image/jpeg,image/png,image/webp,image/gif"
+                class="block w-full rounded-xl border-2 border-gray-200 bg-gray-50 p-2 text-base text-gray-700 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+            <p id="imagem-comunidade-msg" class="text-base hidden"></p>
+        </section>
+
+        <div class="pt-1">
+            <div class="pt-4 mt-2 border-t border-gray-200">
+                <button onclick="mapaEnviar()"
+                    class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-semibold transition shadow-sm">
+                    Salvar Comunidade
+                </button>
+            </div>
+        </div>
 
         <div id="mapa-debug" class="text-base text-gray-600"></div>
 

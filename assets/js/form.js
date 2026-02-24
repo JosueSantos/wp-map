@@ -294,12 +294,12 @@ function mapaAdicionarEvento() {
     const container = document.getElementById('eventos');
 
     const div = document.createElement('div');
-    div.className = "bg-gray-50 p-6 rounded-2xl space-y-4 shadow-sm";
+    div.className = "bg-gray-50 p-6 rounded-2xl space-y-4 shadow-sm border border-gray-200";
 
     div.innerHTML = `
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de evento</label>
-            <select class="tipo-evento rounded-xl border-gray-300 w-full">
+            <select class="tipo-evento rounded-xl border-2 border-gray-200 bg-white px-3 py-2 w-full focus:ring-2 focus:ring-indigo-500">
                 <option>Carregando tipos...</option>
             </select>
         </div>
@@ -307,13 +307,13 @@ function mapaAdicionarEvento() {
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Nome do evento</label>
             <input type="text" placeholder="Ex.: Missa da comunidade"
-                class="evento-titulo w-full rounded-xl border-gray-300">
+                class="evento-titulo w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2">
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Dia da semana</label>
-                <select class="evento-dia rounded-xl border-gray-300 focus:ring-indigo-500 w-full">
+                <select class="evento-dia rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
                     <option value="">Selecione o dia</option>
                     <option value="0">Domingo</option>
                     <option value="1">Segunda-feira</option>
@@ -328,26 +328,26 @@ function mapaAdicionarEvento() {
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Horário</label>
                 <input type="time"
-                    class="evento-horario rounded-xl border-gray-300 focus:ring-indigo-500 w-full">
+                    class="evento-horario rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
             </div>
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Características</label>
-            <select class="tags-evento rounded-xl border-gray-300 w-full" multiple>
+            <select class="tags-evento rounded-xl border-2 border-gray-200 bg-white px-3 py-2 w-full" multiple>
             </select>
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
             <textarea placeholder="Descrição"
-                class="evento-descricao w-full rounded-xl border-gray-300"></textarea>
+                class="evento-descricao w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2"></textarea>
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Observação</label>
             <textarea placeholder="Observação"
-                class="evento-observacao w-full rounded-xl border-gray-300"></textarea>
+                class="evento-observacao w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2"></textarea>
         </div>
     `;
 
@@ -370,20 +370,20 @@ function mapaAdicionarContato() {
     const container = document.getElementById('contatos-container');
 
     const div = document.createElement('div');
-    div.className = "grid grid-cols-2 gap-3 bg-gray-50 p-4 rounded-xl";
+    div.className = "grid grid-cols-1 sm:grid-cols-2 gap-3 bg-gray-50 p-4 rounded-xl border border-gray-200";
 
     const options = TIPOS_CONTATO.map(tipo =>
         `<option value="${tipo}">${tipo}</option>`
     ).join('');
 
     div.innerHTML = `
-        <select class="contato-tipo rounded-lg border-gray-300 focus:ring-blue-500">
+        <select class="contato-tipo rounded-lg border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500">
             <option value="">Selecione</option>
             ${options}
         </select>
 
         <input type="text" placeholder="Valor"
-            class="contato-valor rounded-lg border-gray-300 focus:ring-blue-500">
+            class="contato-valor rounded-lg border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500">
     `;
 
     container.appendChild(div);
