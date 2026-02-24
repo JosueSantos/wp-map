@@ -27,6 +27,13 @@ function cc_register_meta() {
         'type' => 'string'
     ]);
 
+
+    register_post_meta('comunidade', 'imagem_id', [
+        'show_in_rest' => true,
+        'single' => true,
+        'type' => 'integer'
+    ]);
+
     register_meta('post', 'contatos', [
         'object_subtype' => 'comunidade',
         'single' => true,
