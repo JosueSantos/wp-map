@@ -297,38 +297,57 @@ function mapaAdicionarEvento() {
     div.className = "bg-gray-50 p-6 rounded-2xl space-y-4 shadow-sm";
 
     div.innerHTML = `
-        <input type="text" placeholder="Título"
-            class="evento-titulo w-full rounded-xl border-gray-300">
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <select class="evento-dia rounded-xl border-gray-300 focus:ring-indigo-500">
-                <option value="">Selecione o dia</option>
-                <option value="0">Domingo</option>
-                <option value="1">Segunda-feira</option>
-                <option value="2">Terça-feira</option>
-                <option value="3">Quarta-feira</option>
-                <option value="4">Quinta-feira</option>
-                <option value="5">Sexta-feira</option>
-                <option value="6">Sábado</option>
-            </select>
-
-            <input type="time" placeholder="Horário"
-                class="evento-horario rounded-xl border-gray-300 focus:ring-indigo-500">
-        </div>
-
-        <textarea placeholder="Descrição"
-            class="evento-descricao w-full rounded-xl border-gray-300"></textarea>
-
-        <textarea placeholder="Observação"
-            class="evento-observacao w-full rounded-xl border-gray-300"></textarea>
-
-        <div class="grid grid-cols-2 gap-4">
-            <select class="tipo-evento rounded-xl border-gray-300">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de evento</label>
+            <select class="tipo-evento rounded-xl border-gray-300 w-full">
                 <option>Carregando tipos...</option>
             </select>
+        </div>
 
-            <select class="tags-evento rounded-xl border-gray-300" multiple>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nome do evento</label>
+            <input type="text" placeholder="Ex.: Missa da comunidade"
+                class="evento-titulo w-full rounded-xl border-gray-300">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Dia da semana</label>
+                <select class="evento-dia rounded-xl border-gray-300 focus:ring-indigo-500 w-full">
+                    <option value="">Selecione o dia</option>
+                    <option value="0">Domingo</option>
+                    <option value="1">Segunda-feira</option>
+                    <option value="2">Terça-feira</option>
+                    <option value="3">Quarta-feira</option>
+                    <option value="4">Quinta-feira</option>
+                    <option value="5">Sexta-feira</option>
+                    <option value="6">Sábado</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Horário</label>
+                <input type="time"
+                    class="evento-horario rounded-xl border-gray-300 focus:ring-indigo-500 w-full">
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Características</label>
+            <select class="tags-evento rounded-xl border-gray-300 w-full" multiple>
             </select>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+            <textarea placeholder="Descrição"
+                class="evento-descricao w-full rounded-xl border-gray-300"></textarea>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Observação</label>
+            <textarea placeholder="Observação"
+                class="evento-observacao w-full rounded-xl border-gray-300"></textarea>
         </div>
     `;
 
@@ -428,6 +447,25 @@ function mapaValidarRegraCapela() {
     return true;
 }
 
+
+function mapaMostrarFeedback(mensagem, tipo = 'info') {
+
+    const debug = document.getElementById('mapa-debug');
+    if (!debug) return;
+
+    debug.className = 'text-base rounded-xl px-4 py-3';
+
+    if (tipo === 'sucesso') {
+        debug.classList.add('bg-emerald-50', 'text-emerald-800', 'border', 'border-emerald-200');
+    } else if (tipo === 'erro') {
+        debug.classList.add('bg-red-50', 'text-red-800', 'border', 'border-red-200', 'font-medium');
+    } else {
+        debug.classList.add('bg-gray-50', 'text-gray-700', 'border', 'border-gray-200');
+    }
+
+    debug.innerText = mensagem;
+}
+
 function mapaEnviar() {
 
     if (!mapaValidarRegraCapela()) return;
@@ -478,6 +516,8 @@ function mapaEnviar() {
         formData.append('imagem_comunidade', imagemInput.files[0]);
     }
 
+    mapaMostrarFeedback('Enviando cadastro... aguarde.', 'info');
+
     fetch(MAPA_API.url, {
         method: 'POST',
         headers: {
@@ -485,8 +525,17 @@ function mapaEnviar() {
         },
         body: formData
     })
-    .then(r => r.json())
+    .then(async (r) => {
+        const resp = await r.json();
+        if (!r.ok) {
+            throw new Error(resp?.message || 'Não foi possível salvar o cadastro.');
+        }
+        return resp;
+    })
     .then(resp => {
-        document.getElementById('mapa-debug').innerText = JSON.stringify(resp, null, 2);
+        mapaMostrarFeedback(`Cadastro realizado com sucesso! ID da comunidade: ${resp.comunidade_id}.`, 'sucesso');
+    })
+    .catch(error => {
+        mapaMostrarFeedback(error.message || 'Erro ao enviar cadastro. Tente novamente.', 'erro');
     });
 }

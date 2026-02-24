@@ -40,7 +40,7 @@ add_shortcode('mapa_form_comunidade', function () {
             <p class="text-gray-600 text-base">Fluxo guiado por etapas para facilitar o preenchimento.</p>
         </div>
 
-        <div>
+        <div class="sticky top-0 z-20 bg-white/95 backdrop-blur-sm py-3 border-b border-gray-100">
             <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div id="progresso-cadastro" class="h-full bg-indigo-600 rounded-full transition-all duration-300" style="width: 25%;"></div>
             </div>
@@ -136,12 +136,6 @@ add_shortcode('mapa_form_comunidade', function () {
 
             <div id="eventos" class="space-y-6"></div>
 
-            <button type="button"
-                onclick="mapaAdicionarEvento()"
-                class="mt-3 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm">
-                + Adicionar evento
-            </button>
-
             <div class="pt-4 mt-4 border-t">
                 <button onclick="mapaEnviar()"
                     class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-semibold transition">
@@ -158,6 +152,13 @@ add_shortcode('mapa_form_comunidade', function () {
                 class="block w-full text-base text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
             <p id="imagem-comunidade-msg" class="text-base hidden"></p>
         </section>
+
+        <div class="pt-1">
+            <button type="button"
+                onclick="mapaAdicionarEvento()"
+                class="w-full sm:w-auto px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-base font-medium">
+                + Adicionar evento
+            </button>
 
         <div id="mapa-debug" class="text-base text-gray-600"></div>
 
