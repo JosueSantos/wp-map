@@ -2,10 +2,23 @@
 
 add_shortcode('mapa_form_comunidade', function () {
 
+    wp_enqueue_style(
+        'leaflet-css',
+        'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+    );
+
+    wp_enqueue_script(
+        'leaflet-js',
+        'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+        [],
+        null,
+        true
+    );
+
     wp_enqueue_script(
         'mapa-form',
         plugin_dir_url(__FILE__) . '../../assets/js/form.js',
-        [],
+        ['leaflet-js'],
         '1.0',
         true
     );
@@ -67,8 +80,18 @@ add_shortcode('mapa_form_comunidade', function () {
 
             <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-700">Endereço</label>
-                <input type="text" id="endereco"
-                    class="mt-1 w-full rounded-xl border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm">
+                <div class="mt-1 flex flex-col sm:flex-row gap-2">
+                    <input type="text" id="endereco"
+                        class="w-full rounded-xl border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+                        placeholder="Digite o endereço e busque no mapa">
+                    <button type="button" id="buscar-endereco-mapa"
+                        class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm whitespace-nowrap">
+                        Buscar no mapa
+                    </button>
+                </div>
+                <p id="mapa-ajuste-msg" class="mt-2 text-sm text-gray-600 hidden">Esta certo a marcação no mapa? Clique para ajustar</p>
+                <p id="mapa-endereco-erro" class="mt-2 text-sm text-red-600 hidden"></p>
+                <div id="mapa-cadastro" class="mt-3 rounded-xl border" style="height: 320px;"></div>
             </div>
 
         </div>
