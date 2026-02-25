@@ -1,0 +1,111 @@
+/* Fallback de layout/estilo para o shortcode do mapa
+   Garante funcionamento mesmo sem Tailwind carregado no tema. */
+
+#mapa-igrejas {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    border-radius: 1rem;
+    background: #f1f5f9;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+#mapa-canvas {
+    width: 100%;
+    height: 75vh;
+    min-height: 520px;
+}
+
+#mapa-sidebar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 500;
+    width: min(92%, 350px);
+    height: 100%;
+    transform: translateX(0);
+    transition: transform .3s ease;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #e2e8f0;
+    background: rgba(255, 255, 255, .95);
+    backdrop-filter: blur(2px);
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15);
+}
+
+
+#mapa-sidebar.-translate-x-full {
+    transform: translateX(-100%);
+}
+
+#mapa-sidebar #mapa-filtros {
+    display: grid;
+    gap: .7rem;
+}
+
+#mapa-sidebar select,
+#mapa-sidebar input[type="search"] {
+    width: 100%;
+    border: 1px solid #cbd5e1;
+    border-radius: .75rem;
+    padding: .5rem .75rem;
+    background: #fff;
+}
+
+#mapa-sidebar select:focus,
+#mapa-sidebar input[type="search"]:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, .15);
+}
+
+#mapa-aplicar-filtros {
+    background: #1d4ed8;
+    color: #fff;
+    border: 0;
+    border-radius: .75rem;
+    padding: .6rem .9rem;
+    font-weight: 600;
+}
+
+#mapa-limpar-filtros {
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    color: #334155;
+    border-radius: .75rem;
+    padding: .6rem .9rem;
+    font-weight: 600;
+}
+
+#mapa-detalhes {
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    border-radius: .75rem;
+    padding: .75rem;
+}
+
+#mapa-toggle-filtros {
+    z-index: 400;
+}
+
+@media (min-width: 1024px) {
+    #mapa-sidebar {
+        transform: translateX(0) !important;
+    }
+
+    #mapa-toggle-filtros,
+    #mapa-fechar-filtros,
+    #filtro-busca-mobile {
+        display: none;
+    }
+}
+
+/* Ajustes Leaflet */
+#mapa-igrejas .leaflet-container {
+    font-family: inherit;
+}
+
+#mapa-igrejas .leaflet-control-container {
+    z-index: 350;
+}
