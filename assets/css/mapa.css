@@ -41,6 +41,7 @@
 #mapa-igrejas .cc-sidebar-body {
     padding: 1rem;
     overflow-y: auto;
+    overflow-x: hidden;
 }
 
 #mapa-igrejas .cc-filtro-texto {
@@ -259,3 +260,50 @@
         min-height: 500px;
     }
 }
+
+
+#mapa-igrejas .cc-sidebar,
+#mapa-igrejas .cc-sidebar-body,
+#mapa-igrejas .cc-filtros-form,
+#mapa-igrejas .cc-filtros-form label {
+    min-width: 0;
+}
+
+#mapa-igrejas .cc-social-grid {
+    display: grid;
+    gap: .5rem;
+}
+
+#mapa-igrejas .cc-social-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    width: fit-content;
+    max-width: 100%;
+    padding: .34rem .7rem .34rem .42rem;
+    border-radius: 999px;
+    color: #fff;
+    text-decoration: none;
+    font-size: .86rem;
+    font-weight: 600;
+}
+
+#mapa-igrejas .cc-social-pill i {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,.18);
+}
+
+#mapa-igrejas .cc-social-facebook { background: linear-gradient(90deg,#1e3a8a,#3b82f6); }
+#mapa-igrejas .cc-social-instagram { background: linear-gradient(90deg,#7c3aed,#ec4899); }
+#mapa-igrejas .cc-social-whatsapp { background: linear-gradient(90deg,#15803d,#22c55e); }
+#mapa-igrejas .cc-social-youtube { background: linear-gradient(90deg,#b91c1c,#ef4444); }
+#mapa-igrejas .cc-social-tiktok { background: linear-gradient(90deg,#111827,#374151); }
+#mapa-igrejas .cc-social-linkedin { background: linear-gradient(90deg,#1d4ed8,#0ea5e9); }
+#mapa-igrejas .cc-social-x { background: linear-gradient(90deg,#0f172a,#334155); }
+#mapa-igrejas .cc-social-site { background: linear-gradient(90deg,#0f766e,#14b8a6); }
+#mapa-igrejas .cc-social-rede { background: linear-gradient(90deg,#475569,#64748b); }

@@ -132,13 +132,13 @@ document.addEventListener("DOMContentLoaded", async function () {
             result[bucket].push(text);
         }
 
-        function pushRede(label, value) {
+        function pushRede(type, label, value) {
             const href = ensureUrl(value);
             if (!href) return;
-            const key = `rede:${label.toLowerCase()}:${href.toLowerCase()}`;
+            const key = `rede:${type.toLowerCase()}:${href.toLowerCase()}`;
             if (seen.has(key)) return;
             seen.add(key);
-            result.redes.push({ label, href });
+            result.redes.push({ type, label, href });
         }
 
         function classify(key, value) {
@@ -151,22 +151,27 @@ document.addEventListener("DOMContentLoaded", async function () {
                 return;
             }
 
-            if (k.includes("telefone") || k.includes("fone") || k.includes("celular") || k.includes("whatsapp") || k === "tel") {
+            if (k.includes("whatsapp") || k === "zap") {
+                pushRede("whatsapp", "WhatsApp", v);
+                return;
+            }
+
+            if (k.includes("telefone") || k.includes("fone") || k.includes("celular") || k === "tel") {
                 pushUnique("telefones", v);
                 return;
             }
 
-            if (k.includes("instagram")) return pushRede("Instagram", v);
-            if (k.includes("facebook")) return pushRede("Facebook", v);
-            if (k.includes("youtube")) return pushRede("YouTube", v);
-            if (k.includes("tiktok")) return pushRede("TikTok", v);
-            if (k.includes("linkedin")) return pushRede("LinkedIn", v);
-            if (k.includes("twitter") || k === "x") return pushRede("X", v);
-            if (k.includes("site") || k.includes("website")) return pushRede("Site", v);
+            if (k.includes("instagram")) return pushRede("instagram", "Instagram", v);
+            if (k.includes("facebook")) return pushRede("facebook", "Facebook", v);
+            if (k.includes("youtube")) return pushRede("youtube", "YouTube", v);
+            if (k.includes("tiktok")) return pushRede("tiktok", "TikTok", v);
+            if (k.includes("linkedin")) return pushRede("linkedin", "LinkedIn", v);
+            if (k.includes("twitter") || k === "x") return pushRede("x", "X", v);
+            if (k.includes("site") || k.includes("website")) return pushRede("site", "Site", v);
 
             const maybeUrl = ensureUrl(v);
             if (isUrl(v) || /instagram|facebook|youtube|tiktok|linkedin|twitter|x\.com/i.test(v)) {
-                pushRede("Rede", maybeUrl);
+                pushRede("rede", "Rede", maybeUrl);
                 return;
             }
 
@@ -180,7 +185,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 const text = node.trim();
                 if (!text) return;
                 if (isEmail(text)) return pushUnique("emails", text);
-                if (isUrl(text)) return pushRede("Rede", text);
+                if (isUrl(text)) return pushRede("rede", "Rede", text);
                 return pushUnique("outros", text);
             }
 
@@ -219,8 +224,26 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
 
         if (data.redes.length) {
-            const itens = data.redes.map((rede) => `<a href="${escapeHtml(rede.href)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:0 .35rem .35rem 0;padding:.28rem .52rem;border-radius:999px;background:#e0e7ff;color:#1e40af;text-decoration:none;font-size:12px;">🚩 ${escapeHtml(rede.label)}</a>`).join("");
-            blocks.push(`<div><strong>Redes sociais</strong><div style="margin-top:.35rem;">${itens}</div></div>`);
+            const iconMap = {
+                facebook: "bi bi-facebook",
+                instagram: "bi bi-instagram",
+                whatsapp: "bi bi-whatsapp",
+                youtube: "bi bi-youtube",
+                tiktok: "bi bi-tiktok",
+                linkedin: "bi bi-linkedin",
+                x: "bi bi-twitter-x",
+                site: "bi bi-globe",
+                rede: "bi bi-link-45deg",
+            };
+
+            const itens = data.redes.map((rede) => {
+                const type = String(rede.type || "rede").toLowerCase();
+                const icon = iconMap[type] || iconMap.rede;
+                const cls = `cc-social-pill cc-social-${type}`;
+                return `<a href="${escapeHtml(rede.href)}" target="_blank" rel="noopener noreferrer" class="${cls}"><i class="${icon}" aria-hidden="true"></i><span>${escapeHtml(rede.label)}</span></a>`;
+            }).join("");
+
+            blocks.push(`<div><strong>Redes sociais</strong><div class="cc-social-grid" style="margin-top:.35rem;">${itens}</div></div>`);
         }
 
         if (data.outros.length) {
@@ -318,7 +341,6 @@ document.addEventListener("DOMContentLoaded", async function () {
             if (isMobile()) setSidebarOpen(false);
             scrollMapIntoView();
         });
-        marker.bindPopup(buildPopup(comunidade), { maxHeight: 260 });
 
         state.markers.push(marker);
     }
@@ -335,17 +357,29 @@ document.addEventListener("DOMContentLoaded", async function () {
             }
         }
 
-        if (!document.getElementById("filtro-proximidade")?.checked) {
+        const raioSelecionado = String(document.getElementById("filtro-raio")?.value || "").trim();
+        const proximidadeAtiva = Boolean(document.getElementById("filtro-proximidade")?.checked);
+
+        if (proximidadeAtiva) {
+            params.set("proximidade", "true");
+        } else {
             params.delete("proximidade");
         }
 
-        const raioSelecionado = String(document.getElementById("filtro-raio")?.value || "").trim();
-        const proximidadeAtiva = document.getElementById("filtro-proximidade")?.checked;
-        const shouldUseUserLocation = !ignoreUserLocation && !!state.userLocation?.lat && !!state.userLocation?.lng && (proximidadeAtiva || raioSelecionado !== "");
+        const precisaReferenciaGeografica = proximidadeAtiva || raioSelecionado !== "";
+        const centroMapa = map.getCenter();
 
-        if (shouldUseUserLocation) {
-            params.set("lat", state.userLocation.lat);
-            params.set("lng", state.userLocation.lng);
+        const referencia = !ignoreUserLocation
+            ? (state.userLocation?.lat && state.userLocation?.lng
+                ? { lat: state.userLocation.lat, lng: state.userLocation.lng }
+                : (centroMapa
+                    ? { lat: Number(centroMapa.lat), lng: Number(centroMapa.lng) }
+                    : null))
+            : null;
+
+        if (precisaReferenciaGeografica && Number.isFinite(Number(referencia?.lat)) && Number.isFinite(Number(referencia?.lng))) {
+            params.set("lat", Number(referencia.lat));
+            params.set("lng", Number(referencia.lng));
         } else {
             params.delete("lat");
             params.delete("lng");

@@ -25,6 +25,14 @@ function cc_mapa_shortcode($atts) {
         '1.1'
     );
 
+
+    wp_enqueue_style(
+        'bootstrap-icons',
+        'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css',
+        [],
+        '1.11.3'
+    );
+
     wp_enqueue_script(
         'leaflet-js',
         'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
@@ -37,7 +45,7 @@ function cc_mapa_shortcode($atts) {
         'cc-mapa',
         plugin_dir_url(__FILE__) . '../../assets/js/mapa.js',
         ['leaflet-js'],
-        '1.4',
+        '1.5',
         true
     );
 
