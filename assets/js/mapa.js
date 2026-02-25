@@ -366,6 +366,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             scrollMapIntoView();
             setTimeout(scrollDetalhesIntoView, 80);
         });
+        marker.bindPopup(buildPopup(comunidade), { maxHeight: 260 });
 
         state.markers.push(marker);
     }
