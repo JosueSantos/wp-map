@@ -64,6 +64,11 @@ document.addEventListener("DOMContentLoaded", async function () {
         window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
     }
 
+    function scrollDetalhesIntoView() {
+        if (!detalhesEl) return;
+        detalhesEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
     function escapeHtml(value) {
         return String(value ?? "")
             .replace(/&/g, "&amp;")
@@ -106,6 +111,14 @@ document.addEventListener("DOMContentLoaded", async function () {
         const raw = String(value || "").trim();
         if (!raw) return "";
         if (isUrl(raw)) return raw;
+
+        const lower = raw.toLowerCase();
+        const invalidTokens = ["facebook", "instagram", "youtube", "whatsapp", "twitter", "x", "linkedin", "tiktok", "email", "telefone", "site"];
+        if (invalidTokens.includes(lower)) return "";
+
+        const seemsDomain = lower.startsWith("www.") || lower.includes(".") || lower.includes("/");
+        if (!seemsDomain) return "";
+
         return `https://${raw.replace(/^\/+/, "")}`;
     }
 
@@ -146,6 +159,10 @@ document.addEventListener("DOMContentLoaded", async function () {
             const v = String(value || "").trim();
             if (!v) return;
 
+            const lower = v.toLowerCase();
+            const placeholders = ["facebook", "instagram", "youtube", "whatsapp", "twitter", "x", "linkedin", "tiktok", "email", "telefone", "site"];
+            if (placeholders.includes(lower)) return;
+
             if (k.includes("email") || isEmail(v)) {
                 pushUnique("emails", v);
                 return;
@@ -170,7 +187,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             if (k.includes("site") || k.includes("website")) return pushRede("site", "Site", v);
 
             const maybeUrl = ensureUrl(v);
-            if (isUrl(v) || /instagram|facebook|youtube|tiktok|linkedin|twitter|x\.com/i.test(v)) {
+            if (maybeUrl && (isUrl(v) || /instagram|facebook|youtube|tiktok|linkedin|twitter|x\.com|wa\.me|whatsapp/i.test(v))) {
                 pushRede("rede", "Rede", maybeUrl);
                 return;
             }
@@ -195,6 +212,13 @@ document.addEventListener("DOMContentLoaded", async function () {
             }
 
             if (typeof node === "object") {
+                const tipo = node.tipo || node.type || node.chave || node.key;
+                const valor = node.valor || node.value || node.url || node.link || node.contato;
+                if (tipo && valor && (typeof valor === "string" || typeof valor === "number")) {
+                    classify(tipo, String(valor));
+                    return;
+                }
+
                 Object.entries(node).forEach(([key, value]) => {
                     if (value && typeof value === "object") {
                         walk(value);
@@ -225,22 +249,22 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         if (data.redes.length) {
             const iconMap = {
-                facebook: "bi bi-facebook",
-                instagram: "bi bi-instagram",
-                whatsapp: "bi bi-whatsapp",
-                youtube: "bi bi-youtube",
-                tiktok: "bi bi-tiktok",
-                linkedin: "bi bi-linkedin",
-                x: "bi bi-twitter-x",
-                site: "bi bi-globe",
-                rede: "bi bi-link-45deg",
+                facebook: { cls: "bi bi-facebook", fallback: "f" },
+                instagram: { cls: "bi bi-instagram", fallback: "◎" },
+                whatsapp: { cls: "bi bi-whatsapp", fallback: "✆" },
+                youtube: { cls: "bi bi-youtube", fallback: "▶" },
+                tiktok: { cls: "bi bi-tiktok", fallback: "♪" },
+                linkedin: { cls: "bi bi-linkedin", fallback: "in" },
+                x: { cls: "bi bi-twitter-x", fallback: "𝕏" },
+                site: { cls: "bi bi-globe", fallback: "◉" },
+                rede: { cls: "bi bi-link-45deg", fallback: "↗" },
             };
 
             const itens = data.redes.map((rede) => {
                 const type = String(rede.type || "rede").toLowerCase();
-                const icon = iconMap[type] || iconMap.rede;
+                const cfg = iconMap[type] || iconMap.rede;
                 const cls = `cc-social-pill cc-social-${type}`;
-                return `<a href="${escapeHtml(rede.href)}" target="_blank" rel="noopener noreferrer" class="${cls}"><i class="${icon}" aria-hidden="true"></i><span>${escapeHtml(rede.label)}</span></a>`;
+                return `<a href="${escapeHtml(rede.href)}" target="_blank" rel="noopener noreferrer" class="${cls}"><i class="${cfg.cls}" aria-hidden="true">${cfg.fallback}</i><span>${escapeHtml(rede.label)}</span></a>`;
             }).join("");
 
             blocks.push(`<div><strong>Redes sociais</strong><div class="cc-social-grid" style="margin-top:.35rem;">${itens}</div></div>`);
@@ -340,7 +364,9 @@ document.addEventListener("DOMContentLoaded", async function () {
             renderDetalhes(comunidade);
             if (isMobile()) setSidebarOpen(false);
             scrollMapIntoView();
+            setTimeout(scrollDetalhesIntoView, 80);
         });
+        marker.bindPopup(buildPopup(comunidade), { maxHeight: 260 });
 
         state.markers.push(marker);
     }
