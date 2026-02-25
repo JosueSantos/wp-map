@@ -10,6 +10,12 @@ add_action('rest_api_init', function () {
         }
     ]);
 
+    register_rest_route('mapa/v1', '/comunidade/(?P<id>\d+)', [
+        'methods'  => 'GET',
+        'callback' => 'cc_api_obter_comunidade_para_edicao',
+        'permission_callback' => '__return_true'
+    ]);
+
 });
 
 function cc_api_normalizar_dados_comunidade($request) {
@@ -32,6 +38,11 @@ function cc_api_normalizar_dados_comunidade($request) {
     if (isset($data['eventos']) && is_string($data['eventos'])) {
         $eventos = json_decode(wp_unslash($data['eventos']), true);
         $data['eventos'] = is_array($eventos) ? $eventos : [];
+    }
+
+    if (isset($data['eventos_removidos']) && is_string($data['eventos_removidos'])) {
+        $eventos_removidos = json_decode(wp_unslash($data['eventos_removidos']), true);
+        $data['eventos_removidos'] = is_array($eventos_removidos) ? $eventos_removidos : [];
     }
 
     return $data;
@@ -93,6 +104,132 @@ function cc_api_processar_upload_imagem($comunidade_id, $file_params) {
     return (int) $attachment_id;
 }
 
+function cc_api_obter_comunidade_para_edicao($request) {
+    $comunidade_id = (int) $request['id'];
+    $post = get_post($comunidade_id);
+
+    if (!$post || $post->post_type !== 'comunidade') {
+        return new WP_Error('comunidade_nao_encontrada', 'Comunidade não encontrada.', ['status' => 404]);
+    }
+
+    $tipo_terms = wp_get_post_terms($comunidade_id, 'tipo_comunidade', ['fields' => 'ids']);
+
+    $eventos_query = get_posts([
+        'post_type' => 'evento',
+        'posts_per_page' => -1,
+        'post_status' => 'publish',
+        'meta_query' => [
+            [
+                'key' => 'comunidade_id',
+                'value' => $comunidade_id,
+            ]
+        ]
+    ]);
+
+    $eventos = [];
+    foreach ($eventos_query as $evento) {
+        $tipo_evento_ids = wp_get_post_terms($evento->ID, 'tipo_evento', ['fields' => 'ids']);
+        $tags_evento_ids = wp_get_post_terms($evento->ID, 'tags_evento', ['fields' => 'ids']);
+
+        $eventos[] = [
+            'id' => $evento->ID,
+            'titulo' => $evento->post_title,
+            'dia' => get_post_meta($evento->ID, 'dia_semana', true),
+            'horario' => get_post_meta($evento->ID, 'horario', true),
+            'descricao' => get_post_meta($evento->ID, 'descricao', true),
+            'observacao' => get_post_meta($evento->ID, 'observacao', true),
+            'tipo_evento_id' => isset($tipo_evento_ids[0]) ? (int) $tipo_evento_ids[0] : null,
+            'tags_evento_ids' => array_map('intval', is_array($tags_evento_ids) ? $tags_evento_ids : []),
+        ];
+    }
+
+    $parent_paroquia_id = (int) get_post_meta($comunidade_id, 'parent_paroquia', true);
+
+    return rest_ensure_response([
+        'id' => $comunidade_id,
+        'nome' => $post->post_title,
+        'tipo_id' => isset($tipo_terms[0]) ? (int) $tipo_terms[0] : null,
+        'latitude' => get_post_meta($comunidade_id, 'latitude', true),
+        'longitude' => get_post_meta($comunidade_id, 'longitude', true),
+        'endereco' => get_post_meta($comunidade_id, 'endereco', true),
+        'parent_paroquia_id' => $parent_paroquia_id ?: null,
+        'parent_paroquia_nome' => $parent_paroquia_id ? get_the_title($parent_paroquia_id) : '',
+        'contatos' => get_post_meta($comunidade_id, 'contatos', true) ?: [],
+        'eventos' => $eventos,
+        'imagem_url' => get_the_post_thumbnail_url($comunidade_id, 'medium') ?: '',
+    ]);
+}
+
+function cc_api_salvar_eventos($comunidade_id, $eventos = []) {
+    if (empty($eventos) || !is_array($eventos)) {
+        return;
+    }
+
+    foreach ($eventos as $evt) {
+        $titulo_evento = sanitize_text_field($evt['titulo'] ?? '');
+        if (empty($titulo_evento)) continue;
+
+        $evento_id = !empty($evt['id']) ? (int) $evt['id'] : 0;
+
+        if ($evento_id > 0) {
+            $post_existente = get_post($evento_id);
+            if (!$post_existente || $post_existente->post_type !== 'evento') {
+                continue;
+            }
+
+            wp_update_post([
+                'ID' => $evento_id,
+                'post_title' => $titulo_evento,
+            ]);
+        } else {
+            $evento_id = wp_insert_post([
+                'post_type'   => 'evento',
+                'post_status' => 'publish',
+                'post_title'  => $titulo_evento,
+            ]);
+
+            if (is_wp_error($evento_id)) continue;
+        }
+
+        $dia_semana = isset($evt['dia']) ? max(0, min(6, (int) $evt['dia'])) : 0;
+        $horario = sanitize_text_field($evt['horario'] ?? '');
+
+        update_post_meta($evento_id, 'comunidade_id', $comunidade_id);
+        update_post_meta($evento_id, 'dia_semana', $dia_semana);
+        update_post_meta($evento_id, 'horario', $horario);
+        update_post_meta($evento_id, 'descricao', sanitize_textarea_field($evt['descricao'] ?? ''));
+        update_post_meta($evento_id, 'observacao', sanitize_textarea_field($evt['observacao'] ?? ''));
+
+        if (!empty($evt['tipo_evento'])) {
+            wp_set_object_terms($evento_id, [(int) $evt['tipo_evento']], 'tipo_evento');
+        } else {
+            wp_set_object_terms($evento_id, [], 'tipo_evento');
+        }
+
+        if (!empty($evt['tags_evento']) && is_array($evt['tags_evento'])) {
+            wp_set_object_terms($evento_id, array_map('intval', $evt['tags_evento']), 'tags_evento');
+        } else {
+            wp_set_object_terms($evento_id, [], 'tags_evento');
+        }
+    }
+}
+
+function cc_api_remover_eventos($comunidade_id, $eventos_removidos = []) {
+    if (empty($eventos_removidos) || !is_array($eventos_removidos)) {
+        return;
+    }
+
+    foreach ($eventos_removidos as $evento_id) {
+        $evento_id = (int) $evento_id;
+        if ($evento_id <= 0) continue;
+
+        $evento_comunidade_id = (int) get_post_meta($evento_id, 'comunidade_id', true);
+        if ($evento_comunidade_id !== (int) $comunidade_id) continue;
+
+        wp_delete_post($evento_id, true);
+    }
+}
+
 function cc_api_cadastrar_comunidade($request) {
     if (!is_user_logged_in()) {
         return new WP_Error('nao_autorizado', 'Login necessário', ['status' => 401]);
@@ -124,22 +261,33 @@ function cc_api_cadastrar_comunidade($request) {
         return $validacao_capela;
     }
 
-    $comunidade_id = wp_insert_post([
-        'post_type'   => 'comunidade',
-        'post_status' => 'publish',
-        'post_title'  => sanitize_text_field($data['nome'] ?? 'Sem nome'),
-    ]);
+    $comunidade_id = isset($data['comunidade_id']) ? (int) $data['comunidade_id'] : 0;
+    $is_edicao = $comunidade_id > 0;
 
-    if (is_wp_error($comunidade_id)) {
-        return $comunidade_id;
+    if ($is_edicao) {
+        $post_existente = get_post($comunidade_id);
+        if (!$post_existente || $post_existente->post_type !== 'comunidade') {
+            return new WP_Error('comunidade_nao_encontrada', 'Comunidade para edição não encontrada.', ['status' => 404]);
+        }
+
+        wp_update_post([
+            'ID' => $comunidade_id,
+            'post_title' => sanitize_text_field($data['nome'] ?? 'Sem nome'),
+        ]);
+    } else {
+        $comunidade_id = wp_insert_post([
+            'post_type'   => 'comunidade',
+            'post_status' => 'publish',
+            'post_title'  => sanitize_text_field($data['nome'] ?? 'Sem nome'),
+        ]);
+
+        if (is_wp_error($comunidade_id)) {
+            return $comunidade_id;
+        }
     }
 
     if (!empty($data['tipo'])) {
-        wp_set_object_terms(
-            $comunidade_id,
-            [(int) $data['tipo']],
-            'tipo_comunidade'
-        );
+        wp_set_object_terms($comunidade_id, [(int) $data['tipo']], 'tipo_comunidade');
     }
 
     update_post_meta($comunidade_id, 'latitude', $latitude);
@@ -148,13 +296,9 @@ function cc_api_cadastrar_comunidade($request) {
 
     if (!empty($data['parent_paroquia'])) {
         update_post_meta($comunidade_id, 'parent_paroquia', intval($data['parent_paroquia']));
+    } else {
+        delete_post_meta($comunidade_id, 'parent_paroquia');
     }
-
-    cc_registrar_alteracao(
-        $comunidade_id,
-        $data['parent_paroquia'] ?? null,
-        $data
-    );
 
     if (!empty($data['contatos']) && is_array($data['contatos'])) {
 
@@ -172,47 +316,16 @@ function cc_api_cadastrar_comunidade($request) {
         update_post_meta($comunidade_id, 'contatos', $contatos_limpos);
     }
 
-    if (!empty($data['eventos']) && is_array($data['eventos'])) {
+    cc_api_salvar_eventos($comunidade_id, $data['eventos'] ?? []);
+    cc_api_remover_eventos($comunidade_id, $data['eventos_removidos'] ?? []);
 
-        foreach ($data['eventos'] as $evt) {
-
-            $titulo_evento = sanitize_text_field($evt['titulo'] ?? '');
-            if (empty($titulo_evento)) continue;
-
-            $evento_id = wp_insert_post([
-                'post_type'   => 'evento',
-                'post_status' => 'publish',
-                'post_title'  => $titulo_evento,
-            ]);
-
-            if (is_wp_error($evento_id)) continue;
-
-            $dia_semana = isset($evt['dia']) ? max(0, min(6, (int) $evt['dia'])) : 0;
-            $horario = sanitize_text_field($evt['horario'] ?? '');
-
-            update_post_meta($evento_id, 'comunidade_id', $comunidade_id);
-            update_post_meta($evento_id, 'dia_semana', $dia_semana);
-            update_post_meta($evento_id, 'horario', $horario);
-            update_post_meta($evento_id, 'descricao', sanitize_textarea_field($evt['descricao'] ?? ''));
-            update_post_meta($evento_id, 'observacao', sanitize_textarea_field($evt['observacao'] ?? ''));
-
-            if (!empty($evt['tipo_evento'])) {
-                wp_set_object_terms(
-                    $evento_id,
-                    [(int) $evt['tipo_evento']],
-                    'tipo_evento'
-                );
-            }
-
-            if (!empty($evt['tags_evento']) && is_array($evt['tags_evento'])) {
-                wp_set_object_terms(
-                    $evento_id,
-                    array_map('intval', $evt['tags_evento']),
-                    'tags_evento'
-                );
-            }
-        }
-    }
+    $dados_alteracao = $data;
+    $dados_alteracao['acao'] = $is_edicao ? 'edicao' : 'criacao';
+    cc_registrar_alteracao(
+        $comunidade_id,
+        $data['parent_paroquia'] ?? null,
+        $dados_alteracao
+    );
 
     $imagem_id = cc_api_processar_upload_imagem($comunidade_id, $request->get_file_params());
 
@@ -223,7 +336,8 @@ function cc_api_cadastrar_comunidade($request) {
     return rest_ensure_response([
         'status' => 'ok',
         'comunidade_id' => $comunidade_id,
-        'imagem_id' => $imagem_id
+        'imagem_id' => $imagem_id,
+        'modo' => $is_edicao ? 'edicao' : 'criacao'
     ]);
 }
 

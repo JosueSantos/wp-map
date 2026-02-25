@@ -4,10 +4,12 @@
 function cc_mapa_shortcode($atts) {
 
     $atts = shortcode_atts([
-        'dominio' => ''
+        'dominio' => '',
+        'url_cadastro' => '/cadastro-comunidade/'
     ], $atts);
 
     $dominio = esc_url_raw($atts['dominio']);
+    $url_cadastro = esc_url_raw($atts['url_cadastro']);
 
     wp_enqueue_style(
         'leaflet-css',
@@ -45,14 +47,14 @@ function cc_mapa_shortcode($atts) {
         'cc-mapa',
         plugin_dir_url(__FILE__) . '../../assets/js/mapa.js',
         ['leaflet-js'],
-        '1.6',
+        '1.7',
         true
     );
 
     ob_start();
 
     ?>
-    <section id="mapa-igrejas" data-dominio="<?php echo esc_attr($dominio); ?>" class="cc-mapa-fullwidth">
+    <section id="mapa-igrejas" data-dominio="<?php echo esc_attr($dominio); ?>" data-url-cadastro="<?php echo esc_attr($url_cadastro); ?>" data-user-logado="<?php echo is_user_logged_in() ? '1' : '0'; ?>" class="cc-mapa-fullwidth">
         <div class="cc-mapa-layout">
             <aside id="mapa-sidebar" class="cc-sidebar">
                 <div class="cc-sidebar-header">
