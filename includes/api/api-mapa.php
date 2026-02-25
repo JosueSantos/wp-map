@@ -132,7 +132,7 @@ function cc_api_mapa_filtros() {
         $slug = sanitize_title($tag);
         if (!isset($lista_tags[$slug])) {
             $lista_tags[$slug] = [
-                'slug' => $tag,
+                'slug' => $slug,
                 'nome' => $tag,
             ];
         }
@@ -235,10 +235,21 @@ function cc_api_mapa_comunidades($request) {
 
             if ($tipo_evento && $tipo_evt !== $tipo_evento) continue;
 
-            $tags_evento = get_post_meta($e->ID, 'tags', true);
-            $tags_evento = is_array($tags_evento) ? $tags_evento : array_filter(array_map('trim', explode(',', (string)$tags_evento)));
+            $tags_evento_meta = get_post_meta($e->ID, 'tags', true);
+            $tags_evento_meta = is_array($tags_evento_meta) ? $tags_evento_meta : array_filter(array_map('trim', explode(',', (string)$tags_evento_meta)));
 
-            if ($tag && !in_array($tag, $tags_evento, true)) continue;
+            $tags_evento_taxonomia = wp_get_post_terms($e->ID, 'tags_evento', ['fields' => 'slugs']);
+            $tags_evento_taxonomia = is_array($tags_evento_taxonomia) ? $tags_evento_taxonomia : [];
+
+            $tags_evento = [];
+            foreach (array_merge($tags_evento_taxonomia, $tags_evento_meta) as $tag_evento) {
+                $tag_evento_slug = sanitize_title((string) $tag_evento);
+                if ($tag_evento_slug !== '') {
+                    $tags_evento[] = $tag_evento_slug;
+                }
+            }
+
+            if ($tag && !in_array(sanitize_title($tag), $tags_evento, true)) continue;
 
             $lista_eventos[] = [
                 'id'        => $e->ID,
