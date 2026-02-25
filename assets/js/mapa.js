@@ -366,14 +366,12 @@ document.addEventListener("DOMContentLoaded", async function () {
             scrollMapIntoView();
             setTimeout(scrollDetalhesIntoView, 80);
         });
-        marker.bindPopup(buildPopup(comunidade), { maxHeight: 260 });
 
         state.markers.push(marker);
     }
 
-    function buildUrlWithFilters(options = {}) {
+    function buildUrlWithFilters() {
         const params = new URLSearchParams();
-        const ignoreUserLocation = Boolean(options.ignoreUserLocation);
 
         if (filtrosForm) {
             const formData = new FormData(filtrosForm);
@@ -383,52 +381,20 @@ document.addEventListener("DOMContentLoaded", async function () {
             }
         }
 
-        const raioSelecionado = String(document.getElementById("filtro-raio")?.value || "").trim();
-        const proximidadeAtiva = Boolean(document.getElementById("filtro-proximidade")?.checked);
-
-        if (proximidadeAtiva) {
-            params.set("proximidade", "true");
-        } else {
-            params.delete("proximidade");
-        }
-
-        const precisaReferenciaGeografica = proximidadeAtiva || raioSelecionado !== "";
-        const centroMapa = map.getCenter();
-
-        const referencia = !ignoreUserLocation
-            ? (state.userLocation?.lat && state.userLocation?.lng
-                ? { lat: state.userLocation.lat, lng: state.userLocation.lng }
-                : (centroMapa
-                    ? { lat: Number(centroMapa.lat), lng: Number(centroMapa.lng) }
-                    : null))
-            : null;
-
-        if (precisaReferenciaGeografica && Number.isFinite(Number(referencia?.lat)) && Number.isFinite(Number(referencia?.lng))) {
-            params.set("lat", Number(referencia.lat));
-            params.set("lng", Number(referencia.lng));
-        } else {
-            params.delete("lat");
-            params.delete("lng");
-        }
+        // filtros de proximidade/raio removidos
+        params.delete("proximidade");
+        params.delete("raio");
+        params.delete("lat");
+        params.delete("lng");
 
         const queryString = params.toString();
         return queryString ? `${API_URL}?${queryString}` : API_URL;
     }
 
-    async function fetchComunidadesComFallback() {
+    async function fetchComunidades() {
         const res = await fetch(buildUrlWithFilters());
         const comunidades = await res.json();
-        const lista = Array.isArray(comunidades) ? comunidades : [];
-
-        const houveTentativaComLocalizacao = buildUrlWithFilters().includes("lat=") || buildUrlWithFilters().includes("lng=");
-
-        if (lista.length === 0 && houveTentativaComLocalizacao) {
-            const resFallback = await fetch(buildUrlWithFilters({ ignoreUserLocation: true }));
-            const comunidadesFallback = await resFallback.json();
-            return Array.isArray(comunidadesFallback) ? comunidadesFallback : [];
-        }
-
-        return lista;
+        return Array.isArray(comunidades) ? comunidades : [];
     }
 
     function updateAutocomplete(lista) {
@@ -455,6 +421,11 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     function ajustarVisaoMapa() {
+        if (state.userLocation?.lat && state.userLocation?.lng) {
+            map.setView([state.userLocation.lat, state.userLocation.lng], userZoom);
+            return;
+        }
+
         const pontos = state.comunidades
             .map((c) => [Number(c.latitude), Number(c.longitude)])
             .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
@@ -462,11 +433,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         if (pontos.length > 0) {
             const bounds = L.latLngBounds(pontos);
             map.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 });
-            return;
-        }
-
-        if (state.userLocation?.lat && state.userLocation?.lng) {
-            map.setView([state.userLocation.lat, state.userLocation.lng], userZoom);
             return;
         }
 
@@ -478,7 +444,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         renderDetalhes(null);
 
         try {
-            const lista = await fetchComunidadesComFallback();
+            const lista = await fetchComunidades();
 
             state.autocompleteBase = lista;
             updateAutocomplete(state.autocompleteBase);
@@ -519,7 +485,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     async function requestUserLocationIfNeeded() {
-        if (!isMobile() || !navigator.geolocation) return;
+        if (!navigator.geolocation) return;
 
         try {
             const pos = await new Promise((resolve, reject) => {

@@ -45,7 +45,7 @@ function cc_mapa_shortcode($atts) {
         'cc-mapa',
         plugin_dir_url(__FILE__) . '../../assets/js/mapa.js',
         ['leaflet-js'],
-        '1.5',
+        '1.6',
         true
     );
 
@@ -82,23 +82,6 @@ function cc_mapa_shortcode($atts) {
                         <label>
                             <span>Tag</span>
                             <select id="filtro-tag" name="tag"></select>
-                        </label>
-
-                        <label>
-                            <span>Raio (km)</span>
-                            <select id="filtro-raio" name="raio">
-                                <option value="">Sem limite</option>
-                                <option value="2">Até 2 km</option>
-                                <option value="5">Até 5 km</option>
-                                <option value="10">Até 10 km</option>
-                                <option value="20">Até 20 km</option>
-                                <option value="50">Até 50 km</option>
-                            </select>
-                        </label>
-
-                        <label class="cc-checkline">
-                            <input id="filtro-proximidade" name="proximidade" type="checkbox" />
-                            <span>Ordenar por proximidade</span>
                         </label>
                     </form>
 
