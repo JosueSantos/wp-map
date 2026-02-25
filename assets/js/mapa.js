@@ -57,6 +57,13 @@ document.addEventListener("DOMContentLoaded", async function () {
         return window.matchMedia("(max-width: 1023px)").matches;
     }
 
+    function scrollMapIntoView() {
+        if (!containerEl) return;
+
+        const top = window.pageYOffset + containerEl.getBoundingClientRect().top - 20;
+        window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+    }
+
     function escapeHtml(value) {
         return String(value ?? "")
             .replace(/&/g, "&amp;")
@@ -309,13 +316,16 @@ document.addEventListener("DOMContentLoaded", async function () {
         marker.on("click", function () {
             renderDetalhes(comunidade);
             if (isMobile()) setSidebarOpen(false);
+            scrollMapIntoView();
         });
+        marker.bindPopup(buildPopup(comunidade), { maxHeight: 260 });
 
         state.markers.push(marker);
     }
 
-    function buildUrlWithFilters() {
+    function buildUrlWithFilters(options = {}) {
         const params = new URLSearchParams();
+        const ignoreUserLocation = Boolean(options.ignoreUserLocation);
 
         if (filtrosForm) {
             const formData = new FormData(filtrosForm);
@@ -329,13 +339,36 @@ document.addEventListener("DOMContentLoaded", async function () {
             params.delete("proximidade");
         }
 
-        if (state.userLocation?.lat && state.userLocation?.lng) {
+        const raioSelecionado = String(document.getElementById("filtro-raio")?.value || "").trim();
+        const proximidadeAtiva = document.getElementById("filtro-proximidade")?.checked;
+        const shouldUseUserLocation = !ignoreUserLocation && !!state.userLocation?.lat && !!state.userLocation?.lng && (proximidadeAtiva || raioSelecionado !== "");
+
+        if (shouldUseUserLocation) {
             params.set("lat", state.userLocation.lat);
             params.set("lng", state.userLocation.lng);
+        } else {
+            params.delete("lat");
+            params.delete("lng");
         }
 
         const queryString = params.toString();
         return queryString ? `${API_URL}?${queryString}` : API_URL;
+    }
+
+    async function fetchComunidadesComFallback() {
+        const res = await fetch(buildUrlWithFilters());
+        const comunidades = await res.json();
+        const lista = Array.isArray(comunidades) ? comunidades : [];
+
+        const houveTentativaComLocalizacao = buildUrlWithFilters().includes("lat=") || buildUrlWithFilters().includes("lng=");
+
+        if (lista.length === 0 && houveTentativaComLocalizacao) {
+            const resFallback = await fetch(buildUrlWithFilters({ ignoreUserLocation: true }));
+            const comunidadesFallback = await resFallback.json();
+            return Array.isArray(comunidadesFallback) ? comunidadesFallback : [];
+        }
+
+        return lista;
     }
 
     function updateAutocomplete(lista) {
@@ -385,9 +418,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         renderDetalhes(null);
 
         try {
-            const res = await fetch(buildUrlWithFilters());
-            const comunidades = await res.json();
-            const lista = Array.isArray(comunidades) ? comunidades : [];
+            const lista = await fetchComunidadesComFallback();
 
             state.autocompleteBase = lista;
             updateAutocomplete(state.autocompleteBase);
