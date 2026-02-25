@@ -102,7 +102,7 @@ add_shortcode('mapa_form_comunidade', function () {
                     </div>
                     <p id="mapa-ajuste-msg" class="mt-3 text-base text-gray-700 hidden">Esta certo a marcação no mapa? Clique para ajustar</p>
                     <p id="mapa-endereco-erro" class="mt-3 text-base font-medium text-red-700 hidden"></p>
-                    <div id="mapa-cadastro" class="mt-3 rounded-xl border" style="height: 320px;"></div>
+                    <div id="mapa-cadastro" class="mt-3 rounded-xl border" style="height: 320px; z-index: 1;"></div>
                 </div>
 
                 <div class="hidden">
