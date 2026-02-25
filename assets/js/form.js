@@ -2,13 +2,126 @@ let eventos = [];
 let contatos = [];
 let mapaCadastro;
 let marcadorCadastro;
+let modoEdicao = false;
+let comunidadeEditandoId = null;
+let eventosRemovidos = [];
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
+    mapaConfigurarBloqueioDeNaoLogado();
+    mapaExibirSaudacaoUsuario();
+
     mapaCarregarTiposComunidade();
     mapaIniciarSeletorDeCoordenadas();
     mapaIniciarEtapasDoFormulario();
     mapaIniciarValidadorImagem();
+
+    await mapaPreencherFormularioEdicao();
 });
+
+
+function mapaObterParametroUrl(nome) {
+    return new URLSearchParams(window.location.search).get(nome);
+}
+
+function mapaConfigurarBloqueioDeNaoLogado() {
+    const modal = document.getElementById('mapa-auth-modal');
+    const loginLink = document.getElementById('mapa-login-link');
+    const registerLink = document.getElementById('mapa-register-link');
+
+    if (loginLink && MAPA_API?.login_url) loginLink.href = MAPA_API.login_url;
+    if (registerLink && MAPA_API?.register_url) registerLink.href = MAPA_API.register_url;
+
+    if (!modal || MAPA_API?.is_logged_in) return;
+
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function mapaExibirSaudacaoUsuario() {
+    if (!MAPA_API?.is_logged_in) return;
+
+    const greeting = document.getElementById('mapa-user-greeting');
+    if (!greeting) return;
+
+    const nome = (MAPA_API.current_user_name || '').trim() || 'usuário';
+    greeting.textContent = `Olá ${nome}`;
+    greeting.classList.remove('hidden');
+}
+
+async function mapaPreencherFormularioEdicao() {
+    const editarId = parseInt(mapaObterParametroUrl('editar_comunidade'), 10);
+    if (!Number.isInteger(editarId) || editarId <= 0) return;
+
+    modoEdicao = true;
+    comunidadeEditandoId = editarId;
+
+    mapaMostrarFeedback('Carregando dados da comunidade para edição...', 'info');
+
+    try {
+        const response = await fetch(`/wp-json/mapa/v1/comunidade/${editarId}`);
+        const dados = await response.json();
+
+        if (!response.ok) {
+            throw new Error(dados?.message || 'Não foi possível carregar a comunidade para edição.');
+        }
+
+        mapaAplicarDadosDaComunidade(dados);
+        mapaMostrarFeedback('Você está editando esta comunidade. Ajuste os campos e salve.', 'info');
+
+        const titulo = document.querySelector('#secao-etapa-1 h3');
+        if (titulo) titulo.textContent = '1. Dados principais (edição)';
+
+        const heading = document.querySelector('h2');
+        if (heading) heading.textContent = 'Editar Comunidade';
+    } catch (error) {
+        mapaMostrarFeedback(error.message || 'Falha ao carregar dados de edição.', 'erro');
+    }
+}
+
+function mapaAplicarDadosDaComunidade(dados) {
+    document.getElementById('nome').value = dados.nome || '';
+    document.getElementById('endereco').value = dados.endereco || '';
+    document.getElementById('latitude').value = dados.latitude || '';
+    document.getElementById('longitude').value = dados.longitude || '';
+
+    if (mapaCadastro && Number.isFinite(parseFloat(dados.latitude)) && Number.isFinite(parseFloat(dados.longitude))) {
+        mapaCadastro.setView([parseFloat(dados.latitude), parseFloat(dados.longitude)], 15);
+        if (marcadorCadastro) {
+            marcadorCadastro.setLatLng([parseFloat(dados.latitude), parseFloat(dados.longitude)]);
+        }
+    }
+
+    const selectTipo = document.getElementById('tipo');
+    if (selectTipo && dados.tipo_id) {
+        const setTipo = () => {
+            selectTipo.value = String(dados.tipo_id);
+            selectTipo.dispatchEvent(new Event('change'));
+        };
+
+        if (selectTipo.options.length <= 1) {
+            setTimeout(setTipo, 300);
+        } else {
+            setTipo();
+        }
+    }
+
+    if (dados.parent_paroquia_id) {
+        document.getElementById('parent_paroquia').value = String(dados.parent_paroquia_id);
+        document.getElementById('busca-paroquia').value = dados.parent_paroquia_nome || '';
+    }
+
+    const contatosContainer = document.getElementById('contatos-container');
+    contatosContainer.innerHTML = '';
+    (dados.contatos || []).forEach((contato) => {
+        mapaAdicionarContato(contato.tipo || '', contato.valor || '');
+    });
+
+    const eventosContainer = document.getElementById('eventos');
+    eventosContainer.innerHTML = '';
+    (dados.eventos || []).forEach((evento) => {
+        mapaAdicionarEvento(evento);
+    });
+}
 
 async function mapaCarregarTiposComunidade() {
 
@@ -290,7 +403,7 @@ async function mapaCarregarTagsEvento(select) {
     });
 }
 
-function mapaAdicionarEvento() {
+function mapaAdicionarEvento(evento = null) {
     const container = document.getElementById('eventos');
 
     const div = document.createElement('div');
@@ -349,6 +462,10 @@ function mapaAdicionarEvento() {
             <textarea placeholder="Observação"
                 class="evento-observacao w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2 min-h-[96px]"></textarea>
         </div>
+
+        <div class="pt-2 border-t border-gray-200">
+            <button type="button" class="evento-remover px-4 py-2 rounded-lg bg-red-50 text-red-700 border border-red-200 font-medium">Remover evento</button>
+        </div>
     `;
 
     container.appendChild(div);
@@ -358,15 +475,48 @@ function mapaAdicionarEvento() {
     const selectTipo = novoEvento.querySelector('.tipo-evento');
     const selectTags = novoEvento.querySelector('.tags-evento');
 
-    mapaCarregarTiposEvento(selectTipo);
-    mapaCarregarTagsEvento(selectTags);
+    mapaCarregarTiposEvento(selectTipo).then(() => {
+        if (evento?.tipo_evento_id) {
+            selectTipo.value = String(evento.tipo_evento_id);
+        }
+    });
+
+    mapaCarregarTagsEvento(selectTags).then(() => {
+        if (Array.isArray(evento?.tags_evento_ids)) {
+            Array.from(selectTags.options).forEach((option) => {
+                option.selected = evento.tags_evento_ids.includes(parseInt(option.value, 10));
+            });
+        }
+    });
+
+    if (evento) {
+        novoEvento.dataset.eventoId = evento.id ? String(evento.id) : '';
+        novoEvento.querySelector('.evento-titulo').value = evento.titulo || '';
+        novoEvento.querySelector('.evento-dia').value = evento.dia ?? '';
+        novoEvento.querySelector('.evento-horario').value = evento.horario || '';
+        novoEvento.querySelector('.evento-descricao').value = evento.descricao || '';
+        novoEvento.querySelector('.evento-observacao').value = evento.observacao || '';
+    }
+
+    novoEvento.querySelector('.evento-remover').addEventListener('click', function () {
+        const titulo = novoEvento.querySelector('.evento-titulo').value || 'sem título';
+        const confirmou = window.confirm(`você tem certeza que deseja apagar o evento ${titulo}?`);
+        if (!confirmou) return;
+
+        const eventoId = parseInt(novoEvento.dataset.eventoId, 10);
+        if (Number.isInteger(eventoId) && eventoId > 0) {
+            eventosRemovidos.push(eventoId);
+        }
+
+        novoEvento.remove();
+    });
 }
 
 const TIPOS_CONTATO = [
   "telefone","whatsapp","instagram","facebook","youtube","site","email"
 ];
 
-function mapaAdicionarContato() {
+function mapaAdicionarContato(tipoInicial = '', valorInicial = '') {
     const container = document.getElementById('contatos-container');
 
     const div = document.createElement('div');
@@ -387,6 +537,9 @@ function mapaAdicionarContato() {
     `;
 
     container.appendChild(div);
+
+    div.querySelector('.contato-tipo').value = tipoInicial;
+    div.querySelector('.contato-valor').value = valorInicial;
 }
 
 
@@ -468,6 +621,11 @@ function mapaMostrarFeedback(mensagem, tipo = 'info') {
 
 function mapaEnviar() {
 
+    if (!MAPA_API?.is_logged_in) {
+        mapaMostrarFeedback('Faça login para enviar o formulário.', 'erro');
+        return;
+    }
+
     if (!mapaValidarRegraCapela()) return;
 
     const contatos = [];
@@ -488,7 +646,10 @@ function mapaEnviar() {
             div.querySelector('.tags-evento').selectedOptions
         ).map(option => parseInt(option.value));
 
+        const eventoId = parseInt(div.dataset.eventoId, 10);
+
         eventos.push({
+            id: Number.isInteger(eventoId) ? eventoId : null,
             titulo: div.querySelector('.evento-titulo').value,
             dia: div.querySelector('.evento-dia').value,
             horario: div.querySelector('.evento-horario').value,
@@ -510,6 +671,11 @@ function mapaEnviar() {
     formData.append('parent_paroquia', document.getElementById('parent_paroquia').value);
     formData.append('contatos', JSON.stringify(contatos));
     formData.append('eventos', JSON.stringify(eventos));
+    formData.append('eventos_removidos', JSON.stringify(eventosRemovidos));
+
+    if (modoEdicao && comunidadeEditandoId) {
+        formData.append('comunidade_id', String(comunidadeEditandoId));
+    }
 
     const imagemInput = document.getElementById('imagem-comunidade');
     if (imagemInput?.files?.length) {
@@ -533,7 +699,7 @@ function mapaEnviar() {
         return resp;
     })
     .then(resp => {
-        mapaMostrarFeedback(`Cadastro realizado com sucesso! ID da comunidade: ${resp.comunidade_id}.`, 'sucesso');
+        mapaMostrarFeedback(modoEdicao ? 'Comunidade atualizada com sucesso!' : `Cadastro realizado com sucesso! ID da comunidade: ${resp.comunidade_id}.`, 'sucesso');
     })
     .catch(error => {
         mapaMostrarFeedback(error.message || 'Erro ao enviar cadastro. Tente novamente.', 'erro');

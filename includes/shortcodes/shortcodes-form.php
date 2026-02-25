@@ -19,13 +19,17 @@ add_shortcode('mapa_form_comunidade', function () {
         'mapa-form',
         plugin_dir_url(__FILE__) . '../../assets/js/form.js',
         ['leaflet-js'],
-        '1.1',
+        '1.2',
         true
     );
 
     wp_localize_script('mapa-form', 'MAPA_API', [
         'url'   => rest_url('mapa/v1/comunidade'),
-        'nonce' => wp_create_nonce('wp_rest')
+        'nonce' => wp_create_nonce('wp_rest'),
+        'is_logged_in' => is_user_logged_in(),
+        'current_user_name' => is_user_logged_in() ? wp_get_current_user()->display_name : '',
+        'login_url' => wp_login_url(get_permalink()),
+        'register_url' => wp_registration_url()
     ]);
 
     wp_enqueue_script('tailwind-cdn', 'https://cdn.tailwindcss.com', [], null);
@@ -33,7 +37,21 @@ add_shortcode('mapa_form_comunidade', function () {
     ob_start();
     ?>
 
+    <div id="mapa-auth-modal" class="hidden fixed inset-0 z-[9999] bg-black/70 px-4 py-8">
+        <div class="mx-auto max-w-xl h-full flex items-center justify-center">
+            <div class="w-full bg-white rounded-2xl shadow-2xl p-6 sm:p-8 space-y-4 text-center">
+                <h3 class="text-2xl font-bold text-gray-800">Faça login para continuar</h3>
+                <p class="text-gray-600">Para criar ou editar comunidades e eventos, faça login com sua conta WordPress. Se ainda não tiver acesso, faça seu cadastro e depois retorne para concluir o formulário.</p>
+                <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                    <a id="mapa-login-link" href="#" class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold">Entrar</a>
+                    <a id="mapa-register-link" href="#" class="px-5 py-2.5 rounded-xl border border-indigo-200 text-indigo-700 font-semibold bg-indigo-50">Criar cadastro</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="max-w-5xl mx-auto bg-white shadow-xl rounded-2xl p-4 sm:p-8 space-y-6">
+        <p id="mapa-user-greeting" class="text-lg text-gray-700 font-medium hidden"></p>
         <div class="sticky top-8 z-20 bg-white/95 backdrop-blur-sm py-3 border-b border-gray-100 rounded-xl px-2 shadow-sm">
             <div class="space-y-2">
                 <h2 class="text-2xl font-bold text-gray-800">Cadastrar Comunidade</h2>
