@@ -79,32 +79,149 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
     }
 
-    function formatContatos(contatos) {
+    function sanitizeKey(key) {
+        return String(key || "")
+            .normalize("NFD")
+            .replace(/[̀-ͯ]/g, "")
+            .toLowerCase()
+            .trim();
+    }
+
+    function isEmail(value) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+    }
+
+    function isUrl(value) {
+        return /^https?:\/\//i.test(String(value || "").trim());
+    }
+
+    function ensureUrl(value) {
+        const raw = String(value || "").trim();
+        if (!raw) return "";
+        if (isUrl(raw)) return raw;
+        return `https://${raw.replace(/^\/+/, "")}`;
+    }
+
+    function extractContatos(contatos) {
         let data = contatos;
         const parsed = parseJsonString(contatos);
         if (parsed !== null) data = parsed;
 
-        if (!data) return "";
+        const result = {
+            telefones: [],
+            emails: [],
+            redes: [],
+            outros: [],
+        };
 
-        if (Array.isArray(data)) {
-            const itens = data.map((item) => {
-                if (typeof item === "string") return item.trim();
-                if (item && typeof item === "object") {
-                    return Object.values(item).filter(Boolean).join(" • ");
-                }
-                return "";
-            }).filter(Boolean);
-            return itens.join("<br>");
+        const seen = new Set();
+
+        function pushUnique(bucket, value) {
+            const text = String(value || "").trim();
+            if (!text) return;
+            const key = `${bucket}:${text.toLowerCase()}`;
+            if (seen.has(key)) return;
+            seen.add(key);
+            result[bucket].push(text);
         }
 
-        if (typeof data === "object") {
-            const itens = Object.entries(data)
-                .filter(([, value]) => value)
-                .map(([key, value]) => `${escapeHtml(key)}: ${escapeHtml(value)}`);
-            return itens.join("<br>");
+        function pushRede(label, value) {
+            const href = ensureUrl(value);
+            if (!href) return;
+            const key = `rede:${label.toLowerCase()}:${href.toLowerCase()}`;
+            if (seen.has(key)) return;
+            seen.add(key);
+            result.redes.push({ label, href });
         }
 
-        return escapeHtml(data);
+        function classify(key, value) {
+            const k = sanitizeKey(key);
+            const v = String(value || "").trim();
+            if (!v) return;
+
+            if (k.includes("email") || isEmail(v)) {
+                pushUnique("emails", v);
+                return;
+            }
+
+            if (k.includes("telefone") || k.includes("fone") || k.includes("celular") || k.includes("whatsapp") || k === "tel") {
+                pushUnique("telefones", v);
+                return;
+            }
+
+            if (k.includes("instagram")) return pushRede("Instagram", v);
+            if (k.includes("facebook")) return pushRede("Facebook", v);
+            if (k.includes("youtube")) return pushRede("YouTube", v);
+            if (k.includes("tiktok")) return pushRede("TikTok", v);
+            if (k.includes("linkedin")) return pushRede("LinkedIn", v);
+            if (k.includes("twitter") || k === "x") return pushRede("X", v);
+            if (k.includes("site") || k.includes("website")) return pushRede("Site", v);
+
+            const maybeUrl = ensureUrl(v);
+            if (isUrl(v) || /instagram|facebook|youtube|tiktok|linkedin|twitter|x\.com/i.test(v)) {
+                pushRede("Rede", maybeUrl);
+                return;
+            }
+
+            pushUnique("outros", `${key}: ${v}`);
+        }
+
+        function walk(node) {
+            if (!node) return;
+
+            if (typeof node === "string") {
+                const text = node.trim();
+                if (!text) return;
+                if (isEmail(text)) return pushUnique("emails", text);
+                if (isUrl(text)) return pushRede("Rede", text);
+                return pushUnique("outros", text);
+            }
+
+            if (Array.isArray(node)) {
+                node.forEach(walk);
+                return;
+            }
+
+            if (typeof node === "object") {
+                Object.entries(node).forEach(([key, value]) => {
+                    if (value && typeof value === "object") {
+                        walk(value);
+                        return;
+                    }
+                    classify(key, value);
+                });
+            }
+        }
+
+        walk(data);
+        return result;
+    }
+
+    function renderContatos(contatos) {
+        const data = extractContatos(contatos);
+        const blocks = [];
+
+        if (data.telefones.length) {
+            const itens = data.telefones.map((tel) => `<li>📞 ${escapeHtml(tel)}</li>`).join("");
+            blocks.push(`<div><strong>Telefone</strong><ul style="margin:.25rem 0 0;padding-left:1rem;">${itens}</ul></div>`);
+        }
+
+        if (data.emails.length) {
+            const itens = data.emails.map((email) => `<li>✉️ <a href="mailto:${encodeURIComponent(email)}">${escapeHtml(email)}</a></li>`).join("");
+            blocks.push(`<div><strong>E-mail</strong><ul style="margin:.25rem 0 0;padding-left:1rem;">${itens}</ul></div>`);
+        }
+
+        if (data.redes.length) {
+            const itens = data.redes.map((rede) => `<a href="${escapeHtml(rede.href)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:0 .35rem .35rem 0;padding:.28rem .52rem;border-radius:999px;background:#e0e7ff;color:#1e40af;text-decoration:none;font-size:12px;">🚩 ${escapeHtml(rede.label)}</a>`).join("");
+            blocks.push(`<div><strong>Redes sociais</strong><div style="margin-top:.35rem;">${itens}</div></div>`);
+        }
+
+        if (data.outros.length) {
+            const itens = data.outros.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+            blocks.push(`<div><strong>Outros contatos</strong><ul style="margin:.25rem 0 0;padding-left:1rem;">${itens}</ul></div>`);
+        }
+
+        return blocks.join("");
     }
 
     function setSidebarOpen(open) {
@@ -137,7 +254,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             }).join("")
             : "<li>Sem eventos para os filtros selecionados.</li>";
 
-        const contatosFormatados = formatContatos(comunidade.contatos);
+        const contatosFormatados = renderContatos(comunidade.contatos);
 
         detalhesEl.innerHTML = `
             <h3>Comunidade selecionada</h3>
@@ -145,7 +262,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 <h4>${escapeHtml(comunidade.nome || "Comunidade")}</h4>
                 ${comunidade.foto ? `<img src="${escapeHtml(comunidade.foto)}" alt="${escapeHtml(comunidade.nome || "Comunidade")}" style="width:100%;max-height:170px;object-fit:cover;border-radius:8px;margin:.45rem 0;" />` : ""}
                 ${comunidade.endereco ? `<p>${escapeHtml(comunidade.endereco)}</p>` : ""}
-                ${contatosFormatados ? `<p>${contatosFormatados}</p>` : ""}
+                ${contatosFormatados ? `<div style="display:grid;gap:.55rem;">${contatosFormatados}</div>` : ""}
                 ${comunidade.distancia_km ? `<p><small>Distância: ${Number(comunidade.distancia_km).toFixed(1)} km</small></p>` : ""}
                 <strong>Eventos</strong>
                 <ul style="margin-top:.45rem;padding-left:1rem;display:grid;gap:.4rem;">${eventosHtml}</ul>
