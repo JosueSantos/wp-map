@@ -3,7 +3,7 @@
 // API
 // Rota /wp-json/mapa/v1/comunidades
 // Retorna a lista de Comunidades
-// 
+//
 // Parametros
 // dia integer ou string [0 domingo - 6 sábado || hoje]
 // tipo_evento string [missa, confissão ...]
@@ -24,6 +24,12 @@ add_action('rest_api_init', function () {
             'lat' => ['validate_callback' => 'is_numeric'],
             'lng' => ['validate_callback' => 'is_numeric'],
         ]
+    ]);
+
+    register_rest_route('mapa/v1', '/filtros', [
+        'methods'  => 'GET',
+        'callback' => 'cc_api_mapa_filtros',
+        'permission_callback' => '__return_true',
     ]);
 
     register_rest_route('mapa/v1', '/paroquias', [
@@ -60,6 +66,97 @@ add_action('rest_api_init', function () {
 
 });
 
+function cc_api_mapa_filtros() {
+
+    $tipos_comunidade = get_terms([
+        'taxonomy' => 'tipo_comunidade',
+        'hide_empty' => false,
+    ]);
+
+    $tipos_evento = get_terms([
+        'taxonomy' => 'tipo_evento',
+        'hide_empty' => false,
+    ]);
+
+    $tags_taxonomia = get_terms([
+        'taxonomy' => 'tags_evento',
+        'hide_empty' => false,
+    ]);
+
+    $tags_meta = [];
+    $eventos = get_posts([
+        'post_type' => 'evento',
+        'posts_per_page' => -1,
+        'post_status' => 'publish',
+        'fields' => 'ids',
+    ]);
+
+    foreach ($eventos as $evento_id) {
+        $tags_evento = get_post_meta($evento_id, 'tags', true);
+        $tags_evento = is_array($tags_evento) ? $tags_evento : array_filter(array_map('trim', explode(',', (string) $tags_evento)));
+
+        foreach ($tags_evento as $tag) {
+            if ($tag !== '') {
+                $tags_meta[] = sanitize_text_field($tag);
+            }
+        }
+    }
+
+    $tags_meta = array_values(array_unique($tags_meta));
+
+    $lista_tipos_comunidade = [];
+    foreach ($tipos_comunidade as $termo) {
+        $lista_tipos_comunidade[] = [
+            'slug' => $termo->slug,
+            'nome' => $termo->name,
+        ];
+    }
+
+    $lista_tipos_evento = [];
+    foreach ($tipos_evento as $termo) {
+        $lista_tipos_evento[] = [
+            'slug' => $termo->slug,
+            'nome' => $termo->name,
+        ];
+    }
+
+    $lista_tags = [];
+    foreach ($tags_taxonomia as $termo) {
+        $lista_tags[$termo->slug] = [
+            'slug' => $termo->slug,
+            'nome' => $termo->name,
+        ];
+    }
+
+    foreach ($tags_meta as $tag) {
+        $slug = sanitize_title($tag);
+        if (!isset($lista_tags[$slug])) {
+            $lista_tags[$slug] = [
+                'slug' => $tag,
+                'nome' => $tag,
+            ];
+        }
+    }
+
+    $dias = [
+        ['slug' => 'hoje', 'nome' => 'Hoje'],
+        ['slug' => '0', 'nome' => 'Domingo'],
+        ['slug' => '1', 'nome' => 'Segunda-feira'],
+        ['slug' => '2', 'nome' => 'Terça-feira'],
+        ['slug' => '3', 'nome' => 'Quarta-feira'],
+        ['slug' => '4', 'nome' => 'Quinta-feira'],
+        ['slug' => '5', 'nome' => 'Sexta-feira'],
+        ['slug' => '6', 'nome' => 'Sábado'],
+    ];
+
+    return rest_ensure_response([
+        'dias' => $dias,
+        'tipos_evento' => $lista_tipos_evento,
+        'tipos_comunidade' => $lista_tipos_comunidade,
+        'tags' => array_values($lista_tags),
+    ]);
+}
+
 function cc_api_mapa_comunidades($request) {
     $cache_key = 'mapa_api_' . md5(json_encode($request->get_params()));
     $cache = get_transient($cache_key);
@@ -72,7 +169,7 @@ function cc_api_mapa_comunidades($request) {
     $user_lat = $request->get_param('lat');
     $user_lng = $request->get_param('lng');
     $raio = floatval($request->get_param('raio'));
-    $tag = $request->get_param('tag');
+    $tag = sanitize_text_field($request->get_param('tag'));
     $limite = intval($request->get_param('limite'));
     $proximidade = filter_var($request->get_param('proximidade'), FILTER_VALIDATE_BOOLEAN);
 
@@ -134,14 +231,14 @@ function cc_api_mapa_comunidades($request) {
             $tipo_evt = $tipo_evt[0] ?? '';
 
             // FILTROS
-            if ($dia !== null && intval($dia_semana) !== intval($dia)) continue;
+            if ($dia !== null && $dia !== '' && intval($dia_semana) !== intval($dia)) continue;
 
             if ($tipo_evento && $tipo_evt !== $tipo_evento) continue;
 
             $tags_evento = get_post_meta($e->ID, 'tags', true);
             $tags_evento = is_array($tags_evento) ? $tags_evento : array_filter(array_map('trim', explode(',', (string)$tags_evento)));
 
-            if ($tag && !in_array($tag, $tags_evento)) continue;
+            if ($tag && !in_array($tag, $tags_evento, true)) continue;
 
             $lista_eventos[] = [
                 'id'        => $e->ID,
@@ -152,6 +249,10 @@ function cc_api_mapa_comunidades($request) {
                 'descricao' => $descricao,
                 'observacao'=> $observacao
             ];
+        }
+
+        if (($dia || $tipo_evento || $tag) && empty($lista_eventos)) {
+            continue;
         }
 
         $foto = get_the_post_thumbnail_url($c->ID, 'medium');
