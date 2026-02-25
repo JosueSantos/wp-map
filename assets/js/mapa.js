@@ -318,6 +318,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             if (isMobile()) setSidebarOpen(false);
             scrollMapIntoView();
         });
+        marker.bindPopup(buildPopup(comunidade), { maxHeight: 260 });
 
         state.markers.push(marker);
     }
