@@ -14,6 +14,17 @@ function cc_mapa_shortcode($atts) {
         'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
     );
 
+    // Tailwind (fallback para temas que não carregam utilitários)
+    wp_enqueue_script('tailwind-cdn', 'https://cdn.tailwindcss.com', [], null);
+
+    // CSS de fallback para garantir layout e altura do mapa sem Tailwind
+    wp_enqueue_style(
+        'cc-mapa-css',
+        plugin_dir_url(__FILE__) . '../../assets/css/mapa.css',
+        [],
+        '1.0'
+    );
+
     wp_enqueue_script(
         'leaflet-js',
         'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
@@ -26,7 +37,7 @@ function cc_mapa_shortcode($atts) {
         'cc-mapa',
         plugin_dir_url(__FILE__) . '../../assets/js/mapa.js',
         ['leaflet-js'],
-        '1.2',
+        '1.3',
         true
     );
 
