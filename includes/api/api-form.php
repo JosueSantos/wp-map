@@ -156,6 +156,7 @@ function cc_api_obter_comunidade_para_edicao($request) {
         'parent_paroquia_nome' => $parent_paroquia_id ? get_the_title($parent_paroquia_id) : '',
         'contatos' => get_post_meta($comunidade_id, 'contatos', true) ?: [],
         'eventos' => $eventos,
+        'imagem_url' => get_the_post_thumbnail_url($comunidade_id, 'medium') ?: '',
     ]);
 }
 

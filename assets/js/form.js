@@ -5,6 +5,7 @@ let marcadorCadastro;
 let modoEdicao = false;
 let comunidadeEditandoId = null;
 let eventosRemovidos = [];
+let mapaDefinirCoordenadas = null;
 
 document.addEventListener('DOMContentLoaded', async function () {
     mapaConfigurarBloqueioDeNaoLogado();
@@ -84,11 +85,8 @@ function mapaAplicarDadosDaComunidade(dados) {
     document.getElementById('latitude').value = dados.latitude || '';
     document.getElementById('longitude').value = dados.longitude || '';
 
-    if (mapaCadastro && Number.isFinite(parseFloat(dados.latitude)) && Number.isFinite(parseFloat(dados.longitude))) {
-        mapaCadastro.setView([parseFloat(dados.latitude), parseFloat(dados.longitude)], 15);
-        if (marcadorCadastro) {
-            marcadorCadastro.setLatLng([parseFloat(dados.latitude), parseFloat(dados.longitude)]);
-        }
+    if (Number.isFinite(parseFloat(dados.latitude)) && Number.isFinite(parseFloat(dados.longitude)) && typeof mapaDefinirCoordenadas === 'function') {
+        mapaDefinirCoordenadas(parseFloat(dados.latitude), parseFloat(dados.longitude), false);
     }
 
     const selectTipo = document.getElementById('tipo');
@@ -121,6 +119,8 @@ function mapaAplicarDadosDaComunidade(dados) {
     (dados.eventos || []).forEach((evento) => {
         mapaAdicionarEvento(evento);
     });
+
+    mapaAtualizarPreviewImagemExistente(dados.imagem_url || '');
 }
 
 async function mapaCarregarTiposComunidade() {
@@ -279,6 +279,8 @@ function mapaIniciarSeletorDeCoordenadas() {
             mensagemAjuste.classList.remove('hidden');
         }
     }
+
+    mapaDefinirCoordenadas = mapaAtualizarMarcadorCadastro;
 
     async function mapaBuscarEnderecoNoOpenStreetMap(endereco, erroEl) {
 
@@ -543,6 +545,22 @@ function mapaAdicionarContato(tipoInicial = '', valorInicial = '') {
 }
 
 
+function mapaAtualizarPreviewImagemExistente(url) {
+    const previewWrap = document.getElementById('imagem-comunidade-preview-wrap');
+    const preview = document.getElementById('imagem-comunidade-preview');
+
+    if (!previewWrap || !preview) return;
+
+    if (!url) {
+        preview.src = '';
+        previewWrap.classList.add('hidden');
+        return;
+    }
+
+    preview.src = url;
+    previewWrap.classList.remove('hidden');
+}
+
 function mapaIniciarValidadorImagem() {
 
     const inputImagem = document.getElementById('imagem-comunidade');
@@ -577,9 +595,11 @@ function mapaIniciarValidadorImagem() {
             return;
         }
 
-        mensagem.textContent = 'Imagem válida selecionada.';
+        mensagem.textContent = 'Imagem válida selecionada. Ela substituirá a imagem atual.';
         mensagem.classList.remove('hidden');
         mensagem.classList.add('text-emerald-700', 'font-medium');
+
+        mapaAtualizarPreviewImagemExistente(URL.createObjectURL(arquivo));
     });
 }
 

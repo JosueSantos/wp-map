@@ -54,7 +54,7 @@ function cc_mapa_shortcode($atts) {
     ob_start();
 
     ?>
-    <section id="mapa-igrejas" data-dominio="<?php echo esc_attr($dominio); ?>" data-url-cadastro="<?php echo esc_attr($url_cadastro); ?>" class="cc-mapa-fullwidth">
+    <section id="mapa-igrejas" data-dominio="<?php echo esc_attr($dominio); ?>" data-url-cadastro="<?php echo esc_attr($url_cadastro); ?>" data-user-logado="<?php echo is_user_logged_in() ? '1' : '0'; ?>" class="cc-mapa-fullwidth">
         <div class="cc-mapa-layout">
             <aside id="mapa-sidebar" class="cc-sidebar">
                 <div class="cc-sidebar-header">

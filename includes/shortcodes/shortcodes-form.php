@@ -167,6 +167,10 @@ add_shortcode('mapa_form_comunidade', function () {
             <input type="file" id="imagem-comunidade" accept="image/jpeg,image/png,image/webp,image/gif"
                 class="block w-full rounded-xl border-2 border-gray-200 bg-gray-50 p-2 text-base text-gray-700 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
             <p id="imagem-comunidade-msg" class="text-base hidden"></p>
+            <div id="imagem-comunidade-preview-wrap" class="hidden">
+                <p class="text-sm text-gray-600">Imagem atual:</p>
+                <img id="imagem-comunidade-preview" src="" alt="Imagem atual da comunidade" class="mt-2 w-40 h-40 object-cover rounded-lg border border-gray-200">
+            </div>
         </section>
 
         <div class="pt-1">
