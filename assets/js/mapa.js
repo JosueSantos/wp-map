@@ -23,6 +23,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const API_BASE = dominio ? `${dominio}/wp-json/mapa/v1` : "/wp-json/mapa/v1";
     const API_URL = `${API_BASE}/comunidades`;
     const API_FILTROS_URL = `${API_BASE}/filtros`;
+    const cadastroBaseUrl = containerEl.dataset.urlCadastro || "/cadastro-comunidade/";
 
     const map = L.map(mapaEl, {
         minZoom: 3,
@@ -278,6 +279,13 @@ document.addEventListener("DOMContentLoaded", async function () {
         return blocks.join("");
     }
 
+
+    function buildEditarLink(comunidade) {
+        const base = String(cadastroBaseUrl || '/cadastro-comunidade/').trim();
+        const separador = base.includes('?') ? '&' : '?';
+        return `${base}${separador}editar_comunidade=${encodeURIComponent(comunidade.id)}`;
+    }
+
     function setSidebarOpen(open) {
         if (!sidebarEl || !isMobile()) return;
         sidebarEl.classList.toggle("is-open", !!open);
@@ -320,6 +328,11 @@ document.addEventListener("DOMContentLoaded", async function () {
                 ${comunidade.distancia_km ? `<p><small>Distância: ${Number(comunidade.distancia_km).toFixed(1)} km</small></p>` : ""}
                 <strong>Eventos</strong>
                 <ul style="margin-top:.45rem;padding-left:1rem;display:grid;gap:.4rem;">${eventosHtml}</ul>
+                <p style="margin-top:.8rem;">
+                    <a href="${escapeHtml(buildEditarLink(comunidade))}" style="color:#4338ca;text-decoration:underline;font-weight:600;">
+                        existe algo errado ou desatualizado? clique aqui para atualizar
+                    </a>
+                </p>
             </article>
         `;
     }
@@ -338,6 +351,9 @@ document.addEventListener("DOMContentLoaded", async function () {
                 <h3 style="margin:0 0 4px;font-size:14px;color:#0f172a;">${escapeHtml(comunidade.nome)}</h3>
                 ${comunidade.endereco ? `<p style="margin:0 0 6px;font-size:12px;color:#475569;">${escapeHtml(comunidade.endereco)}</p>` : ""}
                 ${eventosHtml}
+                <div style="margin-top:8px;padding-top:6px;border-top:1px solid #e2e8f0;">
+                    <a href="${escapeHtml(buildEditarLink(comunidade))}" style="font-size:12px;color:#4338ca;text-decoration:underline;font-weight:600;">existe algo errado ou desatualizado? clique aqui para atualizar</a>
+                </div>
             </div>
         `;
     }
