@@ -7,10 +7,16 @@ document.addEventListener("DOMContentLoaded", async function () {
     const filtrosForm = document.getElementById("mapa-filtros");
     const detalhesEl = document.getElementById("mapa-detalhes");
     const limparBtn = document.getElementById("mapa-limpar-filtros");
+    const aplicarBtn = document.getElementById("mapa-aplicar-filtros");
+    const toggleFiltrosBtn = document.getElementById("mapa-toggle-filtros");
+    const fecharFiltrosBtn = document.getElementById("mapa-fechar-filtros");
+    const sidebarEl = document.getElementById("mapa-sidebar");
+    const buscaDesktop = document.getElementById("filtro-busca");
+    const buscaMobile = document.getElementById("filtro-busca-mobile");
 
     const fallbackCenter = [-3.7319, -38.5267]; // Fortaleza, Ceará, Brasil
     const fallbackZoom = 11;
-    const userZoom = 8;
+    const userZoom = 7;
 
     let dominio = containerEl.dataset.dominio || "";
 
@@ -25,6 +31,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const map = L.map(mapaEl, {
         minZoom: 3,
         maxZoom: 19,
+        zoomControl: true,
     }).setView(fallbackCenter, fallbackZoom);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -35,6 +42,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         userLocation: null,
         markers: [],
         comunidades: [],
+        termoBusca: "",
+        userMarker: null,
     };
 
     const diaMap = {
@@ -48,7 +57,19 @@ document.addEventListener("DOMContentLoaded", async function () {
     };
 
     function isMobile() {
-        return window.matchMedia("(max-width: 1024px)").matches;
+        return window.matchMedia("(max-width: 1023px)").matches;
+    }
+
+    function setSidebarOpen(open) {
+        if (!sidebarEl) return;
+
+        if (open) {
+            sidebarEl.classList.remove("-translate-x-full");
+        } else if (isMobile()) {
+            sidebarEl.classList.add("-translate-x-full");
+        }
+
+        window.setTimeout(() => map.invalidateSize(), 320);
     }
 
     function renderDetalhes(comunidade) {
@@ -56,8 +77,8 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         if (!comunidade) {
             detalhesEl.innerHTML = `
-                <h3 class="mb-2 text-base font-semibold text-slate-800">Detalhes da comunidade</h3>
-                <p>Selecione um pino no mapa para visualizar informações da comunidade e dos eventos.</p>
+                <h3 class="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-700">Comunidade selecionada</h3>
+                <p>Toque em um pino para ver detalhes e eventos.</p>
             `;
             return;
         }
@@ -66,26 +87,23 @@ document.addEventListener("DOMContentLoaded", async function () {
             ? comunidade.eventos.map((evento) => {
                 const dia = diaMap[String(evento.dia)] || evento.dia || "Dia não informado";
                 return `
-                    <li class="rounded-lg border border-slate-200 bg-white p-3">
+                    <li class="rounded-lg border border-slate-200 bg-white p-2.5">
                         <p class="font-semibold text-slate-800">${evento.titulo || "Evento"}</p>
                         <p class="text-slate-600">${dia} • ${evento.horario || "Horário não informado"}</p>
-                        ${evento.tipo ? `<p class="text-xs uppercase tracking-wide text-sky-700">${evento.tipo}</p>` : ""}
-                        ${evento.observacao ? `<p class="mt-1 text-xs text-slate-500">${evento.observacao}</p>` : ""}
                     </li>
                 `;
             }).join("")
-            : '<li class="rounded-lg border border-slate-200 bg-white p-3 text-slate-500">Nenhum evento para os filtros selecionados.</li>';
+            : '<li class="rounded-lg border border-slate-200 bg-white p-2.5 text-slate-500">Sem eventos para os filtros selecionados.</li>';
 
         detalhesEl.innerHTML = `
-            <article class="space-y-3">
-                <h3 class="text-lg font-semibold text-slate-900">${comunidade.nome || "Comunidade"}</h3>
-                ${comunidade.foto ? `<img src="${comunidade.foto}" alt="${comunidade.nome}" class="h-40 w-full rounded-lg object-cover" />` : ""}
+            <article class="space-y-2">
+                <h3 class="text-base font-semibold text-slate-900">${comunidade.nome || "Comunidade"}</h3>
                 ${comunidade.endereco ? `<p class="text-slate-700">${comunidade.endereco}</p>` : ""}
                 ${comunidade.contatos ? `<p class="text-slate-600">${comunidade.contatos}</p>` : ""}
-                ${comunidade.distancia_km ? `<p class="rounded-md bg-sky-50 px-2 py-1 text-xs font-medium text-sky-700">Distância aproximada: ${Number(comunidade.distancia_km).toFixed(1)} km</p>` : ""}
+                ${comunidade.distancia_km ? `<p class="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">Distância: ${Number(comunidade.distancia_km).toFixed(1)} km</p>` : ""}
                 <div>
-                    <h4 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-700">Eventos</h4>
-                    <ul class="space-y-2">${eventosHtml}</ul>
+                    <h4 class="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-700">Eventos</h4>
+                    <ul class="space-y-1.5">${eventosHtml}</ul>
                 </div>
             </article>
         `;
@@ -102,7 +120,6 @@ document.addEventListener("DOMContentLoaded", async function () {
                 <h3 style="margin:0;font-size:14px;color:#0f172a;">${comunidade.nome}</h3>
                 ${comunidade.endereco ? `<p style="margin:4px 0 0;font-size:12px;color:#475569;">${comunidade.endereco}</p>` : ""}
                 ${eventoResumo}
-                <p style="margin:8px 0 0;font-size:11px;color:#0369a1;">Clique para ver detalhes no painel lateral.</p>
             </div>
         `;
     }
@@ -113,13 +130,16 @@ document.addEventListener("DOMContentLoaded", async function () {
         marker.bindTooltip(comunidade.nome, {
             direction: "top",
             offset: [0, -10],
-            opacity: 0.9,
+            opacity: 0.95,
         });
 
         marker.bindPopup(buildPopup(comunidade));
 
         marker.on("click", function () {
             renderDetalhes(comunidade);
+            if (isMobile()) {
+                setSidebarOpen(true);
+            }
         });
 
         state.markers.push(marker);
@@ -133,10 +153,12 @@ document.addEventListener("DOMContentLoaded", async function () {
     function buildUrlWithFilters() {
         const params = new URLSearchParams();
 
-        const formData = new FormData(filtrosForm);
-        for (const [key, value] of formData.entries()) {
-            if (!value) continue;
-            params.append(key, value);
+        if (filtrosForm) {
+            const formData = new FormData(filtrosForm);
+            for (const [key, value] of formData.entries()) {
+                if (!value) continue;
+                params.append(key, value);
+            }
         }
 
         if (!document.getElementById("filtro-proximidade")?.checked) {
@@ -152,6 +174,17 @@ document.addEventListener("DOMContentLoaded", async function () {
         return queryString ? `${API_URL}?${queryString}` : API_URL;
     }
 
+    function filtrarPorBusca(comunidades) {
+        const termo = state.termoBusca.trim().toLowerCase();
+        if (!termo) return comunidades;
+
+        return comunidades.filter((item) => {
+            const nome = String(item.nome || "").toLowerCase();
+            const endereco = String(item.endereco || "").toLowerCase();
+            return nome.includes(termo) || endereco.includes(termo);
+        });
+    }
+
     async function carregarComunidades() {
         clearMarkers();
         renderDetalhes(null);
@@ -160,14 +193,11 @@ document.addEventListener("DOMContentLoaded", async function () {
             const res = await fetch(buildUrlWithFilters());
             const comunidades = await res.json();
 
-            state.comunidades = Array.isArray(comunidades) ? comunidades : [];
+            state.comunidades = filtrarPorBusca(Array.isArray(comunidades) ? comunidades : []);
 
             state.comunidades.forEach(addMarker);
 
-            if (state.comunidades.length > 0) {
-                const bounds = L.latLngBounds(state.comunidades.map((c) => [Number(c.latitude), Number(c.longitude)]));
-                map.fitBounds(bounds.pad(0.2));
-            } else if (state.userLocation) {
+            if (state.userLocation) {
                 map.setView([state.userLocation.lat, state.userLocation.lng], userZoom);
             } else {
                 map.setView(fallbackCenter, fallbackZoom);
@@ -213,7 +243,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             const pos = await new Promise((resolve, reject) => {
                 navigator.geolocation.getCurrentPosition(resolve, reject, {
                     enableHighAccuracy: true,
-                    timeout: 8000,
+                    timeout: 9000,
                 });
             });
 
@@ -224,10 +254,10 @@ document.addEventListener("DOMContentLoaded", async function () {
 
             map.setView([state.userLocation.lat, state.userLocation.lng], userZoom);
 
-            L.circleMarker([state.userLocation.lat, state.userLocation.lng], {
+            state.userMarker = L.circleMarker([state.userLocation.lat, state.userLocation.lng], {
                 radius: 7,
-                color: "#0284c7",
-                fillColor: "#38bdf8",
+                color: "#1d4ed8",
+                fillColor: "#3b82f6",
                 fillOpacity: 0.9,
             }).addTo(map).bindTooltip("Sua localização", { direction: "top" });
         } catch (err) {
@@ -235,16 +265,80 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
     }
 
+    function syncBusca(valor) {
+        state.termoBusca = valor || "";
+        if (buscaDesktop && buscaDesktop.value !== state.termoBusca) {
+            buscaDesktop.value = state.termoBusca;
+        }
+        if (buscaMobile && buscaMobile.value !== state.termoBusca) {
+            buscaMobile.value = state.termoBusca;
+        }
+    }
+
+    buscaDesktop?.addEventListener("input", () => syncBusca(buscaDesktop.value));
+    buscaMobile?.addEventListener("input", () => syncBusca(buscaMobile.value));
+
+    buscaDesktop?.addEventListener("search", carregarComunidades);
+    buscaMobile?.addEventListener("search", carregarComunidades);
+
+    buscaDesktop?.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            carregarComunidades();
+        }
+    });
+
+    buscaMobile?.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            carregarComunidades();
+        }
+    });
+
     filtrosForm?.addEventListener("change", () => {
+        if (!isMobile()) {
+            carregarComunidades();
+        }
+    });
+
+    aplicarBtn?.addEventListener("click", () => {
         carregarComunidades();
+        if (isMobile()) {
+            setSidebarOpen(false);
+        }
     });
 
     limparBtn?.addEventListener("click", () => {
         filtrosForm?.reset();
+        syncBusca("");
         carregarComunidades();
+    });
+
+    toggleFiltrosBtn?.addEventListener("click", () => {
+        setSidebarOpen(true);
+    });
+
+    fecharFiltrosBtn?.addEventListener("click", () => {
+        setSidebarOpen(false);
+    });
+
+    window.addEventListener("resize", () => {
+        if (!isMobile()) {
+            sidebarEl?.classList.remove("-translate-x-full");
+        } else {
+            sidebarEl?.classList.add("-translate-x-full");
+        }
+        map.invalidateSize();
     });
 
     await carregarFiltros();
     await requestUserLocationIfNeeded();
+
+    if (isMobile()) {
+        setSidebarOpen(false);
+    } else {
+        setSidebarOpen(true);
+    }
+
     await carregarComunidades();
 });

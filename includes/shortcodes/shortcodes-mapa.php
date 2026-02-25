@@ -26,7 +26,7 @@ function cc_mapa_shortcode($atts) {
         'cc-mapa',
         plugin_dir_url(__FILE__) . '../../assets/js/mapa.js',
         ['leaflet-js'],
-        '1.1',
+        '1.2',
         true
     );
 
@@ -35,62 +35,100 @@ function cc_mapa_shortcode($atts) {
     ?>
     <section id="mapa-igrejas"
         data-dominio="<?php echo esc_attr($dominio); ?>"
-        class="w-full rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-6">
+        class="relative isolate overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm">
 
-        <div class="mb-4 rounded-xl border border-slate-100 bg-slate-50 p-4">
-            <div class="mb-3 flex items-center justify-between gap-3">
-                <h2 class="text-lg font-semibold text-slate-800">Busque por comunidades e eventos</h2>
-                <button id="mapa-limpar-filtros" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-100">Limpar</button>
+        <div id="mapa-canvas" class="h-[75vh] min-h-[520px] w-full"></div>
+
+        <div class="pointer-events-none absolute inset-0 z-[400] flex items-start justify-between p-3 sm:p-4">
+            <button id="mapa-toggle-filtros"
+                type="button"
+                class="pointer-events-auto inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/95 px-3 py-2 text-sm font-medium text-slate-800 shadow lg:hidden">
+                <span>Filtros</span>
+                <span class="text-xs text-slate-500">☰</span>
+            </button>
+
+            <div class="pointer-events-auto hidden w-full max-w-xl px-2 lg:block">
+                <label class="block">
+                    <span class="sr-only">Pesquisar comunidade</span>
+                    <div class="flex items-center gap-2 rounded-full border border-slate-300 bg-white/95 px-4 py-2 shadow">
+                        <input id="filtro-busca" type="search" placeholder="Pesquisar comunidade no mapa" class="w-full bg-transparent text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none" />
+                        <span class="text-slate-500">🔍</span>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <aside id="mapa-sidebar"
+            class="absolute left-0 top-0 z-[500] flex h-full w-[92%] max-w-[350px] -translate-x-full flex-col border-r border-slate-200 bg-white/95 shadow-2xl backdrop-blur transition-transform duration-300 lg:translate-x-0">
+
+            <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+                <h2 class="text-xl font-semibold text-blue-700">Filtros</h2>
+                <button id="mapa-fechar-filtros" type="button" class="rounded-md p-1 text-slate-500 hover:bg-slate-100 lg:hidden">✕</button>
             </div>
 
-            <form id="mapa-filtros" class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                <label class="flex flex-col gap-1 text-sm text-slate-700">
-                    <span>Dia</span>
-                    <select id="filtro-dia" name="dia" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-800 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"></select>
-                </label>
+            <div class="overflow-y-auto px-4 py-4">
+                <p class="mb-4 text-sm text-slate-600">Selecione os filtros para refinar comunidades e eventos no mapa.</p>
 
-                <label class="flex flex-col gap-1 text-sm text-slate-700">
-                    <span>Tipo de evento</span>
-                    <select id="filtro-tipo-evento" name="tipo_evento" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-800 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"></select>
-                </label>
+                <div class="mb-4 lg:hidden">
+                    <label class="block">
+                        <span class="mb-1 block text-sm font-medium text-slate-700">Busca rápida</span>
+                        <div class="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2">
+                            <input id="filtro-busca-mobile" type="search" placeholder="Nome da comunidade" class="w-full bg-transparent text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none" />
+                            <span class="text-slate-500">🔎</span>
+                        </div>
+                    </label>
+                </div>
 
-                <label class="flex flex-col gap-1 text-sm text-slate-700">
-                    <span>Tipo de comunidade</span>
-                    <select id="filtro-tipo-comunidade" name="tipo_comunidade" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-800 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"></select>
-                </label>
+                <form id="mapa-filtros" class="space-y-3">
+                    <label class="block text-sm text-slate-700">
+                        <span class="mb-1 block font-medium">Dia</span>
+                        <select id="filtro-dia" name="dia" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"></select>
+                    </label>
 
-                <label class="flex flex-col gap-1 text-sm text-slate-700">
-                    <span>Tag</span>
-                    <select id="filtro-tag" name="tag" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-800 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"></select>
-                </label>
+                    <label class="block text-sm text-slate-700">
+                        <span class="mb-1 block font-medium">Tipo de evento</span>
+                        <select id="filtro-tipo-evento" name="tipo_evento" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"></select>
+                    </label>
 
-                <label class="flex flex-col gap-1 text-sm text-slate-700">
-                    <span>Raio (km)</span>
-                    <select id="filtro-raio" name="raio" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-800 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100">
-                        <option value="">Sem limite</option>
-                        <option value="2">Até 2 km</option>
-                        <option value="5">Até 5 km</option>
-                        <option value="10">Até 10 km</option>
-                        <option value="20">Até 20 km</option>
-                        <option value="50">Até 50 km</option>
-                    </select>
-                </label>
+                    <label class="block text-sm text-slate-700">
+                        <span class="mb-1 block font-medium">Tipo de comunidade</span>
+                        <select id="filtro-tipo-comunidade" name="tipo_comunidade" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"></select>
+                    </label>
 
-                <label class="flex items-end gap-2 rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-700">
-                    <input id="filtro-proximidade" name="proximidade" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-300" />
-                    <span>Ordenar por proximidade</span>
-                </label>
-            </form>
-        </div>
+                    <label class="block text-sm text-slate-700">
+                        <span class="mb-1 block font-medium">Tag</span>
+                        <select id="filtro-tag" name="tag" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"></select>
+                    </label>
 
-        <div class="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)]">
-            <div id="mapa-canvas" class="h-[500px] w-full overflow-hidden rounded-xl border border-slate-200"></div>
+                    <label class="block text-sm text-slate-700">
+                        <span class="mb-1 block font-medium">Raio (km)</span>
+                        <select id="filtro-raio" name="raio" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                            <option value="">Sem limite</option>
+                            <option value="2">Até 2 km</option>
+                            <option value="5">Até 5 km</option>
+                            <option value="10">Até 10 km</option>
+                            <option value="20">Até 20 km</option>
+                            <option value="50">Até 50 km</option>
+                        </select>
+                    </label>
 
-            <aside id="mapa-detalhes" class="h-[500px] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                <h3 class="mb-2 text-base font-semibold text-slate-800">Detalhes da comunidade</h3>
-                <p>Selecione um pino no mapa para visualizar informações da comunidade e dos eventos.</p>
-            </aside>
-        </div>
+                    <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+                        <input id="filtro-proximidade" name="proximidade" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-300" />
+                        <span>Ordenar por proximidade</span>
+                    </label>
+                </form>
+
+                <div class="mt-4 flex gap-2">
+                    <button id="mapa-aplicar-filtros" type="button" class="flex-1 rounded-xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800">Aplicar filtros</button>
+                    <button id="mapa-limpar-filtros" type="button" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Limpar</button>
+                </div>
+
+                <aside id="mapa-detalhes" class="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+                    <h3 class="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-700">Comunidade selecionada</h3>
+                    <p>Toque em um pino para ver detalhes e eventos.</p>
+                </aside>
+            </div>
+        </aside>
     </section>
     <?php
 
