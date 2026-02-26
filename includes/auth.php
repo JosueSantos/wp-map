@@ -489,22 +489,31 @@ function cc_auth_button_class($variant = 'primary') {
 
 function cc_render_social_buttons() {
     $providers = ['google' => 'Google', 'facebook' => 'Facebook', 'linkedin' => 'LinkedIn'];
-    ob_start();
+    $available_providers = [];
 
-    $rendered = 0;
-    
-    echo '<div class="pt-3 border-t border-gray-100"><p class="text-sm text-gray-600">Ou entre com sua rede social:</p><div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">';
     foreach ($providers as $provider => $label) {
         $url = cc_get_social_button_url($provider);
-        if (!$url) continue;
-        $rendered++;
-        echo '<a class="' . esc_attr(cc_auth_button_class('secondary')) . '" href="' . esc_url($url) . '">' . esc_html(sprintf(__('Entrar com %s', 'cadastro-comunidades'), $label)) . '</a>';
+        if (!$url) {
+            continue;
+        }
+
+        $available_providers[$provider] = [
+            'label' => $label,
+            'url' => $url,
+        ];
+    }
+
+    if (empty($available_providers)) {
+        return '';
+    }
+
+    ob_start();
+
+    echo '<div class="pt-3 border-t border-gray-100"><p class="text-sm text-gray-600">Ou entre com sua rede social:</p><div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">';
+    foreach ($available_providers as $provider_data) {
+        echo '<a class="' . esc_attr(cc_auth_button_class('secondary')) . '" href="' . esc_url($provider_data['url']) . '">' . esc_html(sprintf(__('Entrar com %s', 'cadastro-comunidades'), $provider_data['label'])) . '</a>';
     }
     echo '</div>';
-
-    if ($rendered === 0) {
-        echo '<p class="mt-3 text-sm text-amber-700">' . esc_html__('Nenhum login social configurado ainda. Preencha Client ID/Secret em Configurações > Mapa - Login Social.', 'cadastro-comunidades') . '</p>';
-    }
 
     echo '</div>';
 
