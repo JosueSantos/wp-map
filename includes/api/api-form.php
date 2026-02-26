@@ -13,7 +13,9 @@ add_action('rest_api_init', function () {
     register_rest_route('mapa/v1', '/comunidade/(?P<id>\d+)', [
         'methods'  => 'GET',
         'callback' => 'cc_api_obter_comunidade_para_edicao',
-        'permission_callback' => '__return_true'
+        'permission_callback' => function () {
+            return is_user_logged_in();
+        }
     ]);
 
 });
@@ -105,6 +107,10 @@ function cc_api_processar_upload_imagem($comunidade_id, $file_params) {
 }
 
 function cc_api_obter_comunidade_para_edicao($request) {
+    if (!is_user_logged_in()) {
+        return new WP_Error('nao_autorizado', 'Login necessário', ['status' => 401]);
+    }
+
     $comunidade_id = (int) $request['id'];
     $post = get_post($comunidade_id);
 
@@ -279,6 +285,7 @@ function cc_api_cadastrar_comunidade($request) {
             'post_type'   => 'comunidade',
             'post_status' => 'publish',
             'post_title'  => sanitize_text_field($data['nome'] ?? 'Sem nome'),
+            'post_author' => get_current_user_id(),
         ]);
 
         if (is_wp_error($comunidade_id)) {
@@ -346,18 +353,34 @@ add_action('rest_api_init', function () {
     register_rest_route('mapa/v1', '/alteracoes', [
         'methods'  => 'GET',
         'callback' => 'cc_api_listar_alteracoes',
-        'permission_callback' => '__return_true'
+        'permission_callback' => function () {
+            return is_user_logged_in();
+        }
     ]);
 
 });
 
-function cc_api_listar_alteracoes() {
+function cc_api_listar_alteracoes($request = null) {
     global $wpdb;
+
+    if (!is_user_logged_in()) {
+        return new WP_Error('nao_autorizado', 'Login necessário', ['status' => 401]);
+    }
+
+    $user_id = get_current_user_id();
+    $is_admin = current_user_can('manage_options');
+    $paroquia_id = (int) get_user_meta($user_id, 'cc_paroquia_id', true);
+    $observadas_ids = function_exists('cc_listar_comunidades_observadas_ids')
+        ? cc_listar_comunidades_observadas_ids($user_id)
+        : [];
+
+    $comunidade_filter = $request ? absint($request->get_param('comunidade_id')) : 0;
+    $data_inicio = $request ? sanitize_text_field($request->get_param('data_inicio')) : '';
+    $data_fim = $request ? sanitize_text_field($request->get_param('data_fim')) : '';
 
     $table = $wpdb->prefix . 'mapa_alteracoes';
 
-    $resultados = $wpdb->get_results(
-        "
+    $query = "
         SELECT
             a.id,
             a.comunidade_id,
@@ -367,9 +390,54 @@ function cc_api_listar_alteracoes() {
         FROM $table a
         LEFT JOIN {$wpdb->posts} p ON p.ID = a.comunidade_id
         LEFT JOIN {$wpdb->users} u ON u.ID = a.user_id
-        ORDER BY a.created_at DESC
-        "
-    );
+        WHERE 1=1
+    ";
+
+    $params = [];
+
+    if (!$is_admin) {
+        $conds = ['a.user_id = %d'];
+        $params[] = $user_id;
+
+        if ($paroquia_id > 0) {
+            $conds[] = 'a.paroquia_id = %d';
+            $params[] = $paroquia_id;
+            $conds[] = 'EXISTS (SELECT 1 FROM {$wpdb->postmeta} pm WHERE pm.post_id = a.comunidade_id AND pm.meta_key = %s AND pm.meta_value = %d)';
+            $params[] = 'parent_paroquia';
+            $params[] = $paroquia_id;
+        }
+
+        if (!empty($observadas_ids)) {
+            $in = implode(',', array_fill(0, count($observadas_ids), '%d'));
+            $conds[] = "a.comunidade_id IN ($in)";
+            $params = array_merge($params, $observadas_ids);
+        }
+
+        $query .= ' AND (' . implode(' OR ', $conds) . ')';
+    }
+
+    if ($comunidade_filter > 0) {
+        $query .= ' AND a.comunidade_id = %d';
+        $params[] = $comunidade_filter;
+    }
+
+    if (!empty($data_inicio)) {
+        $query .= ' AND DATE(a.created_at) >= %s';
+        $params[] = $data_inicio;
+    }
+
+    if (!empty($data_fim)) {
+        $query .= ' AND DATE(a.created_at) <= %s';
+        $params[] = $data_fim;
+    }
+
+    $query .= ' ORDER BY a.created_at DESC LIMIT 200';
+
+    if (!empty($params)) {
+        $resultados = $wpdb->get_results($wpdb->prepare($query, ...$params));
+    } else {
+        $resultados = $wpdb->get_results($query);
+    }
 
     return rest_ensure_response($resultados);
 }

@@ -28,8 +28,8 @@ add_shortcode('mapa_form_comunidade', function () {
         'nonce' => wp_create_nonce('wp_rest'),
         'is_logged_in' => is_user_logged_in(),
         'current_user_name' => is_user_logged_in() ? wp_get_current_user()->display_name : '',
-        'login_url' => wp_login_url(get_permalink()),
-        'register_url' => wp_registration_url()
+        'login_url' => function_exists('cc_get_auth_page_url') ? cc_get_auth_page_url('login-mapa', '/login-mapa') : wp_login_url(get_permalink()),
+        'register_url' => function_exists('cc_get_auth_page_url') ? cc_get_auth_page_url('cadastro-mapa', '/cadastro-mapa') : wp_registration_url()
     ]);
 
     wp_enqueue_script('tailwind-cdn', 'https://cdn.tailwindcss.com', [], null);
