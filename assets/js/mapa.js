@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     const fallbackCenter = [-3.7319, -38.5267]; // Fortaleza
     const fallbackZoom = 13;
-    const userZoom = 8;
+    const userZoom = 13;
 
     let dominio = containerEl.dataset.dominio || "";
     if (dominio.endsWith("/")) dominio = dominio.slice(0, -1);
@@ -335,20 +335,23 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     function buildPopup(comunidade) {
-        const eventos = comunidade.eventos || [];
+        const eventos = (comunidade.eventos || []).filter((evento) => {
+            const tipo = String(evento?.tipo || "").toLowerCase();
+            return tipo === "missa" || tipo === "confissao" || tipo === "confissão";
+        });
         const eventosHtml = eventos.length
             ? eventos.map((evento) => {
                 const dia = diaMap[String(evento.dia)] || evento.dia || "Dia";
                 return `<div style="margin-top:6px;padding-top:6px;border-top:1px solid #e2e8f0;"><strong>${escapeHtml(evento.titulo || "Evento")}</strong><br><small>${escapeHtml(dia)} • ${escapeHtml(evento.horario || "")}</small></div>`;
             }).join("")
-            : '<div style="margin-top:6px;color:#64748b;">Sem eventos nos filtros atuais.</div>';
+            : '<div style="margin-top:6px;color:#64748b;">Sem missas/confissões nos filtros atuais.</div>';
 
         return `
             <div style="min-width:250px;">
                 <h3 style="margin:0 0 4px;font-size:14px;color:#0f172a;">${escapeHtml(comunidade.nome)}</h3>
+                ${comunidade.foto ? `<img src="${escapeHtml(comunidade.foto)}" alt="${escapeHtml(comunidade.nome || "Comunidade")}" style="width:100%;max-height:130px;object-fit:cover;border-radius:8px;margin:0 0 6px;" />` : ""}
                 ${comunidade.endereco ? `<p style="margin:0 0 6px;font-size:12px;color:#475569;">${escapeHtml(comunidade.endereco)}</p>` : ""}
                 ${eventosHtml}
-                ${userLoggedIn ? `<div style="margin-top:8px;padding-top:6px;border-top:1px solid #e2e8f0;"><a href="${escapeHtml(buildEditarLink(comunidade))}" style="font-size:12px;color:#4338ca;text-decoration:underline;font-weight:600;">existe algo errado ou desatualizado? clique aqui para atualizar</a></div>` : ""}
             </div>
         `;
     }
@@ -364,7 +367,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
         const marker = L.marker([lat, lng]).addTo(map);
-        marker.bindTooltip(`${escapeHtml(comunidade.nome)} (${(comunidade.eventos || []).length} eventos)`, {
+        marker.bindTooltip(`${escapeHtml(comunidade.nome)}`, {
             direction: "top",
             offset: [0, -10],
             opacity: 0.95,

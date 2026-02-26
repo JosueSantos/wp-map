@@ -14,6 +14,9 @@ function cc_get_auth_page_url($slug, $fallback = '/') {
         'login' => ['login', 'login-mapa'],
         'cadastro' => ['cadastro', 'cadastro-mapa'],
         'minha-conta-mapa' => ['minha-conta-mapa'],
+        'esqueci-senha' => ['esqueci-senha-mapa', 'esqueci-senha'],
+        'redefinir-senha' => ['redefinir-senha-mapa', 'redefinir-senha'],
+        'alterar-senha' => ['alterar-senha-mapa', 'alterar-senha'],
     ];
 
     $candidate_slugs = $aliases[$slug] ?? [$slug];
@@ -35,6 +38,9 @@ function cc_criar_paginas_auth() {
         'minha-conta-mapa' => ['title' => __('Minha Conta Mapa', 'cadastro-comunidades'), 'content' => '[minha-conta-mapa]'],
         'login-mapa' => ['title' => __('Login Mapa (Legado)', 'cadastro-comunidades'), 'content' => '[login-mapa]'],
         'cadastro-mapa' => ['title' => __('Cadastro Mapa (Legado)', 'cadastro-comunidades'), 'content' => '[cadastro-mapa]'],
+        'esqueci-senha-mapa' => ['title' => __('Esqueci a senha', 'cadastro-comunidades'), 'content' => '[esqueci-senha-mapa]'],
+        'redefinir-senha-mapa' => ['title' => __('Redefinir senha', 'cadastro-comunidades'), 'content' => '[redefinir-senha-mapa]'],
+        'alterar-senha-mapa' => ['title' => __('Alterar senha', 'cadastro-comunidades'), 'content' => '[alterar-senha-mapa]'],
     ];
 
     foreach ($pages as $slug => $page_data) {
@@ -388,6 +394,7 @@ function cc_handle_custom_auth_forms() {
 
         if ($paroquia_id > 0) {
             update_user_meta($user_id, 'cc_paroquia_id', $paroquia_id);
+            cc_observar_comunidade_com_vinculos($user_id, $paroquia_id);
         }
 
         wp_set_current_user($user_id);
@@ -413,6 +420,7 @@ function cc_handle_custom_auth_forms() {
 
         if ($paroquia_id > 0) {
             update_user_meta($user_id, 'cc_paroquia_id', $paroquia_id);
+            cc_observar_comunidade_com_vinculos($user_id, $paroquia_id);
         } else {
             delete_user_meta($user_id, 'cc_paroquia_id');
         }
@@ -433,8 +441,94 @@ function cc_handle_custom_auth_forms() {
             wp_die(__('Comunidade inválida.', 'cadastro-comunidades'));
         }
 
-        cc_observar_comunidade(get_current_user_id(), $comunidade_id);
+        cc_observar_comunidade_com_vinculos(get_current_user_id(), $comunidade_id);
         wp_safe_redirect(cc_get_auth_page_url('minha-conta-mapa', '/minha-conta-mapa'));
+        exit;
+    }
+
+    if ($action === 'forgot_password') {
+        if (!isset($_POST['cc_forgot_password_nonce']) || !wp_verify_nonce($_POST['cc_forgot_password_nonce'], 'cc_forgot_password')) {
+            wp_die(__('Nonce inválido na recuperação de senha.', 'cadastro-comunidades'));
+        }
+
+        $email = sanitize_email($_POST['email'] ?? '');
+        $redirect_url = cc_get_auth_page_url('esqueci-senha', '/esqueci-senha');
+        $notice = 'forgot_sent';
+
+        if (!$email || !is_email($email)) {
+            $notice = 'forgot_error';
+        } else {
+            $user = get_user_by('email', $email);
+            if ($user) {
+                $key = get_password_reset_key($user);
+                if (!is_wp_error($key)) {
+                    $reset_url = add_query_arg([
+                        'login' => rawurlencode($user->user_login),
+                        'key' => rawurlencode($key),
+                    ], cc_get_auth_page_url('redefinir-senha', '/redefinir-senha'));
+
+                    $message = sprintf(
+                        "Olá, %s.\n\nRecebemos um pedido para redefinir sua senha no Mapa.\n\nClique no link para criar uma nova senha:\n%s\n\nSe você não solicitou, pode ignorar este e-mail.",
+                        $user->display_name ?: $user->user_login,
+                        $reset_url
+                    );
+
+                    wp_mail($user->user_email, __('Redefinição de senha - Mapa', 'cadastro-comunidades'), $message);
+                }
+            }
+        }
+
+        wp_safe_redirect(add_query_arg('cc_auth_notice', $notice, $redirect_url));
+        exit;
+    }
+
+    if ($action === 'reset_password') {
+        if (!isset($_POST['cc_reset_password_nonce']) || !wp_verify_nonce($_POST['cc_reset_password_nonce'], 'cc_reset_password')) {
+            wp_die(__('Nonce inválido na redefinição de senha.', 'cadastro-comunidades'));
+        }
+
+        $login = sanitize_text_field(wp_unslash($_POST['login'] ?? ''));
+        $key = sanitize_text_field(wp_unslash($_POST['key'] ?? ''));
+        $new_password = (string) ($_POST['nova_senha'] ?? '');
+        $new_password_confirm = (string) ($_POST['confirmar_nova_senha'] ?? '');
+
+        $user = check_password_reset_key($key, $login);
+        if (is_wp_error($user)) {
+            wp_die(__('Link de redefinição inválido ou expirado.', 'cadastro-comunidades'));
+        }
+
+        if (strlen($new_password) < 6 || $new_password !== $new_password_confirm) {
+            wp_die(__('As senhas devem coincidir e ter pelo menos 6 caracteres.', 'cadastro-comunidades'));
+        }
+
+        reset_password($user, $new_password);
+        wp_safe_redirect(add_query_arg('cc_auth_notice', 'reset_ok', cc_get_auth_page_url('login', '/login')));
+        exit;
+    }
+
+    if ($action === 'change_password' && is_user_logged_in()) {
+        if (!isset($_POST['cc_change_password_nonce']) || !wp_verify_nonce($_POST['cc_change_password_nonce'], 'cc_change_password')) {
+            wp_die(__('Nonce inválido na alteração de senha.', 'cadastro-comunidades'));
+        }
+
+        $user = wp_get_current_user();
+        $current_password = (string) ($_POST['senha_atual'] ?? '');
+        $new_password = (string) ($_POST['nova_senha'] ?? '');
+        $new_password_confirm = (string) ($_POST['confirmar_nova_senha'] ?? '');
+
+        if (!wp_check_password($current_password, $user->user_pass, $user->ID)) {
+            wp_die(__('Senha atual inválida.', 'cadastro-comunidades'));
+        }
+
+        if (strlen($new_password) < 6 || $new_password !== $new_password_confirm) {
+            wp_die(__('As senhas devem coincidir e ter pelo menos 6 caracteres.', 'cadastro-comunidades'));
+        }
+
+        wp_set_password($new_password, $user->ID);
+        wp_set_current_user($user->ID);
+        wp_set_auth_cookie($user->ID, true);
+
+        wp_safe_redirect(add_query_arg('cc_auth_notice', 'password_changed', cc_get_auth_page_url('minha-conta-mapa', '/minha-conta-mapa')));
         exit;
     }
 
@@ -451,6 +545,43 @@ function cc_handle_custom_auth_forms() {
     }
 }
 add_action('init', 'cc_handle_custom_auth_forms');
+
+function cc_observar_comunidade_com_vinculos($user_id, $comunidade_id) {
+    $comunidade_id = (int) $comunidade_id;
+    if ($comunidade_id <= 0) return;
+
+    cc_observar_comunidade($user_id, $comunidade_id);
+
+    $tipo_comunidade = wp_get_post_terms($comunidade_id, 'tipo_comunidade', ['fields' => 'slugs']);
+    $is_paroquia = in_array('paroquia', (array) $tipo_comunidade, true);
+
+    if (!$is_paroquia) return;
+
+    $capelas_vinculadas = get_posts([
+        'post_type' => 'comunidade',
+        'post_status' => 'publish',
+        'posts_per_page' => -1,
+        'fields' => 'ids',
+        'meta_query' => [[
+            'key' => 'parent_paroquia',
+            'value' => $comunidade_id,
+            'compare' => '=',
+        ]],
+    ]);
+
+    foreach ($capelas_vinculadas as $capela_id) {
+        cc_observar_comunidade($user_id, (int) $capela_id);
+    }
+}
+
+function cc_get_editar_comunidade_url($comunidade_id) {
+    $base_url = function_exists('get_permalink') ? get_permalink(get_page_by_path('cadastro-comunidade')) : '';
+    if (!$base_url) {
+        $base_url = home_url('/cadastro-comunidade/');
+    }
+
+    return add_query_arg('editar_comunidade', (int) $comunidade_id, $base_url);
+}
 
 function cc_get_paroquias_options() {
     return get_posts([
@@ -551,6 +682,7 @@ function cc_shortcode_login_mapa() {
             <input type="hidden" name="cc_auth_action" value="login">
 
             <button type="submit" class="<?php echo esc_attr(cc_auth_button_class()); ?> w-full sm:w-auto"><?php esc_html_e('Entrar', 'cadastro-comunidades'); ?></button>
+            <a class="ml-0 sm:ml-3 text-indigo-700 underline font-medium" href="<?php echo esc_url(cc_get_auth_page_url('esqueci-senha', '/esqueci-senha')); ?>"><?php esc_html_e('Esqueci minha senha', 'cadastro-comunidades'); ?></a>
         </form>
 
         <?php echo cc_render_social_buttons(); ?>
@@ -618,6 +750,113 @@ function cc_shortcode_cadastro_mapa() {
     return ob_get_clean();
 }
 add_shortcode('cadastro-mapa', 'cc_shortcode_cadastro_mapa');
+
+function cc_shortcode_esqueci_senha_mapa() {
+    cc_enqueue_auth_ui_assets();
+
+    $notice = sanitize_text_field($_GET['cc_auth_notice'] ?? '');
+
+    ob_start();
+    ?>
+    <div class="max-w-3xl mx-auto bg-white border border-gray-200 shadow-sm rounded-2xl p-6 sm:p-8 space-y-6">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800"><?php esc_html_e('Esqueci minha senha', 'cadastro-comunidades'); ?></h2>
+            <p class="text-gray-600 mt-1"><?php esc_html_e('Informe seu e-mail para receber o link de redefinição.', 'cadastro-comunidades'); ?></p>
+        </div>
+
+        <?php if ($notice === 'forgot_sent'): ?>
+            <p class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-800"><?php esc_html_e('Se o e-mail existir na base, você receberá um link para redefinir sua senha.', 'cadastro-comunidades'); ?></p>
+        <?php elseif ($notice === 'forgot_error'): ?>
+            <p class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700"><?php esc_html_e('Informe um e-mail válido para continuar.', 'cadastro-comunidades'); ?></p>
+        <?php endif; ?>
+
+        <form method="post" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700"><?php esc_html_e('E-mail', 'cadastro-comunidades'); ?></label>
+                <input type="email" name="email" required class="<?php echo esc_attr(cc_auth_input_class()); ?>">
+            </div>
+            <?php wp_nonce_field('cc_forgot_password', 'cc_forgot_password_nonce'); ?>
+            <input type="hidden" name="cc_auth_action" value="forgot_password">
+            <button type="submit" class="<?php echo esc_attr(cc_auth_button_class()); ?>"><?php esc_html_e('Enviar link de redefinição', 'cadastro-comunidades'); ?></button>
+        </form>
+    </div>
+    <?php
+    return ob_get_clean();
+}
+add_shortcode('esqueci-senha-mapa', 'cc_shortcode_esqueci_senha_mapa');
+
+function cc_shortcode_redefinir_senha_mapa() {
+    cc_enqueue_auth_ui_assets();
+
+    $login = sanitize_text_field(wp_unslash($_GET['login'] ?? ''));
+    $key = sanitize_text_field(wp_unslash($_GET['key'] ?? ''));
+    $is_valid = $login && $key && !is_wp_error(check_password_reset_key($key, $login));
+
+    ob_start();
+    ?>
+    <div class="max-w-3xl mx-auto bg-white border border-gray-200 shadow-sm rounded-2xl p-6 sm:p-8 space-y-6">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800"><?php esc_html_e('Redefinir senha', 'cadastro-comunidades'); ?></h2>
+        </div>
+
+        <?php if (!$is_valid): ?>
+            <p class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700"><?php esc_html_e('Link inválido ou expirado. Solicite um novo link de redefinição.', 'cadastro-comunidades'); ?></p>
+        <?php else: ?>
+            <form method="post" class="space-y-4">
+                <input type="hidden" name="login" value="<?php echo esc_attr($login); ?>">
+                <input type="hidden" name="key" value="<?php echo esc_attr($key); ?>">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700"><?php esc_html_e('Nova senha', 'cadastro-comunidades'); ?></label>
+                    <input type="password" name="nova_senha" required minlength="6" class="<?php echo esc_attr(cc_auth_input_class()); ?>">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700"><?php esc_html_e('Confirmar nova senha', 'cadastro-comunidades'); ?></label>
+                    <input type="password" name="confirmar_nova_senha" required minlength="6" class="<?php echo esc_attr(cc_auth_input_class()); ?>">
+                </div>
+                <?php wp_nonce_field('cc_reset_password', 'cc_reset_password_nonce'); ?>
+                <input type="hidden" name="cc_auth_action" value="reset_password">
+                <button type="submit" class="<?php echo esc_attr(cc_auth_button_class()); ?>"><?php esc_html_e('Salvar nova senha', 'cadastro-comunidades'); ?></button>
+            </form>
+        <?php endif; ?>
+    </div>
+    <?php
+    return ob_get_clean();
+}
+add_shortcode('redefinir-senha-mapa', 'cc_shortcode_redefinir_senha_mapa');
+
+function cc_shortcode_alterar_senha_mapa() {
+    cc_enqueue_auth_ui_assets();
+
+    if (!is_user_logged_in()) {
+        return '<div class="max-w-3xl mx-auto bg-white border border-gray-200 rounded-2xl p-6"><p class="text-gray-800">' . esc_html__('Faça login para alterar sua senha.', 'cadastro-comunidades') . '</p></div>';
+    }
+
+    ob_start();
+    ?>
+    <div class="max-w-3xl mx-auto bg-white border border-gray-200 shadow-sm rounded-2xl p-6 sm:p-8 space-y-6">
+        <h2 class="text-2xl font-bold text-gray-800"><?php esc_html_e('Alterar senha', 'cadastro-comunidades'); ?></h2>
+        <form method="post" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700"><?php esc_html_e('Senha atual', 'cadastro-comunidades'); ?></label>
+                <input type="password" name="senha_atual" required class="<?php echo esc_attr(cc_auth_input_class()); ?>">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700"><?php esc_html_e('Nova senha', 'cadastro-comunidades'); ?></label>
+                <input type="password" name="nova_senha" required minlength="6" class="<?php echo esc_attr(cc_auth_input_class()); ?>">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700"><?php esc_html_e('Confirmar nova senha', 'cadastro-comunidades'); ?></label>
+                <input type="password" name="confirmar_nova_senha" required minlength="6" class="<?php echo esc_attr(cc_auth_input_class()); ?>">
+            </div>
+            <?php wp_nonce_field('cc_change_password', 'cc_change_password_nonce'); ?>
+            <input type="hidden" name="cc_auth_action" value="change_password">
+            <button type="submit" class="<?php echo esc_attr(cc_auth_button_class()); ?>"><?php esc_html_e('Alterar senha', 'cadastro-comunidades'); ?></button>
+        </form>
+    </div>
+    <?php
+    return ob_get_clean();
+}
+add_shortcode('alterar-senha-mapa', 'cc_shortcode_alterar_senha_mapa');
 
 function cc_get_comunidades_do_usuario($user_id) {
     return get_posts([
@@ -763,15 +1002,19 @@ function cc_shortcode_minha_conta_mapa() {
                     <?php wp_nonce_field('cc_profile', 'cc_profile_nonce'); ?>
                     <input type="hidden" name="cc_auth_action" value="update_profile">
                     <button type="submit" class="<?php echo esc_attr(cc_auth_button_class()); ?>"><?php esc_html_e('Salvar perfil', 'cadastro-comunidades'); ?></button>
+                    <a class="ml-0 sm:ml-3 text-indigo-700 underline font-medium" href="<?php echo esc_url(cc_get_auth_page_url('alterar-senha', '/alterar-senha')); ?>"><?php esc_html_e('Alterar senha', 'cadastro-comunidades'); ?></a>
                 </div>
             </form>
         </section>
 
         <section class="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8">
             <h4 class="text-xl font-semibold text-gray-800"><?php esc_html_e('Comunidades cadastradas por você', 'cadastro-comunidades'); ?></h4>
-            <ul class="mt-3 space-y-2 text-gray-700 list-disc pl-5">
+            <ul class="mt-3 space-y-2">
                 <?php foreach ($comunidades_criadas as $comunidade): ?>
-                    <li><?php echo esc_html($comunidade->post_title); ?> (#<?php echo (int) $comunidade->ID; ?>)</li>
+                    <li class="flex items-center justify-between gap-3 rounded-xl border border-gray-200 p-3 text-gray-800">
+                        <span><?php echo esc_html($comunidade->post_title); ?> (#<?php echo (int) $comunidade->ID; ?>)</span>
+                        <a href="<?php echo esc_url(cc_get_editar_comunidade_url($comunidade->ID)); ?>" class="<?php echo esc_attr(cc_auth_button_class('secondary')); ?>"><?php esc_html_e('Editar', 'cadastro-comunidades'); ?></a>
+                    </li>
                 <?php endforeach; ?>
                 <?php if (empty($comunidades_criadas)): ?><li><?php esc_html_e('Nenhuma comunidade cadastrada ainda.', 'cadastro-comunidades'); ?></li><?php endif; ?>
             </ul>
@@ -784,12 +1027,8 @@ function cc_shortcode_minha_conta_mapa() {
             <form method="post" class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
                 <div class="flex-1">
                     <label class="block text-sm font-medium text-gray-700"><?php esc_html_e('Selecionar comunidade', 'cadastro-comunidades'); ?></label>
-                    <select name="comunidade_id" required class="<?php echo esc_attr(cc_auth_input_class()); ?>">
-                        <option value=""><?php esc_html_e('Selecione uma comunidade', 'cadastro-comunidades'); ?></option>
-                        <?php foreach ($all_comunidades as $comunidade): ?>
-                            <option value="<?php echo esc_attr($comunidade->ID); ?>"><?php echo esc_html($comunidade->post_title); ?> (#<?php echo (int) $comunidade->ID; ?>)</option>
-                        <?php endforeach; ?>
-                    </select>
+                    <input id="cc-observe-comunidade-nome" type="text" name="comunidade_nome" list="cc-comunidades-datalist" required class="<?php echo esc_attr(cc_auth_input_class()); ?>" placeholder="<?php esc_attr_e('Digite para buscar comunidade', 'cadastro-comunidades'); ?>">
+                    <input id="cc-observe-comunidade-id" type="hidden" name="comunidade_id">
                 </div>
                 <div>
                     <?php wp_nonce_field('cc_observe', 'cc_observe_nonce'); ?>
@@ -802,12 +1041,15 @@ function cc_shortcode_minha_conta_mapa() {
                 <?php foreach ($comunidades_observadas as $comunidade): ?>
                     <li class="flex items-center justify-between gap-3 rounded-xl border border-gray-200 p-3">
                         <span class="text-gray-800"><?php echo esc_html($comunidade->post_title); ?></span>
-                        <form method="post">
-                            <input type="hidden" name="comunidade_id" value="<?php echo (int) $comunidade->ID; ?>">
-                            <?php wp_nonce_field('cc_observe', 'cc_observe_nonce'); ?>
-                            <input type="hidden" name="cc_auth_action" value="observe_remove">
-                            <button type="submit" class="<?php echo esc_attr(cc_auth_button_class('danger')); ?>"><?php esc_html_e('Remover', 'cadastro-comunidades'); ?></button>
-                        </form>
+                        <div class="flex items-center gap-2">
+                            <a href="<?php echo esc_url(cc_get_editar_comunidade_url($comunidade->ID)); ?>" class="<?php echo esc_attr(cc_auth_button_class('secondary')); ?>"><?php esc_html_e('Editar', 'cadastro-comunidades'); ?></a>
+                            <form method="post">
+                                <input type="hidden" name="comunidade_id" value="<?php echo (int) $comunidade->ID; ?>">
+                                <?php wp_nonce_field('cc_observe', 'cc_observe_nonce'); ?>
+                                <input type="hidden" name="cc_auth_action" value="observe_remove">
+                                <button type="submit" class="<?php echo esc_attr(cc_auth_button_class('danger')); ?>"><?php esc_html_e('Remover', 'cadastro-comunidades'); ?></button>
+                            </form>
+                        </div>
                     </li>
                 <?php endforeach; ?>
                 <?php if (empty($comunidades_observadas)): ?><li class="text-gray-600"><?php esc_html_e('Nenhuma comunidade observada.', 'cadastro-comunidades'); ?></li><?php endif; ?>
@@ -821,12 +1063,10 @@ function cc_shortcode_minha_conta_mapa() {
             <form method="get" class="grid md:grid-cols-4 gap-3 items-end">
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700"><?php esc_html_e('Comunidade', 'cadastro-comunidades'); ?></label>
-                    <select name="f_comunidade" class="<?php echo esc_attr(cc_auth_input_class()); ?>">
-                        <option value="0"><?php esc_html_e('Todas', 'cadastro-comunidades'); ?></option>
-                        <?php foreach ($all_comunidades as $comunidade): ?>
-                            <option value="<?php echo (int) $comunidade->ID; ?>" <?php selected($filtros['comunidade_id'], (int) $comunidade->ID); ?>><?php echo esc_html($comunidade->post_title); ?></option>
-                        <?php endforeach; ?>
-                    </select>
+                    <?php $filtro_label = ''; ?>
+                    <?php if ($filtros['comunidade_id'] > 0) { foreach ($all_comunidades as $comunidade_item) { if ((int) $comunidade_item->ID === (int) $filtros['comunidade_id']) { $filtro_label = $comunidade_item->post_title . ' (#' . (int) $comunidade_item->ID . ')'; break; } } } ?>
+                    <input id="cc-filtro-comunidade-nome" type="text" name="f_comunidade_nome" list="cc-comunidades-datalist" class="<?php echo esc_attr(cc_auth_input_class()); ?>" placeholder="<?php esc_attr_e('Todas', 'cadastro-comunidades'); ?>" value="<?php echo esc_attr($filtro_label); ?>">
+                    <input id="cc-filtro-comunidade-id" type="hidden" name="f_comunidade" value="<?php echo (int) $filtros['comunidade_id']; ?>">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700"><?php esc_html_e('Data início', 'cadastro-comunidades'); ?></label>
@@ -851,6 +1091,33 @@ function cc_shortcode_minha_conta_mapa() {
                 <?php if (empty($alteracoes)): ?><li class="text-gray-600"><?php esc_html_e('Sem alterações para os filtros selecionados.', 'cadastro-comunidades'); ?></li><?php endif; ?>
             </ul>
         </section>
+
+        <datalist id="cc-comunidades-datalist">
+            <?php foreach ($all_comunidades as $comunidade): ?>
+                <option value="<?php echo esc_attr($comunidade->post_title . ' (#' . (int) $comunidade->ID . ')'); ?>"></option>
+            <?php endforeach; ?>
+        </datalist>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                function extractComunidadeId(value) {
+                    const match = String(value || '').match(/#(\d+)\)/);
+                    return match ? match[1] : '';
+                }
+
+                const observeName = document.getElementById('cc-observe-comunidade-nome');
+                const observeId = document.getElementById('cc-observe-comunidade-id');
+                observeName?.closest('form')?.addEventListener('submit', function () {
+                    if (observeId) observeId.value = extractComunidadeId(observeName?.value);
+                });
+
+                const filtroName = document.getElementById('cc-filtro-comunidade-nome');
+                const filtroId = document.getElementById('cc-filtro-comunidade-id');
+                filtroName?.closest('form')?.addEventListener('submit', function () {
+                    if (filtroId) filtroId.value = extractComunidadeId(filtroName?.value) || '0';
+                });
+            });
+        </script>
     </div>
     <?php
 

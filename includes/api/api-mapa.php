@@ -288,6 +288,7 @@ function cc_api_mapa_comunidades($request) {
             'endereco'  => get_post_meta($c->ID, 'endereco', true),
             'foto'      => $foto,
             'contatos'  => get_post_meta($c->ID, 'contatos', true),
+            'parent_paroquia' => (int) get_post_meta($c->ID, 'parent_paroquia', true),
             'eventos'   => $lista_eventos,
             'distancia_km' => $distancia,
         ];
