@@ -492,7 +492,8 @@ function cc_render_social_buttons() {
     ob_start();
 
     $rendered = 0;
-    echo '<div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">';
+    
+    echo '<div class="pt-3 border-t border-gray-100"><p class="text-sm text-gray-600">Ou entre com sua rede social:</p><div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">';
     foreach ($providers as $provider => $label) {
         $url = cc_get_social_button_url($provider);
         if (!$url) continue;
@@ -505,7 +506,7 @@ function cc_render_social_buttons() {
         echo '<p class="mt-3 text-sm text-amber-700">' . esc_html__('Nenhum login social configurado ainda. Preencha Client ID/Secret em Configurações > Mapa - Login Social.', 'cadastro-comunidades') . '</p>';
     }
 
-    echo '<p class="mt-2 text-xs text-gray-500">' . esc_html__('Instagram: o OAuth oficial geralmente não retorna e-mail para cadastro/login nativo do WordPress.', 'cadastro-comunidades') . '</p>';
+    echo '</div>';
 
     return ob_get_clean();
 }
@@ -543,10 +544,7 @@ function cc_shortcode_login_mapa() {
             <button type="submit" class="<?php echo esc_attr(cc_auth_button_class()); ?> w-full sm:w-auto"><?php esc_html_e('Entrar', 'cadastro-comunidades'); ?></button>
         </form>
 
-        <div class="pt-3 border-t border-gray-100">
-            <p class="text-sm text-gray-600"><?php esc_html_e('Ou entre com sua rede social:', 'cadastro-comunidades'); ?></p>
-            <?php echo cc_render_social_buttons(); ?>
-        </div>
+        <?php echo cc_render_social_buttons(); ?>
     </div>
     <?php
     return ob_get_clean();
