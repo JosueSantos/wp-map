@@ -10,15 +10,31 @@ function cc_register_agente_mapa_role() {
 add_action('init', 'cc_register_agente_mapa_role');
 
 function cc_get_auth_page_url($slug, $fallback = '/') {
-    $page = get_page_by_path($slug);
-    return $page ? get_permalink($page->ID) : home_url($fallback);
+    $aliases = [
+        'login' => ['login', 'login-mapa'],
+        'cadastro' => ['cadastro', 'cadastro-mapa'],
+        'minha-conta-mapa' => ['minha-conta-mapa'],
+    ];
+
+    $candidate_slugs = $aliases[$slug] ?? [$slug];
+
+    foreach ($candidate_slugs as $candidate) {
+        $page = get_page_by_path($candidate);
+        if ($page) {
+            return get_permalink($page->ID);
+        }
+    }
+
+    return home_url($fallback);
 }
 
 function cc_criar_paginas_auth() {
     $pages = [
-        'login-mapa' => ['title' => __('Login Mapa', 'cadastro-comunidades'), 'content' => '[login-mapa]'],
-        'cadastro-mapa' => ['title' => __('Cadastro Mapa', 'cadastro-comunidades'), 'content' => '[cadastro-mapa]'],
+        'login' => ['title' => __('Login', 'cadastro-comunidades'), 'content' => '[login-mapa]'],
+        'cadastro' => ['title' => __('Cadastro', 'cadastro-comunidades'), 'content' => '[cadastro-mapa]'],
         'minha-conta-mapa' => ['title' => __('Minha Conta Mapa', 'cadastro-comunidades'), 'content' => '[minha-conta-mapa]'],
+        'login-mapa' => ['title' => __('Login Mapa (Legado)', 'cadastro-comunidades'), 'content' => '[login-mapa]'],
+        'cadastro-mapa' => ['title' => __('Cadastro Mapa (Legado)', 'cadastro-comunidades'), 'content' => '[cadastro-mapa]'],
     ];
 
     foreach ($pages as $slug => $page_data) {
@@ -33,6 +49,15 @@ function cc_criar_paginas_auth() {
         ]);
     }
 }
+
+function cc_maybe_ensure_auth_pages() {
+    if (!is_admin() || !current_user_can('manage_options')) {
+        return;
+    }
+
+    cc_criar_paginas_auth();
+}
+add_action('admin_init', 'cc_maybe_ensure_auth_pages');
 
 function cc_block_wp_admin_for_non_admins() {
     if ((defined('DOING_AJAX') && DOING_AJAX) || wp_doing_ajax()) return;
@@ -54,6 +79,8 @@ function cc_get_auth_options() {
         'twitter_client_secret' => '',
         'linkedin_client_id' => '',
         'linkedin_client_secret' => '',
+        'instagram_client_id' => '',
+        'instagram_client_secret' => '',
     ]);
 }
 
@@ -95,7 +122,7 @@ function cc_render_auth_settings_page() {
             <li><strong>Google:</strong> <?php echo esc_html(cc_get_oauth_callback_url('google')); ?></li>
             <li><strong>Facebook:</strong> <?php echo esc_html(cc_get_oauth_callback_url('facebook')); ?></li>
             <li><strong>LinkedIn:</strong> <?php echo esc_html(cc_get_oauth_callback_url('linkedin')); ?></li>
-            <li><strong>Twitter (opcional):</strong> <?php echo esc_html(cc_get_oauth_callback_url('twitter')); ?></li>
+            <li><strong>Instagram (informativo):</strong> <?php echo esc_html__('Instagram não fornece e-mail no OAuth básico, então não é recomendado para login nativo de usuários WP.', 'cadastro-comunidades'); ?></li>
         </ul>
 
         <form method="post" action="options.php">
@@ -111,7 +138,10 @@ function cc_render_auth_settings_page() {
 
                 <tr><th colspan="2"><h2>LinkedIn (opcional)</h2></th></tr>
                 <tr><th><label for="linkedin_client_id">Client ID</label></th><td><input class="regular-text" id="linkedin_client_id" name="cc_auth_settings[linkedin_client_id]" value="<?php echo esc_attr($settings['linkedin_client_id']); ?>"></td></tr>
-                <tr><th><label for="linkedin_client_secret">Client Secret</label></th><td><input class="regular-text" id="linkedin_client_secret" name="cc_auth_settings[linkedin_client_secret]" value="<?php echo esc_attr($settings['linkedin_client_secret']); ?>"></td></tr>
+                                <tr><th><label for="linkedin_client_secret">Client Secret</label></th><td><input class="regular-text" id="linkedin_client_secret" name="cc_auth_settings[linkedin_client_secret]" value="<?php echo esc_attr($settings['linkedin_client_secret']); ?>"></td></tr>
+                <tr><th colspan="2"><h2>Instagram (experimental)</h2></th></tr>
+                <tr><th><label for="instagram_client_id">Client ID</label></th><td><input class="regular-text" id="instagram_client_id" name="cc_auth_settings[instagram_client_id]" value="<?php echo esc_attr($settings['instagram_client_id']); ?>"></td></tr>
+                <tr><th><label for="instagram_client_secret">Client Secret</label></th><td><input class="regular-text" id="instagram_client_secret" name="cc_auth_settings[instagram_client_secret]" value="<?php echo esc_attr($settings['instagram_client_secret']); ?>"></td></tr>
             </table>
             <?php submit_button(); ?>
         </form>
@@ -460,13 +490,23 @@ function cc_auth_button_class($variant = 'primary') {
 function cc_render_social_buttons() {
     $providers = ['google' => 'Google', 'facebook' => 'Facebook', 'linkedin' => 'LinkedIn'];
     ob_start();
+
+    $rendered = 0;
     echo '<div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">';
     foreach ($providers as $provider => $label) {
         $url = cc_get_social_button_url($provider);
         if (!$url) continue;
+        $rendered++;
         echo '<a class="' . esc_attr(cc_auth_button_class('secondary')) . '" href="' . esc_url($url) . '">' . esc_html(sprintf(__('Entrar com %s', 'cadastro-comunidades'), $label)) . '</a>';
     }
     echo '</div>';
+
+    if ($rendered === 0) {
+        echo '<p class="mt-3 text-sm text-amber-700">' . esc_html__('Nenhum login social configurado ainda. Preencha Client ID/Secret em Configurações > Mapa - Login Social.', 'cadastro-comunidades') . '</p>';
+    }
+
+    echo '<p class="mt-2 text-xs text-gray-500">' . esc_html__('Instagram: o OAuth oficial geralmente não retorna e-mail para cadastro/login nativo do WordPress.', 'cadastro-comunidades') . '</p>';
+
     return ob_get_clean();
 }
 add_shortcode('mapa-social-buttons', 'cc_render_social_buttons');
@@ -663,7 +703,7 @@ function cc_shortcode_minha_conta_mapa() {
     cc_enqueue_auth_ui_assets();
 
     if (!is_user_logged_in()) {
-        return '<div class="max-w-3xl mx-auto bg-white border border-gray-200 rounded-2xl p-6"><p class="text-gray-800">' . esc_html__('Faça login para acessar sua conta.', 'cadastro-comunidades') . ' <a class="text-indigo-700 font-semibold" href="' . esc_url(cc_get_auth_page_url('login-mapa', '/login-mapa')) . '">' . esc_html__('Entrar', 'cadastro-comunidades') . '</a></p></div>';
+        return '<div class="max-w-3xl mx-auto bg-white border border-gray-200 rounded-2xl p-6"><p class="text-gray-800">' . esc_html__('Faça login para acessar sua conta.', 'cadastro-comunidades') . ' <a class="text-indigo-700 font-semibold" href="' . esc_url(cc_get_auth_page_url('login', '/login')) . '">' . esc_html__('Entrar', 'cadastro-comunidades') . '</a></p></div>';
     }
 
     $user = wp_get_current_user();
