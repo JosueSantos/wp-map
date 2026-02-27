@@ -558,6 +558,26 @@ function cc_handle_custom_auth_forms() {
 }
 add_action('init', 'cc_handle_custom_auth_forms');
 
+function cc_handle_logout() {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_POST['cc_auth_action'])) return;
+    if (sanitize_key($_POST['cc_auth_action']) !== 'logout') return;
+
+    if (!is_user_logged_in()) {
+        wp_safe_redirect(cc_get_auth_page_url('login', '/login'));
+        exit;
+    }
+
+    if (!isset($_POST['cc_logout_nonce']) || !wp_verify_nonce($_POST['cc_logout_nonce'], 'cc_logout')) {
+        wp_die(__('Nonce inválido no logout.', 'cadastro-comunidades'));
+    }
+
+    wp_logout();
+
+    wp_safe_redirect(add_query_arg('cc_auth_notice', 'logged_out', cc_get_auth_page_url('login', '/login')));
+    exit;
+}
+add_action('init', 'cc_handle_logout');
+
 function cc_observar_comunidade_com_vinculos($user_id, $comunidade_id) {
     $comunidade_id = (int) $comunidade_id;
     if ($comunidade_id <= 0) return;
@@ -640,6 +660,7 @@ function cc_auth_button_class($variant = 'primary') {
 
 function cc_render_auth_notice($notice) {
     $notice_map = [
+        'logged_out' => ['type' => 'success', 'message' => __('Você saiu da sua conta com sucesso.', 'cadastro-comunidades')],
         'login_nonce' => ['type' => 'error', 'message' => __('Não foi possível validar sua sessão. Atualize a página e tente novamente.', 'cadastro-comunidades')],
         'login_invalid' => ['type' => 'error', 'message' => __('E-mail/usuário ou senha inválidos. Confira os dados e tente novamente.', 'cadastro-comunidades')],
         'register_nonce' => ['type' => 'error', 'message' => __('Não foi possível validar o cadastro. Atualize a página e tente novamente.', 'cadastro-comunidades')],
@@ -1067,6 +1088,12 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
                     <button type="submit" class="<?php echo esc_attr(cc_auth_button_class()); ?>"><?php esc_html_e('Salvar perfil', 'cadastro-comunidades'); ?></button>
                     <a class="ml-0 sm:ml-3 text-indigo-700 underline font-medium" href="<?php echo esc_url(cc_get_auth_page_url('alterar-senha', '/alterar-senha')); ?>"><?php esc_html_e('Alterar senha', 'cadastro-comunidades'); ?></a>
                 </div>
+            </form>
+
+            <form method="post" class="mt-4">
+                <?php wp_nonce_field('cc_logout', 'cc_logout_nonce'); ?>
+                <input type="hidden" name="cc_auth_action" value="logout">
+                <button type="submit" class="<?php echo esc_attr(cc_auth_button_class('danger')); ?>"><?php esc_html_e('Sair da conta', 'cadastro-comunidades'); ?></button>
             </form>
         </section>
 
