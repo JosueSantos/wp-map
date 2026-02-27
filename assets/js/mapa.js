@@ -329,6 +329,27 @@ document.addEventListener("DOMContentLoaded", async function () {
         "6": "Sábado",
     };
 
+    function extractContatos(item) {
+        if (!item) return [];
+
+        // Caso venha direto no objeto
+        if (Array.isArray(item.contatos)) {
+            return item.contatos;
+        }
+
+        // Caso venha serializado como JSON
+        if (typeof item.contatos === 'string') {
+            try {
+                return JSON.parse(item.contatos);
+            } catch (e) {
+                console.warn('Erro ao converter contatos:', e);
+                return [];
+            }
+        }
+
+        return [];
+    }
+
     function renderDetalhes(comunidade) {
         if (!detalhesEl) return;
 
