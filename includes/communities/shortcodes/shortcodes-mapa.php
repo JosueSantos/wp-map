@@ -13,6 +13,10 @@ function cc_mapa_shortcode($atts) {
 
     wp_enqueue_style('leaflet-css', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
 
+    wp_enqueue_style('leaflet-markercluster-css', 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css');
+
+    wp_enqueue_style('leaflet-markercluster-default-css', 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css');
+
     // Tailwind (fallback para temas que não carregam utilitários)
     wp_enqueue_script('tailwind-cdn', 'https://cdn.tailwindcss.com', [], null);
 
@@ -28,7 +32,15 @@ function cc_mapa_shortcode($atts) {
 
     wp_enqueue_script('leaflet-js', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', [], null, true);
 
-    wp_enqueue_script('cc-mapa', CC_URL . 'assets/js/mapa.js', ['leaflet-js'], '1.7', true);
+    wp_enqueue_script(
+        'leaflet-markercluster-js',
+        'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js',
+        ['leaflet-js'],
+        null,
+        true
+    );
+
+    wp_enqueue_script('cc-mapa', CC_URL . 'assets/js/mapa.js', ['leaflet-js', 'leaflet-markercluster-js'], '1.7', true);
 
     return cc_render_template('shortcodes/mapa.php', [
         'dominio' => $dominio,
