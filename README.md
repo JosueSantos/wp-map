@@ -1,4 +1,13 @@
-# WP MAP — Sistema de Comunidades e Eventos com Mapa
+# WP MAP — Cadastro Colaborativo de Igrejas Católicas
+
+**Contributors:** Josué Santos, Eduardo Moura  
+**Tags:** igreja, mapa, missas, católico, paróquia  
+**Requires at least:** 5.0  
+**Tested up to:** 6.6  
+**Requires PHP:** 7.4  
+**Stable tag:** 1.0.0
+**License:** GPLv2 or later  
+**License URI:** https://www.gnu.org/licenses/gpl-2.0.html
 
 Plugin WordPress para cadastro de **Comunidades (Paróquias, Capelas, Associações)** e seus **Eventos (Missas, Confissões, etc)** com API pública para alimentar mapas, apps ou outros sites.
 

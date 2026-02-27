@@ -1,9 +1,12 @@
 <?php
 /**
  * Plugin Name: Cadastro de Comunidades
- * Description: Gestão de Paróquias, Capelas e Eventos
- * Version: 1.1
+ * Description: Cadastro Colaborativo de Igrejas Católicas
+ * Version: 1.1.0
+ * Author: SERCOM - Serviço de Comunicação da Arquidiocese de Fortaleza
  * Text Domain: cadastro-comunidades
+ * License: GPL2
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 if (!defined('ABSPATH')) exit;

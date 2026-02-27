@@ -66,7 +66,7 @@ add_shortcode('mapa_form_comunidade', function () {
                 <button type="button" data-step-nav="1" class="step-nav w-full text-left px-3 py-2 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 font-medium">1. Dados principais</button>
                 <button type="button" data-step-nav="2" class="step-nav w-full text-left px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-500">2. Localização</button>
                 <button type="button" data-step-nav="3" class="step-nav w-full text-left px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-500">3. Contatos</button>
-                <button type="button" data-step-nav="4" class="step-nav w-full text-left px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-500">4. Eventos e envio</button>
+                <button type="button" data-step-nav="4" class="step-nav w-full text-left px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-500">4. Eventos</button>
             </div>
         </div>
 
@@ -150,7 +150,7 @@ add_shortcode('mapa_form_comunidade', function () {
         </section>
 
         <section id="secao-etapa-4" data-step="4" class="rounded-2xl border border-gray-200 p-4 sm:p-6">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">4. Eventos</h3>
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">4. Eventos [Missa, Confissão, Ação social]</h3>
 
             <div id="eventos" class="space-y-3"></div>
 

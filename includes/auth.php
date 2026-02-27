@@ -1060,7 +1060,7 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
     ?>
     <div class="max-w-5xl mx-auto space-y-6">
         <section class="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8">
-            <h3 class="text-2xl font-bold text-gray-800"><?php esc_html_e('Minha Conta Mapa', 'cadastro-comunidades'); ?></h3>
+            <h3 class="text-2xl font-bold text-gray-800"><?php esc_html_e('Minha Conta', 'cadastro-comunidades'); ?></h3>
             <p class="text-gray-600 mt-1"><?php esc_html_e('Aqui você atualiza seus dados e acompanha suas comunidades.', 'cadastro-comunidades'); ?></p>
 
             <form method="post" class="mt-5 grid md:grid-cols-2 gap-4">
