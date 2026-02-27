@@ -69,9 +69,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         containerEl.classList.toggle("is-loading", !!v);
 
     const escapeHtml = (value) => {
-        const div = document.createElement("div");
-        div.textContent = value ?? "";
-        return div.innerHTML;
+        return String(value ?? "") .replace(/&/g, "&amp;") .replace(/</g, "&lt;") .replace(/>/g, "&gt;") .replace(/\"/g, "&quot;") .replace(/'/g, "&#039;");
     };
 
     const debounce = (fn, delay = 300) => {
@@ -321,6 +319,16 @@ document.addEventListener("DOMContentLoaded", async function () {
     /* =====================================================
        DETALHES
     ===================================================== */
+    const diaMap = {
+        "0": "Domingo",
+        "1": "Segunda",
+        "2": "Terça",
+        "3": "Quarta",
+        "4": "Quinta",
+        "5": "Sexta",
+        "6": "Sábado",
+    };
+
     function renderDetalhes(comunidade) {
         if (!detalhesEl) return;
 
