@@ -104,7 +104,10 @@ function cc_mapa_shortcode($atts) {
                     <button id="mapa-toggle-filtros" type="button" class="cc-mobile-only">Filtros ☰</button>
                     <label class="cc-busca-wrap" for="filtro-busca">
                         <span>Pesquisar comunidade</span>
-                        <input id="filtro-busca" list="mapa-comunidades-list" type="search" placeholder="Digite o nome da comunidade" autocomplete="off" />
+                        <div class="cc-busca-acoes">
+                            <input id="filtro-busca" list="mapa-comunidades-list" type="search" placeholder="Digite o nome da comunidade" autocomplete="off" />
+                            <button id="mapa-buscar-comunidade" type="button">Pesquisar</button>
+                        </div>
                         <datalist id="mapa-comunidades-list"></datalist>
                     </label>
                 </div>
