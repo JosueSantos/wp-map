@@ -244,7 +244,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
 
         if (data.emails.length) {
-            const itens = data.emails.map((email) => `<li>✉️ <a href="mailto:${encodeURIComponent(email)}">${escapeHtml(email)}</a></li>`).join("");
+            const itens = data.emails.map((email) => `<li style="overflow-wrap:anywhere;">✉️ <a href="mailto:${encodeURIComponent(email)}" style="word-break:break-word;">${escapeHtml(email)}</a></li>`).join("");
             blocks.push(`<div><strong>E-mail</strong><ul style="margin:.25rem 0 0;padding-left:1rem;">${itens}</ul></div>`);
         }
 
@@ -265,7 +265,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 const type = String(rede.type || "rede").toLowerCase();
                 const cfg = iconMap[type] || iconMap.rede;
                 const cls = `cc-social-pill cc-social-${type}`;
-                return `<a href="${escapeHtml(rede.href)}" target="_blank" rel="noopener noreferrer" class="${cls}"><i class="${cfg.cls}" aria-hidden="true">${cfg.fallback}</i><span>${escapeHtml(rede.label)}</span></a>`;
+                return `<a href="${escapeHtml(rede.href)}" target="_blank" rel="noopener noreferrer" class="${cls}"><i class="${cfg.cls}" aria-hidden="true"></i><span>${escapeHtml(rede.label)}</span></a>`;
             }).join("");
 
             blocks.push(`<div><strong>Redes sociais</strong><div class="cc-social-grid" style="margin-top:.35rem;">${itens}</div></div>`);
@@ -375,8 +375,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         marker.on("click", function () {
             renderDetalhes(comunidade);
             if (isMobile()) setSidebarOpen(false);
-            scrollMapIntoView();
-            setTimeout(scrollDetalhesIntoView, 80);
         });
 
         state.markers.push(marker);
