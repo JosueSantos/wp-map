@@ -344,7 +344,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 ${comunidade.foto ? `<img src="${escapeHtml(comunidade.foto)}" alt="${escapeHtml(comunidade.nome || "Comunidade")}" style="width:100%;max-height:130px;object-fit:cover;border-radius:8px;margin:0 0 6px;" />` : ""}
                 ${comunidade.endereco ? `<p style="margin:0 0 6px;font-size:12px;color:#475569;">${escapeHtml(comunidade.endereco)}</p>` : ""}
                 ${eventosHtml}
-                <p style="margin:8px 0 0;color:#64748b;font-size:12px;">Toque no marcador para ver mais detalhes.</p>
+                <p style="margin:12px 0 0;color:#64748b;font-size:12px;">Mais detalhes da comunidade na lateral, abaixo dos filtros.</p>
             </div>
         `;
     }
