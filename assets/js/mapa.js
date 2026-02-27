@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const sidebarEl = document.getElementById("mapa-sidebar");
     const buscaEl = document.getElementById("filtro-busca");
     const buscaListEl = document.getElementById("mapa-comunidades-list");
+    const buscaBtn = document.getElementById("mapa-buscar-comunidade");
 
     const fallbackCenter = [-3.7319, -38.5267]; // Fortaleza
     const fallbackZoom = 13;
@@ -23,8 +24,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     const API_BASE = dominio ? `${dominio}/wp-json/mapa/v1` : "/wp-json/mapa/v1";
     const API_URL = `${API_BASE}/comunidades`;
     const API_FILTROS_URL = `${API_BASE}/filtros`;
-    const cadastroBaseUrl = containerEl.dataset.urlCadastro || "/cadastro-comunidade/";
-    const userLoggedIn = containerEl.dataset.userLogado === "1";
 
     const map = L.map(mapaEl, {
         minZoom: 3,
@@ -281,12 +280,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
 
-    function buildEditarLink(comunidade) {
-        const base = String(cadastroBaseUrl || '/cadastro-comunidade/').trim();
-        const separador = base.includes('?') ? '&' : '?';
-        return `${base}${separador}editar_comunidade=${encodeURIComponent(comunidade.id)}`;
-    }
-
     function setSidebarOpen(open) {
         if (!sidebarEl || !isMobile()) return;
         sidebarEl.classList.toggle("is-open", !!open);
@@ -329,7 +322,6 @@ document.addEventListener("DOMContentLoaded", async function () {
                 ${comunidade.distancia_km ? `<p><small>Distância: ${Number(comunidade.distancia_km).toFixed(1)} km</small></p>` : ""}
                 <strong>Eventos</strong>
                 <ul style="margin-top:.45rem;padding-left:1rem;display:grid;gap:.4rem;">${eventosHtml}</ul>
-                ${userLoggedIn ? `<p style="margin-top:.8rem;"><a href="${escapeHtml(buildEditarLink(comunidade))}" style="color:#4338ca;text-decoration:underline;font-weight:600;">existe algo errado ou desatualizado? clique aqui para atualizar</a></p>` : ""}
             </article>
         `;
     }
@@ -352,8 +344,14 @@ document.addEventListener("DOMContentLoaded", async function () {
                 ${comunidade.foto ? `<img src="${escapeHtml(comunidade.foto)}" alt="${escapeHtml(comunidade.nome || "Comunidade")}" style="width:100%;max-height:130px;object-fit:cover;border-radius:8px;margin:0 0 6px;" />` : ""}
                 ${comunidade.endereco ? `<p style="margin:0 0 6px;font-size:12px;color:#475569;">${escapeHtml(comunidade.endereco)}</p>` : ""}
                 ${eventosHtml}
+                <p style="margin:8px 0 0;color:#64748b;font-size:12px;">Toque no marcador para ver mais detalhes.</p>
             </div>
         `;
+    }
+
+    function aplicarBusca() {
+        state.termoBusca = buscaEl?.value || "";
+        carregarComunidades();
     }
 
     function clearMarkers() {
@@ -536,14 +534,16 @@ document.addEventListener("DOMContentLoaded", async function () {
     });
 
     buscaEl?.addEventListener("change", () => {
-        carregarComunidades();
+        aplicarBusca();
     });
 
     buscaEl?.addEventListener("keydown", (event) => {
         if (event.key !== "Enter") return;
         event.preventDefault();
-        carregarComunidades();
+        aplicarBusca();
     });
+
+    buscaBtn?.addEventListener("click", aplicarBusca);
 
     filtrosForm?.addEventListener("change", () => {
         if (!isMobile()) carregarComunidades();
