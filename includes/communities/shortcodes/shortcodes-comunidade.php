@@ -13,12 +13,13 @@ function cc_lista_comunidades() {
     while ($q->have_posts()) {
         $q->the_post();
 
-        // Front Exibir Comunidade
-        echo "<div class='comunidade'>";
-        echo "<h3>" . get_the_title() . "</h3>";
-        echo "<p>" . get_the_excerpt() . "</p>";
-        echo "</div>";
+        echo cc_render_template('shortcodes/item-comunidade.php', [
+            'titulo' => get_the_title(),
+            'resumo' => get_the_excerpt(),
+        ]);
     }
+
+    wp_reset_postdata();
 
     return ob_get_clean();
 }
@@ -29,7 +30,7 @@ add_shortcode('cc_comunidades', 'cc_lista_comunidades');
 // Parametro Id da Comunidade
 function cc_eventos_comunidade($atts) {
 
-    $atts = shortcode_atts(['id'=>0], $atts);
+    $atts = shortcode_atts(['id' => 0], $atts);
 
     $q = new WP_Query([
         'post_type' => 'evento',
@@ -45,18 +46,17 @@ function cc_eventos_comunidade($atts) {
 
     while ($q->have_posts()) {
         $q->the_post();
-        $dia = get_post_meta(get_the_ID(),'dia_semana',true);
-        $hora = get_post_meta(get_the_ID(),'horario',true);
 
-        // Front exibir eventos da comunidade
-        echo "<div class='evento'>";
-        echo "<strong>" . get_the_title() . "</strong>";
-        echo "<p>$dia às $hora</p>";
-        echo "</div>";
+        echo cc_render_template('shortcodes/item-evento.php', [
+            'titulo' => get_the_title(),
+            'dia' => get_post_meta(get_the_ID(), 'dia_semana', true),
+            'hora' => get_post_meta(get_the_ID(), 'horario', true),
+        ]);
     }
+
+    wp_reset_postdata();
 
     return ob_get_clean();
 }
 
 add_shortcode('cc_eventos', 'cc_eventos_comunidade');
-

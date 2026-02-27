@@ -20,20 +20,23 @@ function cc_load_textdomain() {
 
 add_action('plugins_loaded', 'cc_load_textdomain');
 
-require_once CC_PATH . 'includes/meta-fields.php';
-require_once CC_PATH . 'includes/post-types.php';
-require_once CC_PATH . 'includes/taxonomies.php';
-require_once CC_PATH . 'includes/permissions.php';
+require_once CC_PATH . 'includes/core/template.php';
 
-require_once CC_PATH . 'includes/db-alteracoes.php';
-require_once CC_PATH . 'includes/auth.php';
+require_once CC_PATH . 'includes/communities/meta-fields.php';
+require_once CC_PATH . 'includes/communities/post-types.php';
+require_once CC_PATH . 'includes/communities/taxonomies.php';
 
-require_once CC_PATH . 'includes/api/api-mapa.php';
-require_once CC_PATH . 'includes/api/api-form.php';
+require_once CC_PATH . 'includes/database/db-alteracoes.php';
 
-require_once CC_PATH . 'includes/shortcodes/shortcodes-comunidade.php';
-require_once CC_PATH . 'includes/shortcodes/shortcodes-mapa.php';
-require_once CC_PATH . 'includes/shortcodes/shortcodes-form.php';
+require_once CC_PATH . 'includes/admin/permissions.php';
+require_once CC_PATH . 'includes/auth/auth.php';
+
+require_once CC_PATH . 'includes/communities/api/api-mapa.php';
+require_once CC_PATH . 'includes/communities/api/api-form.php';
+
+require_once CC_PATH . 'includes/communities/shortcodes/shortcodes-comunidade.php';
+require_once CC_PATH . 'includes/communities/shortcodes/shortcodes-mapa.php';
+require_once CC_PATH . 'includes/communities/shortcodes/shortcodes-form.php';
 
 function cc_plugin_activate() {
     cc_criar_tabela_alteracoes();

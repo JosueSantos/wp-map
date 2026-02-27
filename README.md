@@ -5,27 +5,50 @@
 **Requires at least:** 5.0  
 **Tested up to:** 6.6  
 **Requires PHP:** 7.4  
-**Stable tag:** 1.0.0
+**Stable tag:** 1.0.0  
 **License:** GPLv2 or later  
 **License URI:** https://www.gnu.org/licenses/gpl-2.0.html
 
 Plugin WordPress para cadastro de **Comunidades (Paróquias, Capelas, Associações)** e seus **Eventos (Missas, Confissões, etc)** com API pública para alimentar mapas, apps ou outros sites.
 
-O projeto foi desenvolvido com foco em:
+## Arquitetura orientada a contexto
 
-- Estrutura escalável
-- API desacoplada
-- Filtros inteligentes
-- Integração futura com mapa interativo
-- Cadastro via formulário
+| Pasta | Responsabilidade |
+|---|---|
+| `includes/core` | Infraestrutura base (helpers e bootstrap de suporte) |
+| `includes/auth` | Login, OAuth e formulários de autenticação |
+| `includes/communities` | Regras de comunidade (post types, taxonomias, APIs e shortcodes) |
+| `includes/admin` | Recursos exclusivos para administração do WordPress |
+| `includes/database` | Criação e manutenção de tabelas |
+| `templates` | HTML separado da lógica de negócio |
+
+### Estrutura de pastas
+
+```text
+wp-map/
+├── assets/
+├── includes/
+│   ├── admin/
+│   ├── auth/
+│   ├── communities/
+│   │   ├── api/
+│   │   └── shortcodes/
+│   ├── core/
+│   └── database/
+├── templates/
+│   └── shortcodes/
+├── cadastro-comunidades.php
+├── README.md
+└── readme.txt
+```
 
 ---
 
-# Estrutura de Dados
+## Estrutura de Dados
 
-## Post Types
+### Post Types
 
-### Comunidade (`comunidade`)
+#### Comunidade (`comunidade`)
 
 Representa:
 - Paróquia
@@ -34,7 +57,7 @@ Representa:
 
 Cada **Capela pertence a uma paróquia**.
 
-### Evento (`evento`)
+#### Evento (`evento`)
 
 Representa:
 - Missa
@@ -47,7 +70,7 @@ Cada **Evento pertence a uma Comunidade**.
 
 ---
 
-# Campos das Comunidades
+## Campos das Comunidades
 
 | Campo | Tipo | Descrição |
 |------|------|-----------|
@@ -68,6 +91,7 @@ Estrutura:
   { "tipo": "instagram", "valor": "https://instagram.com/paroquia" }
 ]
 ```
+
 ### Tipos possíveis de contato:
 - telefone
 - whatsapp
@@ -78,44 +102,47 @@ Estrutura:
 - email
 - outro
 
-# Campos dos Eventos
+## Campos dos Eventos
 | Campo | Tipo | Descrição |
 |------|------|-----------|
-| comunidade_id	| integer	| Comunidade dona do evento| 
-| dia_semana	| string	| Domingo → Sábado | 
-| horario	    | string	| Hora do evento | 
-| descricao	    | string	| Descrição | 
-| observacao	| string	| Observações | 
-| tipo_evento	| taxonomy	| Missa, Confissão, etc | 
+| comunidade_id | integer | Comunidade dona do evento |
+| dia_semana | string | Domingo → Sábado |
+| horario | string | Hora do evento |
+| descricao | string | Descrição |
+| observacao | string | Observações |
+| tipo_evento | taxonomy | Missa, Confissão, etc |
 
-# Relacionamentos
+## Relacionamentos
 
-``` mathematica
+```text
 Comunidade 1 ─── N Eventos
 Capela N ─── 1 Paróquia (parent_paroquia)
 ```
 
-# API REST
-## Base
-``` swift
+## API REST
+
+### Base
+
+```text
 /wp-json/mapa/v1/
 ```
 
-## Listar Comunidades para o Mapa
-``` bash
+### Listar Comunidades para o Mapa
+
+```bash
 GET /comunidades
 ```
 
-## Parâmetros suportados
+### Parâmetros suportados
 
 | Campo | Tipo | Descrição |
 |------|------|-----------|
-| dia | integer ou string | [0 domingo - 6 sábado] ou "hoje" | 
+| dia | integer ou string | [0 domingo - 6 sábado] ou "hoje" |
 | tipo_evento | string | [missa, confissão ...] |
 | tipo_comunidade | string | [paroquia, capela, independente] |
-| lat | integer | coordenada geografica |
-| lng | integer | coordenada geografica |
-| raio | integer | Raio de distancia para a busca de comunidades, só funciona se possuir lat e lng |
+| lat | integer | coordenada geográfica |
+| lng | integer | coordenada geográfica |
+| raio | integer | Raio de distância para busca (depende de lat/lng) |
 | tag | string | [libras, tridentina, crianças ...] |
-| limite | integer | Quantidade Maxima de comunidades retornadas pela api |
-| proximidade | boolean | Ordenada pela maior proximidade do ponto latitude e longitude oferecidos |
+| limite | integer | Quantidade máxima de comunidades retornadas |
+| proximidade | boolean | Ordena pela maior proximidade |
