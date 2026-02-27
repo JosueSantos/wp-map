@@ -13,10 +13,12 @@ function cc_get_auth_page_url($slug, $fallback = '/') {
     $aliases = [
         'login' => ['login', 'login-mapa'],
         'cadastro' => ['cadastro', 'cadastro-mapa'],
-        'minha-conta-mapa' => ['minha-conta-mapa'],
-        'esqueci-senha' => ['esqueci-senha-mapa', 'esqueci-senha'],
-        'redefinir-senha' => ['redefinir-senha-mapa', 'redefinir-senha'],
-        'alterar-senha' => ['alterar-senha-mapa', 'alterar-senha'],
+        'minha-conta' => ['minha-conta', 'minha-conta-mapa'],
+        'esqueci-senha' => ['esqueci-senha', 'esqueci-senha-mapa'],
+        'redefinir-senha' => ['redefinir-senha', 'redefinir-senha-mapa'],
+        'alterar-senha' => ['alterar-senha', 'alterar-senha-mapa'],
+        'mapa-comunidades' => ['mapa-comunidades', 'mapa-comunidade'],
+        'cadastro-comunidade' => ['cadastro-comunidade'],
     ];
 
     $candidate_slugs = $aliases[$slug] ?? [$slug];
@@ -35,12 +37,12 @@ function cc_criar_paginas_auth() {
     $pages = [
         'login' => ['title' => __('Login', 'cadastro-comunidades'), 'content' => '[login-mapa]'],
         'cadastro' => ['title' => __('Cadastro', 'cadastro-comunidades'), 'content' => '[cadastro-mapa]'],
-        'minha-conta-mapa' => ['title' => __('Minha Conta Mapa', 'cadastro-comunidades'), 'content' => '[minha-conta-mapa]'],
-        'login-mapa' => ['title' => __('Login Mapa (Legado)', 'cadastro-comunidades'), 'content' => '[login-mapa]'],
-        'cadastro-mapa' => ['title' => __('Cadastro Mapa (Legado)', 'cadastro-comunidades'), 'content' => '[cadastro-mapa]'],
-        'esqueci-senha-mapa' => ['title' => __('Esqueci a senha', 'cadastro-comunidades'), 'content' => '[esqueci-senha-mapa]'],
-        'redefinir-senha-mapa' => ['title' => __('Redefinir senha', 'cadastro-comunidades'), 'content' => '[redefinir-senha-mapa]'],
-        'alterar-senha-mapa' => ['title' => __('Alterar senha', 'cadastro-comunidades'), 'content' => '[alterar-senha-mapa]'],
+        'minha-conta' => ['title' => __('Minha Conta', 'cadastro-comunidades'), 'content' => '[minha-conta-mapa url_editar_comunidade="/cadastro-comunidade/"]'],
+        'esqueci-senha' => ['title' => __('Esqueci a senha', 'cadastro-comunidades'), 'content' => '[esqueci-senha-mapa]'],
+        'redefinir-senha' => ['title' => __('Redefinir senha', 'cadastro-comunidades'), 'content' => '[redefinir-senha-mapa]'],
+        'alterar-senha' => ['title' => __('Alterar senha', 'cadastro-comunidades'), 'content' => '[alterar-senha-mapa]'],
+        'mapa-comunidades' => ['title' => __('Mapa de Comunidades', 'cadastro-comunidades'), 'content' => '[mapa_igrejas url_cadastro="/cadastro-comunidade/"]'],
+        'cadastro-comunidade' => ['title' => __('Cadastro de Comunidade', 'cadastro-comunidades'), 'content' => '[mapa_form_comunidade]'],
     ];
 
     foreach ($pages as $slug => $page_data) {
@@ -64,6 +66,30 @@ function cc_maybe_ensure_auth_pages() {
     cc_criar_paginas_auth();
 }
 add_action('admin_init', 'cc_maybe_ensure_auth_pages');
+
+function cc_filter_auth_menu_items($items) {
+    $is_logged = is_user_logged_in();
+
+    $hidden_for_logged = ['login', 'cadastro'];
+    $hidden_for_guest = ['minha-conta', 'alterar-senha', 'logout', 'sair'];
+
+    foreach ($items as $index => $item) {
+        $title = sanitize_title((string) $item->title);
+        $slug = sanitize_title((string) basename((string) wp_parse_url((string) $item->url, PHP_URL_PATH)));
+
+        if ($is_logged && (in_array($slug, $hidden_for_logged, true) || in_array($title, $hidden_for_logged, true))) {
+            unset($items[$index]);
+            continue;
+        }
+
+        if (!$is_logged && (in_array($slug, $hidden_for_guest, true) || in_array($title, $hidden_for_guest, true))) {
+            unset($items[$index]);
+        }
+    }
+
+    return $items;
+}
+add_filter('wp_nav_menu_objects', 'cc_filter_auth_menu_items');
 
 function cc_block_wp_admin_for_non_admins() {
     if ((defined('DOING_AJAX') && DOING_AJAX) || wp_doing_ajax()) return;
@@ -329,7 +355,7 @@ function cc_maybe_handle_oauth_callback() {
 
     wp_set_current_user($user->ID);
     wp_set_auth_cookie($user->ID, true);
-    wp_safe_redirect(cc_get_auth_page_url('minha-conta-mapa', '/minha-conta-mapa'));
+    wp_safe_redirect(cc_get_auth_page_url('minha-conta', '/minha-conta'));
     exit;
 }
 add_action('init', 'cc_maybe_handle_oauth_callback');
@@ -357,7 +383,7 @@ function cc_handle_custom_auth_forms() {
             exit;
         }
 
-        wp_safe_redirect(cc_get_auth_page_url('minha-conta-mapa', '/minha-conta-mapa'));
+        wp_safe_redirect(cc_get_auth_page_url('minha-conta', '/minha-conta'));
         exit;
     }
 
@@ -412,7 +438,7 @@ function cc_handle_custom_auth_forms() {
         wp_set_current_user($user_id);
         wp_set_auth_cookie($user_id, true);
 
-        wp_safe_redirect(cc_get_auth_page_url('minha-conta-mapa', '/minha-conta-mapa'));
+        wp_safe_redirect(cc_get_auth_page_url('minha-conta', '/minha-conta'));
         exit;
     }
 
@@ -437,7 +463,7 @@ function cc_handle_custom_auth_forms() {
             delete_user_meta($user_id, 'cc_paroquia_id');
         }
 
-        wp_safe_redirect(cc_get_auth_page_url('minha-conta-mapa', '/minha-conta-mapa'));
+        wp_safe_redirect(cc_get_auth_page_url('minha-conta', '/minha-conta'));
         exit;
     }
 
@@ -454,7 +480,7 @@ function cc_handle_custom_auth_forms() {
         }
 
         cc_observar_comunidade_com_vinculos(get_current_user_id(), $comunidade_id);
-        wp_safe_redirect(cc_get_auth_page_url('minha-conta-mapa', '/minha-conta-mapa'));
+        wp_safe_redirect(cc_get_auth_page_url('minha-conta', '/minha-conta'));
         exit;
     }
 
@@ -540,7 +566,7 @@ function cc_handle_custom_auth_forms() {
         wp_set_current_user($user->ID);
         wp_set_auth_cookie($user->ID, true);
 
-        wp_safe_redirect(add_query_arg('cc_auth_notice', 'password_changed', cc_get_auth_page_url('minha-conta-mapa', '/minha-conta-mapa')));
+        wp_safe_redirect(add_query_arg('cc_auth_notice', 'password_changed', cc_get_auth_page_url('minha-conta', '/minha-conta')));
         exit;
     }
 
@@ -552,7 +578,7 @@ function cc_handle_custom_auth_forms() {
         $comunidade_id = absint($_POST['comunidade_id'] ?? 0);
         cc_remover_observacao_comunidade(get_current_user_id(), $comunidade_id);
 
-        wp_safe_redirect(cc_get_auth_page_url('minha-conta-mapa', '/minha-conta-mapa'));
+        wp_safe_redirect(cc_get_auth_page_url('minha-conta', '/minha-conta'));
         exit;
     }
 }
@@ -750,7 +776,7 @@ function cc_shortcode_login_mapa() {
     $notice = sanitize_text_field($_GET['cc_auth_notice'] ?? '');
 
     if (is_user_logged_in()) {
-        return '<div class="max-w-3xl mx-auto bg-white border border-gray-200 rounded-2xl p-6"><p class="text-gray-800">' . esc_html__('Você já está logado.', 'cadastro-comunidades') . ' <a class="text-indigo-700 font-semibold" href="' . esc_url(cc_get_auth_page_url('minha-conta-mapa', '/minha-conta-mapa')) . '">' . esc_html__('Ir para minha conta', 'cadastro-comunidades') . '</a></p></div>';
+        return '<div class="max-w-3xl mx-auto bg-white border border-gray-200 rounded-2xl p-6"><p class="text-gray-800">' . esc_html__('Você já está logado.', 'cadastro-comunidades') . ' <a class="text-indigo-700 font-semibold" href="' . esc_url(cc_get_auth_page_url('minha-conta', '/minha-conta')) . '">' . esc_html__('Ir para minha conta', 'cadastro-comunidades') . '</a></p></div>';
     }
 
     ob_start();
