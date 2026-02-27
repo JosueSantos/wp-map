@@ -266,11 +266,54 @@ document.addEventListener("DOMContentLoaded", async function () {
     /* =====================================================
        POPUP
     ===================================================== */
-    function buildPopup(c) {
+    function buildPopup(comunidade) {
+
+        const eventos = (comunidade.eventos || []).filter((evento) => {
+            const tipo = String(evento?.tipo || "").toLowerCase();
+            return tipo === "missa" || tipo === "confissao" || tipo === "confissão";
+        });
+
+        const eventosHtml = eventos.length
+            ? eventos.map((evento) => {
+                const dia = diaMap[String(evento.dia)] || evento.dia || "Dia";
+                return `
+                    <div style="margin-top:6px;padding-top:6px;border-top:1px solid #e2e8f0;">
+                        <strong>${escapeHtml(evento.titulo || "Evento")}</strong><br>
+                        <small>${escapeHtml(dia)} • ${escapeHtml(evento.horario || "")}</small>
+                    </div>
+                `;
+            }).join("")
+            : `
+                <div style="margin-top:6px;color:#64748b;">
+                    Sem missas/confissões nos filtros atuais.
+                </div>
+            `;
+
         return `
-            <div style="min-width:220px;">
-                <strong>${escapeHtml(c.nome)}</strong>
-                ${c.endereco ? `<div style="font-size:12px;color:#555">${escapeHtml(c.endereco)}</div>` : ""}
+            <div style="min-width:250px;">
+                <h3 style="margin:0 0 4px;font-size:14px;color:#0f172a;">
+                    ${escapeHtml(comunidade.nome)}
+                </h3>
+
+                ${comunidade.foto ? `
+                    <img 
+                        src="${escapeHtml(comunidade.foto)}" 
+                        alt="${escapeHtml(comunidade.nome || "Comunidade")}" 
+                        style="width:100%;max-height:130px;object-fit:cover;border-radius:8px;margin:0 0 6px;" 
+                    />
+                ` : ""}
+
+                ${comunidade.endereco ? `
+                    <p style="margin:0 0 6px;font-size:12px;color:#475569;">
+                        ${escapeHtml(comunidade.endereco)}
+                    </p>
+                ` : ""}
+
+                ${eventosHtml}
+
+                <p style="margin:8px 0 0;color:#64748b;font-size:12px;">
+                    Toque no marcador para ver mais detalhes.
+                </p>
             </div>
         `;
     }
@@ -278,40 +321,169 @@ document.addEventListener("DOMContentLoaded", async function () {
     /* =====================================================
        DETALHES
     ===================================================== */
-    function renderDetalhes(c) {
+    function renderDetalhes(comunidade) {
+        if (!detalhesEl) return;
 
-        detalhesEl.innerHTML = "";
-
-        if (!c) {
-            const p = document.createElement("p");
-            p.textContent = "Selecione uma comunidade.";
-            detalhesEl.appendChild(p);
+        if (!comunidade) {
+            detalhesEl.innerHTML = `
+                <h3>Comunidade selecionada</h3>
+                <p>Toque em um pino para ver detalhes e eventos.</p>
+            `;
             return;
         }
 
-        const article = document.createElement("article");
+        const eventosHtml = (comunidade.eventos || []).length
+            ? comunidade.eventos.map((evento) => {
+                const dia = diaMap[String(evento.dia)] || evento.dia || "Dia não informado";
+                return `
+                    <li>
+                        <strong>${escapeHtml(evento.titulo || "Evento")}</strong><br>
+                        ${escapeHtml(dia)} • ${escapeHtml(evento.horario || "Horário não informado")}
+                        ${evento.observacao ? `<br><small>${escapeHtml(evento.observacao)}</small>` : ""}
+                    </li>
+                `;
+            }).join("")
+            : "<li>Sem eventos para os filtros selecionados.</li>";
 
-        const h4 = document.createElement("h4");
-        h4.textContent = c.nome;
-        article.appendChild(h4);
+        const contatosFormatados = renderContatos(comunidade.contatos);
 
-        if (c.endereco) {
-            const p = document.createElement("p");
-            p.textContent = c.endereco;
-            article.appendChild(p);
+        detalhesEl.innerHTML = `
+            <h3>Comunidade selecionada</h3>
+            <article>
+                <h4>${escapeHtml(comunidade.nome || "Comunidade")}</h4>
+
+                ${comunidade.foto ? `
+                    <img 
+                        src="${escapeHtml(comunidade.foto)}" 
+                        alt="${escapeHtml(comunidade.nome || "Comunidade")}" 
+                        style="width:100%;max-height:170px;object-fit:cover;border-radius:8px;margin:.45rem 0;" 
+                    />` : ""}
+
+                ${comunidade.endereco ? `
+                    <p>${escapeHtml(comunidade.endereco)}</p>
+                ` : ""}
+
+                ${contatosFormatados ? `
+                    <div style="display:grid;gap:.55rem;">
+                        ${contatosFormatados}
+                    </div>
+                ` : ""}
+
+                ${comunidade.distancia_km ? `
+                    <p><small>Distância: ${Number(comunidade.distancia_km).toFixed(1)} km</small></p>
+                ` : ""}
+
+                <strong>Eventos</strong>
+                <ul style="margin-top:.45rem;padding-left:1rem;display:grid;gap:.4rem;">
+                    ${eventosHtml}
+                </ul>
+            </article>
+        `;
+    }
+
+    function renderContatos(contatos) {
+
+        const data = extractContatos(contatos);
+        const blocks = [];
+
+        // Telefones
+        if (data.telefones.length) {
+            const itens = data.telefones
+                .map((tel) => `<li>📞 ${escapeHtml(tel)}</li>`)
+                .join("");
+
+            blocks.push(`
+                <div>
+                    <strong>Telefone</strong>
+                    <ul style="margin:.25rem 0 0;padding-left:1rem;">
+                        ${itens}
+                    </ul>
+                </div>
+            `);
         }
 
-        const eventos = c.eventos || [];
+        // Emails
+        if (data.emails.length) {
+            const itens = data.emails
+                .map((email) => `
+                    <li>
+                        ✉️ 
+                        <a href="mailto:${encodeURIComponent(email)}">
+                            ${escapeHtml(email)}
+                        </a>
+                    </li>
+                `).join("");
 
-        const ul = document.createElement("ul");
-        eventos.forEach(ev => {
-            const li = document.createElement("li");
-            li.textContent = `${ev.titulo || "Evento"} - ${ev.horario || ""}`;
-            ul.appendChild(li);
-        });
+            blocks.push(`
+                <div>
+                    <strong>E-mail</strong>
+                    <ul style="margin:.25rem 0 0;padding-left:1rem;">
+                        ${itens}
+                    </ul>
+                </div>
+            `);
+        }
 
-        article.appendChild(ul);
-        detalhesEl.appendChild(article);
+        // Redes sociais
+        if (data.redes.length) {
+
+            const iconMap = {
+                facebook: { cls: "bi bi-facebook", fallback: "f" },
+                instagram: { cls: "bi bi-instagram", fallback: "◎" },
+                whatsapp: { cls: "bi bi-whatsapp", fallback: "✆" },
+                youtube: { cls: "bi bi-youtube", fallback: "▶" },
+                tiktok: { cls: "bi bi-tiktok", fallback: "♪" },
+                linkedin: { cls: "bi bi-linkedin", fallback: "in" },
+                x: { cls: "bi bi-twitter-x", fallback: "𝕏" },
+                site: { cls: "bi bi-globe", fallback: "◉" },
+                rede: { cls: "bi bi-link-45deg", fallback: "↗" },
+            };
+
+            const itens = data.redes.map((rede) => {
+                const type = String(rede.type || "rede").toLowerCase();
+                const cfg = iconMap[type] || iconMap.rede;
+                const cls = `cc-social-pill cc-social-${type}`;
+
+                return `
+                    <a 
+                        href="${escapeHtml(rede.href)}" 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        class="${cls}"
+                    >
+                        <i class="${cfg.cls}" aria-hidden="true"></i>
+                        <span>${escapeHtml(rede.label)}</span>
+                    </a>
+                `;
+            }).join("");
+
+            blocks.push(`
+                <div>
+                    <strong>Redes sociais</strong>
+                    <div class="cc-social-grid" style="margin-top:.35rem;">
+                        ${itens}
+                    </div>
+                </div>
+            `);
+        }
+
+        // Outros contatos
+        if (data.outros.length) {
+            const itens = data.outros
+                .map((item) => `<li>${escapeHtml(item)}</li>`)
+                .join("");
+
+            blocks.push(`
+                <div>
+                    <strong>Outros contatos</strong>
+                    <ul style="margin:.25rem 0 0;padding-left:1rem;">
+                        ${itens}
+                    </ul>
+                </div>
+            `);
+        }
+
+        return blocks.join("");
     }
 
     /* =====================================================
