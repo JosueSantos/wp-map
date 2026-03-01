@@ -1,21 +1,8 @@
 <section id="mapa-igrejas" data-dominio="<?php echo esc_attr($dominio); ?>" data-url-cadastro="<?php echo esc_attr($url_cadastro); ?>" data-user-logado="<?php echo $is_user_logged_in ? '1' : '0'; ?>" class="cc-mapa-fullwidth">
     <div class="cc-mapa-layout">
         <div class="cc-mapa-main">
-            <div class="cc-mapa-topbar">
-                <label class="cc-busca-wrap" for="filtro-busca">
-                    <span>Pesquisar comunidade</span>
-                    <div class="cc-busca-acoes">
-                        <input id="filtro-busca" list="mapa-comunidades-list" type="search" placeholder="Digite o nome da comunidade" autocomplete="off" />
-                        <button id="mapa-buscar-comunidade" type="button">Pesquisar</button>
-                    </div>
-                    <datalist id="mapa-comunidades-list"></datalist>
-                </label>
-            </div>
-
-            <div class="cc-mapa-stage">
-                <div id="mapa-canvas"></div>
-
-                <div class="cc-overlay-panels" aria-live="polite">
+            <div class="cc-mapa-topbar" aria-live="polite">
+                <div class="cc-overlay-panels">
                     <aside class="cc-overlay-panel cc-overlay-panel--filtros is-open" data-panel="filtros">
                         <button type="button" class="cc-panel-toggle" aria-expanded="true" aria-controls="cc-panel-filtros-body">
                             <span>Filtros do mapa</span>
@@ -70,6 +57,19 @@
                         </div>
                     </aside>
                 </div>
+
+                <label class="cc-busca-wrap" for="filtro-busca">
+                    <span>Pesquisar comunidade</span>
+                    <div class="cc-busca-acoes">
+                        <input id="filtro-busca" list="mapa-comunidades-list" type="search" placeholder="Digite o nome da comunidade" autocomplete="off" />
+                        <button id="mapa-buscar-comunidade" type="button">Pesquisar</button>
+                    </div>
+                    <datalist id="mapa-comunidades-list"></datalist>
+                </label>
+            </div>
+
+            <div class="cc-mapa-stage">
+                <div id="mapa-canvas"></div>
             </div>
         </div>
     </div>
