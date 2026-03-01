@@ -140,7 +140,11 @@ function cc_api_obter_comunidade_para_edicao($request) {
         $eventos[] = [
             'id' => $evento->ID,
             'titulo' => $evento->post_title,
+            'frequencia' => get_post_meta($evento->ID, 'frequencia', true) ?: 'semanal',
             'dia' => get_post_meta($evento->ID, 'dia_semana', true),
+            'dia_mes' => get_post_meta($evento->ID, 'dia_mes', true),
+            'numero_semana' => get_post_meta($evento->ID, 'numero_semana', true),
+            'mes' => get_post_meta($evento->ID, 'mes', true),
             'horario' => get_post_meta($evento->ID, 'horario', true),
             'descricao' => get_post_meta($evento->ID, 'descricao', true),
             'observacao' => get_post_meta($evento->ID, 'observacao', true),
@@ -197,11 +201,43 @@ function cc_api_salvar_eventos($comunidade_id, $eventos = []) {
             if (is_wp_error($evento_id)) continue;
         }
 
-        $dia_semana = isset($evt['dia']) ? max(0, min(6, (int) $evt['dia'])) : 0;
+        $frequencias_validas = ['semanal', 'mensal', 'numero_semana', 'anual'];
+        $frequencia = sanitize_key($evt['frequencia'] ?? 'semanal');
+        if (!in_array($frequencia, $frequencias_validas, true)) {
+            $frequencia = 'semanal';
+        }
+
+        $dia_semana = isset($evt['dia']) && $evt['dia'] !== '' ? max(0, min(6, (int) $evt['dia'])) : '';
+        $dia_mes = isset($evt['dia_mes']) && $evt['dia_mes'] !== '' ? max(1, min(31, (int) $evt['dia_mes'])) : '';
+        $numero_semana = isset($evt['numero_semana']) && $evt['numero_semana'] !== '' ? max(1, min(5, (int) $evt['numero_semana'])) : '';
+        $mes = isset($evt['mes']) && $evt['mes'] !== '' ? max(1, min(12, (int) $evt['mes'])) : '';
         $horario = sanitize_text_field($evt['horario'] ?? '');
 
         update_post_meta($evento_id, 'comunidade_id', $comunidade_id);
-        update_post_meta($evento_id, 'dia_semana', $dia_semana);
+        update_post_meta($evento_id, 'frequencia', $frequencia);
+        if ($dia_semana === '') {
+            delete_post_meta($evento_id, 'dia_semana');
+        } else {
+            update_post_meta($evento_id, 'dia_semana', $dia_semana);
+        }
+
+        if ($dia_mes === '') {
+            delete_post_meta($evento_id, 'dia_mes');
+        } else {
+            update_post_meta($evento_id, 'dia_mes', $dia_mes);
+        }
+
+        if ($numero_semana === '') {
+            delete_post_meta($evento_id, 'numero_semana');
+        } else {
+            update_post_meta($evento_id, 'numero_semana', $numero_semana);
+        }
+
+        if ($mes === '') {
+            delete_post_meta($evento_id, 'mes');
+        } else {
+            update_post_meta($evento_id, 'mes', $mes);
+        }
         update_post_meta($evento_id, 'horario', $horario);
         update_post_meta($evento_id, 'descricao', sanitize_textarea_field($evt['descricao'] ?? ''));
         update_post_meta($evento_id, 'observacao', sanitize_textarea_field($evt['observacao'] ?? ''));

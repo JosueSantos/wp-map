@@ -106,7 +106,11 @@ Estrutura:
 | Campo | Tipo | Descrição |
 |------|------|-----------|
 | comunidade_id | integer | Comunidade dona do evento |
-| dia_semana | string | Domingo → Sábado |
+| frequencia | string | semanal, mensal, numero_semana, anual |
+| dia_semana | integer | 0 (Domingo) → 6 (Sábado), quando aplicável |
+| dia_mes | integer | 1 → 31, quando aplicável |
+| numero_semana | integer | 1 → 5, quando aplicável |
+| mes | integer | 1 → 12, quando aplicável |
 | horario | string | Hora do evento |
 | descricao | string | Descrição |
 | observacao | string | Observações |
@@ -137,7 +141,8 @@ GET /comunidades
 
 | Campo | Tipo | Descrição |
 |------|------|-----------|
-| dia | integer ou string | [0 domingo - 6 sábado] ou "hoje" |
+| periodo | string | hoje, semana, data |
+| data | string | Data no formato YYYY-MM-DD (obrigatória quando `periodo=data`) |
 | tipo_evento | string | [missa, confissão ...] |
 | tipo_comunidade | string | [paroquia, capela, independente] |
 | lat | integer | coordenada geográfica |

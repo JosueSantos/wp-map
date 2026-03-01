@@ -87,6 +87,30 @@ function cc_register_meta() {
         'type' => 'integer'
     ]);
 
+    register_post_meta('evento', 'frequencia', [
+        'show_in_rest' => true,
+        'single' => true,
+        'type' => 'string'
+    ]);
+
+    register_post_meta('evento', 'dia_mes', [
+        'show_in_rest' => true,
+        'single' => true,
+        'type' => 'integer'
+    ]);
+
+    register_post_meta('evento', 'numero_semana', [
+        'show_in_rest' => true,
+        'single' => true,
+        'type' => 'integer'
+    ]);
+
+    register_post_meta('evento', 'mes', [
+        'show_in_rest' => true,
+        'single' => true,
+        'type' => 'integer'
+    ]);
+
     register_post_meta('evento', 'horario', [
         'show_in_rest' => true,
         'single' => true,
