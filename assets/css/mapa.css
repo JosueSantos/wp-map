@@ -27,6 +27,21 @@
     border-bottom: 1px solid #e2e8f0;
 }
 
+#mapa-igrejas .cc-mapa-content {
+    display: grid;
+    grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+    gap: .85rem;
+    padding: .85rem;
+    min-height: 0;
+}
+
+#mapa-igrejas .cc-mapa-sidebar {
+    align-self: start;
+    max-height: calc(78vh - 2rem);
+    overflow: auto;
+    padding-right: .15rem;
+}
+
 #mapa-igrejas .cc-busca-wrap span {
     display: block;
     margin-bottom: .35rem;
@@ -60,7 +75,7 @@
 
 #mapa-igrejas .cc-mapa-stage {
     position: relative;
-    min-height: inherit;
+    min-height: 620px;
 }
 
 #mapa-igrejas #mapa-canvas {
@@ -116,7 +131,7 @@
 #mapa-igrejas .cc-panel-body {
     padding: 0 .95rem .95rem;
     border-top: 1px solid #e2e8f0;
-    max-height: min(58vh, 520px);
+    max-height: min(70vh, 720px);
     overflow: auto;
 }
 
@@ -141,6 +156,7 @@
 #mapa-igrejas .cc-filtros-form input[type="search"],
 #mapa-igrejas .cc-filtros-form input[type="date"] {
     width: 100%;
+    min-height: 2.6rem;
     border: 1px solid #cbd5e1;
     border-radius: .75rem;
     padding: .6rem .75rem;
@@ -236,6 +252,17 @@
         grid-template-rows: auto minmax(540px, 74vh);
     }
 
+    #mapa-igrejas .cc-mapa-content {
+        grid-template-columns: 1fr;
+        gap: .7rem;
+        padding: .7rem;
+    }
+
+    #mapa-igrejas .cc-mapa-sidebar {
+        max-height: none;
+        overflow: visible;
+        padding-right: 0;
+    }
 
     #mapa-igrejas .cc-overlay-panel {
         width: 100%;
@@ -243,7 +270,7 @@
     }
 
     #mapa-igrejas .cc-panel-body {
-        max-height: min(44vh, 360px);
+        max-height: min(52vh, 460px);
     }
 
     #mapa-igrejas #mapa-canvas {
