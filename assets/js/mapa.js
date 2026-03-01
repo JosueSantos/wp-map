@@ -7,9 +7,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const detalhesEl = document.getElementById("mapa-detalhes");
     const limparBtn = document.getElementById("mapa-limpar-filtros");
     const aplicarBtn = document.getElementById("mapa-aplicar-filtros");
-    const toggleFiltrosBtn = document.getElementById("mapa-toggle-filtros");
-    const fecharFiltrosBtn = document.getElementById("mapa-fechar-filtros");
-    const sidebarEl = document.getElementById("mapa-sidebar");
+    const panelEls = Array.from(containerEl.querySelectorAll(".cc-overlay-panel"));
     const buscaEl = document.getElementById("filtro-busca");
     const buscaListEl = document.getElementById("mapa-comunidades-list");
     const buscaBtn = document.getElementById("mapa-buscar-comunidade");
@@ -75,13 +73,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
     function isMobile() {
         return window.matchMedia("(max-width: 1023px)").matches;
-    }
-
-    function scrollMapIntoView() {
-        if (!containerEl) return;
-
-        const top = window.pageYOffset + containerEl.getBoundingClientRect().top - 20;
-        window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
     }
 
     function scrollDetalhesIntoView() {
@@ -299,10 +290,45 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
 
-    function setSidebarOpen(open) {
-        if (!sidebarEl || !isMobile()) return;
-        sidebarEl.classList.toggle("is-open", !!open);
-        window.setTimeout(() => map.invalidateSize(), 260);
+    function setPanelOpen(panel, open) {
+        if (!panel) return;
+
+        const shouldOpen = !!open;
+        const toggle = panel.querySelector(".cc-panel-toggle");
+        const body = panel.querySelector(".cc-panel-body");
+
+        panel.classList.toggle("is-open", shouldOpen);
+        if (toggle) toggle.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
+        if (body) body.hidden = !shouldOpen;
+    }
+
+    function setupAccordionPanels() {
+        panelEls.forEach((panel) => {
+            const toggle = panel.querySelector(".cc-panel-toggle");
+            if (!toggle) return;
+
+            const startsOpen = panel.classList.contains("is-open");
+            setPanelOpen(panel, startsOpen);
+
+            toggle.addEventListener("click", () => {
+                const isOpen = panel.classList.contains("is-open");
+                setPanelOpen(panel, !isOpen);
+                map.invalidateSize();
+            });
+        });
+    }
+
+
+    function bindDetalhesToggle() {
+        const detalhesPanel = detalhesEl?.closest(".cc-overlay-panel");
+        const toggle = detalhesEl?.querySelector(".cc-panel-toggle");
+        if (!detalhesPanel || !toggle) return;
+
+        toggle.addEventListener("click", () => {
+            const open = detalhesPanel.classList.contains("is-open");
+            setPanelOpen(detalhesPanel, !open);
+            map.invalidateSize();
+        });
     }
 
     function renderDetalhes(comunidade) {
@@ -310,9 +336,17 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         if (!comunidade) {
             detalhesEl.innerHTML = `
-                <h3>Comunidade selecionada</h3>
-                <p>Toque em um pino para ver detalhes e eventos.</p>
+                <button type="button" class="cc-panel-toggle" aria-expanded="false" aria-controls="cc-panel-detalhes-body">
+                    <span>Comunidade selecionada</span>
+                    <span class="cc-panel-toggle-icon" aria-hidden="true">⌄</span>
+                </button>
+                <div class="cc-panel-body" id="cc-panel-detalhes-body">
+                    <p>Toque em um pino para ver detalhes e eventos.</p>
+                </div>
             `;
+            const detalhesPanel = detalhesEl.closest(".cc-overlay-panel");
+            setPanelOpen(detalhesPanel, false);
+            bindDetalhesToggle();
             return;
         }
 
@@ -332,7 +366,11 @@ document.addEventListener("DOMContentLoaded", async function () {
         const contatosFormatados = renderContatos(comunidade.contatos);
 
         detalhesEl.innerHTML = `
-            <h3>Comunidade selecionada</h3>
+            <button type="button" class="cc-panel-toggle" aria-expanded="true" aria-controls="cc-panel-detalhes-body">
+                <span>Comunidade selecionada</span>
+                <span class="cc-panel-toggle-icon" aria-hidden="true">⌄</span>
+            </button>
+            <div class="cc-panel-body" id="cc-panel-detalhes-body">
             <article>
                 <h4>${escapeHtml(comunidade.nome || "Comunidade")}</h4>
                 ${comunidade.foto ? `<img src="${escapeHtml(comunidade.foto)}" alt="${escapeHtml(comunidade.nome || "Comunidade")}" style="width:100%;max-height:170px;object-fit:cover;border-radius:8px;margin:.45rem 0;" />` : ""}
@@ -342,7 +380,12 @@ document.addEventListener("DOMContentLoaded", async function () {
                 <strong>Eventos</strong>
                 <ul style="margin-top:.45rem;padding-left:1rem;display:grid;gap:.4rem;">${eventosHtml}</ul>
             </article>
+            </div>
         `;
+
+        const detalhesPanel = detalhesEl.closest(".cc-overlay-panel");
+        setPanelOpen(detalhesPanel, true);
+        bindDetalhesToggle();
     }
 
     function buildPopup(comunidade) {
@@ -393,7 +436,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         marker.on("click", function () {
             renderDetalhes(comunidade);
-            if (isMobile()) setSidebarOpen(false);
+            if (isMobile()) scrollDetalhesIntoView();
         });
 
         state.markers.push(marker);
@@ -580,7 +623,6 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     aplicarBtn?.addEventListener("click", () => {
         carregarComunidades();
-        if (isMobile()) setSidebarOpen(false);
     });
 
     limparBtn?.addEventListener("click", () => {
@@ -591,20 +633,15 @@ document.addEventListener("DOMContentLoaded", async function () {
         carregarComunidades();
     });
 
-    toggleFiltrosBtn?.addEventListener("click", () => setSidebarOpen(true));
-    fecharFiltrosBtn?.addEventListener("click", () => setSidebarOpen(false));
-
     window.addEventListener("resize", () => {
-        if (!isMobile()) setSidebarOpen(false);
         map.invalidateSize();
     });
+
+    setupAccordionPanels();
 
     await carregarFiltros();
     atualizarCampoDataFiltro();
     await requestUserLocationIfNeeded();
     await carregarComunidades();
 
-    if (isMobile()) {
-        setSidebarOpen(false);
-    }
 });

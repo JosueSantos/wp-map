@@ -8,128 +8,13 @@
 }
 
 #mapa-igrejas .cc-mapa-layout {
-    display: grid;
-    grid-template-columns: 360px minmax(0, 1fr);
-    min-height: 78vh;
     border: 1px solid #e2e8f0;
     background: #f8fafc;
-}
-
-#mapa-igrejas .cc-sidebar {
-    background: #ffffff;
-    border-right: 1px solid #e2e8f0;
-    display: flex;
-    flex-direction: column;
-    min-height: 78vh;
-    overflow: hidden;
-}
-
-#mapa-igrejas .cc-sidebar-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1rem;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-#mapa-igrejas .cc-sidebar-header h2 {
-    margin: 0;
-    color: #1d4ed8;
-    font-size: 1.3rem;
-}
-
-#mapa-igrejas .cc-sidebar-body {
-    padding: 1rem;
-    overflow-y: auto;
-    overflow-x: hidden;
-}
-
-#mapa-igrejas .cc-filtro-texto {
-    margin: 0 0 .9rem;
-    color: #475569;
-}
-
-#mapa-igrejas .cc-filtros-form {
-    display: grid;
-    gap: .75rem;
-}
-
-#mapa-igrejas .cc-filtros-form label span {
-    display: block;
-    margin-bottom: .35rem;
-    font-size: .92rem;
-    color: #334155;
-}
-
-#mapa-igrejas .cc-filtros-form select,
-#mapa-igrejas .cc-filtros-form input[type="search"] {
-    width: 100%;
-    border: 1px solid #cbd5e1;
-    border-radius: .75rem;
-    padding: .6rem .75rem;
-    background: #fff;
-}
-
-#mapa-igrejas .cc-checkline {
-    display: flex;
-    gap: .5rem;
-    align-items: center;
-    border: 1px solid #e2e8f0;
-    border-radius: .75rem;
-    background: #f8fafc;
-    padding: .65rem .75rem;
-}
-
-#mapa-igrejas .cc-checkline span {
-    margin: 0;
-}
-
-#mapa-igrejas .cc-filtros-acoes {
-    display: flex;
-    gap: .6rem;
-    margin-top: .9rem;
-}
-
-#mapa-aplicar-filtros,
-#mapa-limpar-filtros {
-    border-radius: .75rem;
-    padding: .6rem .85rem;
-    font-weight: 600;
-    border: 1px solid #cbd5e1;
-    cursor: pointer;
-}
-
-#mapa-aplicar-filtros {
-    background: #1d4ed8;
-    border-color: #1d4ed8;
-    color: #fff;
-    flex: 1;
-}
-
-#mapa-limpar-filtros {
-    background: #fff;
-    color: #334155;
-}
-
-#mapa-igrejas .cc-detalhes-card {
-    margin-top: 1rem;
-    padding: .8rem;
-    border: 1px solid #e2e8f0;
-    border-radius: .75rem;
-    background: #f8fafc;
-}
-
-#mapa-igrejas .cc-detalhes-card h3 {
-    margin: 0 0 .45rem;
-    font-size: .95rem;
-    text-transform: uppercase;
-    letter-spacing: .04em;
-    color: #334155;
 }
 
 #mapa-igrejas .cc-mapa-main {
     display: grid;
-    grid-template-rows: auto minmax(600px, 1fr);
+    grid-template-rows: auto minmax(620px, 78vh);
     min-width: 0;
     background: #e2e8f0;
 }
@@ -179,14 +64,128 @@
     cursor: pointer;
 }
 
+#mapa-igrejas .cc-mapa-stage {
+    position: relative;
+    min-height: inherit;
+}
+
 #mapa-igrejas #mapa-canvas {
     width: 100%;
     height: 100%;
     min-height: 620px;
 }
 
-#mapa-igrejas .cc-mobile-only {
-    display: none;
+#mapa-igrejas .cc-overlay-panels {
+    position: absolute;
+    top: .9rem;
+    left: .9rem;
+    right: .9rem;
+    display: grid;
+    gap: .75rem;
+    align-content: start;
+    pointer-events: none;
+    z-index: 450;
+}
+
+#mapa-igrejas .cc-overlay-panel {
+    width: min(100%, 390px);
+    border: 1px solid rgba(148, 163, 184, .55);
+    border-radius: .9rem;
+    background: rgba(255, 255, 255, .95);
+    backdrop-filter: blur(2px);
+    box-shadow: 0 12px 26px rgba(15, 23, 42, .15);
+    overflow: hidden;
+    pointer-events: auto;
+}
+
+#mapa-igrejas .cc-overlay-panel--detalhes {
+    justify-self: end;
+}
+
+#mapa-igrejas .cc-panel-toggle {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: #0f172a;
+    padding: .8rem .95rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    font-weight: 700;
+    font-size: .95rem;
+    cursor: pointer;
+    text-align: left;
+}
+
+#mapa-igrejas .cc-panel-toggle-icon {
+    transition: transform .2s ease;
+    font-size: 1rem;
+}
+
+#mapa-igrejas .cc-overlay-panel.is-open .cc-panel-toggle-icon {
+    transform: rotate(180deg);
+}
+
+#mapa-igrejas .cc-panel-body {
+    padding: 0 .95rem .95rem;
+    border-top: 1px solid #e2e8f0;
+    max-height: min(58vh, 520px);
+    overflow: auto;
+}
+
+#mapa-igrejas .cc-filtro-texto {
+    margin: .8rem 0 .9rem;
+    color: #475569;
+}
+
+#mapa-igrejas .cc-filtros-form {
+    display: grid;
+    gap: .75rem;
+}
+
+#mapa-igrejas .cc-filtros-form label span {
+    display: block;
+    margin-bottom: .35rem;
+    font-size: .92rem;
+    color: #334155;
+}
+
+#mapa-igrejas .cc-filtros-form select,
+#mapa-igrejas .cc-filtros-form input[type="search"],
+#mapa-igrejas .cc-filtros-form input[type="date"] {
+    width: 100%;
+    border: 1px solid #cbd5e1;
+    border-radius: .75rem;
+    padding: .6rem .75rem;
+    background: #fff;
+}
+
+#mapa-igrejas .cc-filtros-acoes {
+    display: flex;
+    gap: .6rem;
+    margin-top: .9rem;
+}
+
+#mapa-aplicar-filtros,
+#mapa-limpar-filtros {
+    border-radius: .75rem;
+    padding: .6rem .85rem;
+    font-weight: 600;
+    border: 1px solid #cbd5e1;
+    cursor: pointer;
+}
+
+#mapa-aplicar-filtros {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    color: #fff;
+    flex: 1;
+}
+
+#mapa-limpar-filtros {
+    background: #fff;
+    color: #334155;
 }
 
 #mapa-igrejas .leaflet-container {
@@ -197,93 +196,8 @@
     z-index: 200;
 }
 
-
-@media (min-width: 1024px) and (max-width: 1279px) {
-    #mapa-igrejas .cc-mapa-layout {
-        grid-template-columns: 300px minmax(0, 1fr);
-        min-height: 74vh;
-    }
-
-    #mapa-igrejas .cc-sidebar-body {
-        padding: .85rem;
-    }
-
-    #mapa-igrejas #mapa-canvas {
-        min-height: 560px;
-    }
-}
-
-@media (max-width: 767px) {
-    #mapa-igrejas .cc-mapa-topbar {
-        align-items: center;
-        flex-wrap: wrap;
-        gap: .55rem;
-        padding: .7rem;
-    }
-
-    #mapa-igrejas .cc-busca-wrap {
-        width: 100%;
-    }
-
-    #mapa-igrejas .cc-busca-acoes {
-        flex-direction: column;
-    }
-
-    #mapa-igrejas .cc-filtros-acoes {
-        flex-direction: column;
-    }
-
-    #mapa-aplicar-filtros,
-    #mapa-limpar-filtros {
-        width: 100%;
-    }
-}
-
-@media (max-width: 1023px) {
-    #mapa-igrejas .cc-mapa-layout {
-        display: block;
-        min-height: auto;
-    }
-
-    #mapa-igrejas .cc-sidebar {
-        position: fixed;
-        left: 0;
-        top: 0;
-        width: min(92vw, 360px);
-        height: 100dvh;
-        z-index: 1000;
-        transform: translateX(-100%);
-        transition: transform .25s ease;
-        box-shadow: 0 10px 25px rgba(15, 23, 42, .2);
-    }
-
-    #mapa-igrejas .cc-sidebar.is-open {
-        transform: translateX(0);
-    }
-
-    #mapa-igrejas .cc-mobile-only {
-        display: inline-flex;
-        align-items: center;
-        gap: .35rem;
-        border: 1px solid #cbd5e1;
-        border-radius: .65rem;
-        padding: .45rem .65rem;
-        background: #fff;
-        color: #0f172a;
-    }
-
-    #mapa-igrejas .cc-mapa-main {
-        grid-template-rows: auto minmax(500px, 70vh);
-    }
-
-    #mapa-igrejas #mapa-canvas {
-        min-height: 500px;
-    }
-}
-
-
-#mapa-igrejas .cc-sidebar,
-#mapa-igrejas .cc-sidebar-body,
+#mapa-igrejas .cc-overlay-panel,
+#mapa-igrejas .cc-panel-body,
 #mapa-igrejas .cc-filtros-form,
 #mapa-igrejas .cc-filtros-form label {
     min-width: 0;
@@ -315,7 +229,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255,255,255,.18);
+    background: rgba(255, 255, 255, .18);
     font-style: normal;
     font-size: .95rem;
     line-height: 1;
@@ -330,3 +244,68 @@
 #mapa-igrejas .cc-social-x { background: linear-gradient(90deg,#0f172a,#334155); }
 #mapa-igrejas .cc-social-site { background: linear-gradient(90deg,#0f766e,#14b8a6); }
 #mapa-igrejas .cc-social-rede { background: linear-gradient(90deg,#475569,#64748b); }
+
+@media (max-width: 1023px) {
+    #mapa-igrejas .cc-mapa-main {
+        grid-template-rows: auto minmax(540px, 74vh);
+    }
+
+    #mapa-igrejas .cc-overlay-panels {
+        top: .7rem;
+        left: .7rem;
+        right: .7rem;
+        gap: .6rem;
+    }
+
+    #mapa-igrejas .cc-overlay-panel {
+        width: 100%;
+        max-width: none;
+    }
+
+    #mapa-igrejas .cc-overlay-panel--detalhes {
+        justify-self: stretch;
+    }
+
+    #mapa-igrejas .cc-panel-body {
+        max-height: min(44vh, 360px);
+    }
+
+    #mapa-igrejas #mapa-canvas {
+        min-height: 540px;
+    }
+}
+
+@media (max-width: 767px) {
+    #mapa-igrejas .cc-mapa-topbar {
+        align-items: center;
+        flex-wrap: wrap;
+        gap: .55rem;
+        padding: .7rem;
+    }
+
+    #mapa-igrejas .cc-busca-wrap {
+        width: 100%;
+    }
+
+    #mapa-igrejas .cc-busca-acoes {
+        flex-direction: column;
+    }
+
+    #mapa-igrejas .cc-filtros-acoes {
+        flex-direction: column;
+    }
+
+    #mapa-aplicar-filtros,
+    #mapa-limpar-filtros {
+        width: 100%;
+    }
+
+    #mapa-igrejas .cc-panel-toggle {
+        padding: .72rem .78rem;
+        font-size: .92rem;
+    }
+
+    #mapa-igrejas .cc-panel-body {
+        padding: 0 .78rem .78rem;
+    }
+}
