@@ -74,6 +74,19 @@
                 <div class="cc-mapa-stage">
                     <div id="mapa-canvas"></div>
                 </div>
+
+                <label class="cc-busca-wrap" for="filtro-busca">
+                    <span>Pesquisar comunidade</span>
+                    <div class="cc-busca-acoes">
+                        <input id="filtro-busca" list="mapa-comunidades-list" type="search" placeholder="Digite o nome da comunidade" autocomplete="off" />
+                        <button id="mapa-buscar-comunidade" type="button">Pesquisar</button>
+                    </div>
+                    <datalist id="mapa-comunidades-list"></datalist>
+                </label>
+            </div>
+
+            <div class="cc-mapa-stage">
+                <div id="mapa-canvas"></div>
             </div>
         </div>
     </div>
