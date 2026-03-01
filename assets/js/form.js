@@ -425,8 +425,18 @@ function mapaAdicionarEvento(evento = null) {
                 class="evento-titulo w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2">
         </div>
 
+        <div>
+            <label class="block text-base font-semibold text-gray-700 mb-1">Frequência</label>
+            <select class="evento-frequencia rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
+                <option value="semanal">Semanal</option>
+                <option value="mensal">Mensal</option>
+                <option value="numero_semana">Por número da semana</option>
+                <option value="anual">Anual</option>
+            </select>
+        </div>
+
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
+            <div class="evento-campo-dia-semana">
                 <label class="block text-base font-semibold text-gray-700 mb-1">Dia da semana</label>
                 <select class="evento-dia rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
                     <option value="">Selecione o dia</option>
@@ -438,6 +448,28 @@ function mapaAdicionarEvento(evento = null) {
                     <option value="5">Sexta-feira</option>
                     <option value="6">Sábado</option>
                 </select>
+            </div>
+
+            <div class="evento-campo-dia-mes hidden">
+                <label class="block text-base font-semibold text-gray-700 mb-1">Dia do mês</label>
+                <input type="number" min="1" max="31" class="evento-dia-mes rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full" placeholder="1 a 31">
+            </div>
+
+            <div class="evento-campo-numero-semana hidden">
+                <label class="block text-base font-semibold text-gray-700 mb-1">Número da semana</label>
+                <select class="evento-numero-semana rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
+                    <option value="">Selecione</option>
+                    <option value="1">Semana 1</option>
+                    <option value="2">Semana 2</option>
+                    <option value="3">Semana 3</option>
+                    <option value="4">Semana 4</option>
+                    <option value="5">Semana 5</option>
+                </select>
+            </div>
+
+            <div class="evento-campo-mes hidden">
+                <label class="block text-base font-semibold text-gray-700 mb-1">Mês</label>
+                <input type="number" min="1" max="12" class="evento-mes rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full" placeholder="1 a 12">
             </div>
 
             <div>
@@ -494,11 +526,46 @@ function mapaAdicionarEvento(evento = null) {
     if (evento) {
         novoEvento.dataset.eventoId = evento.id ? String(evento.id) : '';
         novoEvento.querySelector('.evento-titulo').value = evento.titulo || '';
+        novoEvento.querySelector('.evento-frequencia').value = evento.frequencia || 'semanal';
         novoEvento.querySelector('.evento-dia').value = evento.dia ?? '';
+        novoEvento.querySelector('.evento-dia-mes').value = evento.dia_mes ?? '';
+        novoEvento.querySelector('.evento-numero-semana').value = evento.numero_semana ?? '';
+        novoEvento.querySelector('.evento-mes').value = evento.mes ?? '';
         novoEvento.querySelector('.evento-horario').value = evento.horario || '';
         novoEvento.querySelector('.evento-descricao').value = evento.descricao || '';
         novoEvento.querySelector('.evento-observacao').value = evento.observacao || '';
     }
+
+
+    const frequenciaSelect = novoEvento.querySelector('.evento-frequencia');
+    const campoDiaSemana = novoEvento.querySelector('.evento-campo-dia-semana');
+    const campoDiaMes = novoEvento.querySelector('.evento-campo-dia-mes');
+    const campoNumeroSemana = novoEvento.querySelector('.evento-campo-numero-semana');
+    const campoMes = novoEvento.querySelector('.evento-campo-mes');
+
+    function atualizarCamposFrequencia() {
+        const frequencia = frequenciaSelect.value;
+
+        campoDiaSemana.classList.add('hidden');
+        campoDiaMes.classList.add('hidden');
+        campoNumeroSemana.classList.add('hidden');
+        campoMes.classList.add('hidden');
+
+        if (frequencia === 'semanal') {
+            campoDiaSemana.classList.remove('hidden');
+        } else if (frequencia === 'mensal') {
+            campoDiaMes.classList.remove('hidden');
+        } else if (frequencia === 'numero_semana') {
+            campoNumeroSemana.classList.remove('hidden');
+            campoDiaSemana.classList.remove('hidden');
+        } else if (frequencia === 'anual') {
+            campoDiaMes.classList.remove('hidden');
+            campoMes.classList.remove('hidden');
+        }
+    }
+
+    frequenciaSelect.addEventListener('change', atualizarCamposFrequencia);
+    atualizarCamposFrequencia();
 
     novoEvento.querySelector('.evento-remover').addEventListener('click', function () {
         const titulo = novoEvento.querySelector('.evento-titulo').value || 'sem título';
@@ -671,7 +738,11 @@ function mapaEnviar() {
         eventos.push({
             id: Number.isInteger(eventoId) ? eventoId : null,
             titulo: div.querySelector('.evento-titulo').value,
+            frequencia: div.querySelector('.evento-frequencia').value,
             dia: div.querySelector('.evento-dia').value,
+            dia_mes: div.querySelector('.evento-dia-mes').value,
+            numero_semana: div.querySelector('.evento-numero-semana').value,
+            mes: div.querySelector('.evento-mes').value,
             horario: div.querySelector('.evento-horario').value,
             descricao: div.querySelector('.evento-descricao').value,
             observacao: div.querySelector('.evento-observacao').value,

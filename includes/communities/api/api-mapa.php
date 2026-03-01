@@ -5,7 +5,7 @@
 // Retorna a lista de Comunidades
 //
 // Parametros
-// dia integer ou string [0 domingo - 6 sábado || hoje]
+// periodo string [hoje, semana, data]
 // tipo_evento string [missa, confissão ...]
 // tipo_comunidade string [paroquia, capela, independente]
 // lat integer coordenada geografica
@@ -138,19 +138,14 @@ function cc_api_mapa_filtros() {
         }
     }
 
-    $dias = [
-        ['slug' => 'hoje', 'nome' => 'Hoje'],
-        ['slug' => '0', 'nome' => 'Domingo'],
-        ['slug' => '1', 'nome' => 'Segunda-feira'],
-        ['slug' => '2', 'nome' => 'Terça-feira'],
-        ['slug' => '3', 'nome' => 'Quarta-feira'],
-        ['slug' => '4', 'nome' => 'Quinta-feira'],
-        ['slug' => '5', 'nome' => 'Sexta-feira'],
-        ['slug' => '6', 'nome' => 'Sábado'],
+    $periodos = [
+        ['slug' => 'hoje', 'nome' => 'Missas hoje'],
+        ['slug' => 'semana', 'nome' => 'Missas nesta semana'],
+        ['slug' => 'data', 'nome' => 'Missas por dia selecionado'],
     ];
 
     return rest_ensure_response([
-        'dias' => $dias,
+        'periodos' => $periodos,
         'tipos_evento' => $lista_tipos_evento,
         'tipos_comunidade' => $lista_tipos_comunidade,
         'tags' => array_values($lista_tags),
@@ -163,7 +158,8 @@ function cc_api_mapa_comunidades($request) {
 
     if ($cache) return $cache;
 
-    $dia = $request->get_param('dia');
+    $periodo = sanitize_key($request->get_param('periodo') ?: 'hoje');
+    $data_param = sanitize_text_field((string) $request->get_param('data'));
     $tipo_evento = sanitize_text_field($request->get_param('tipo_evento'));
     $tipo_comunidade = sanitize_text_field($request->get_param('tipo_comunidade'));
     $user_lat = $request->get_param('lat');
@@ -216,10 +212,6 @@ function cc_api_mapa_comunidades($request) {
         $eventos = get_posts($eventos_args);
         $lista_eventos = [];
 
-        if ($dia === 'hoje') {
-            $dia = date('w'); // 0 domingo - 6 sábado
-        }
-
         foreach ($eventos as $e) {
 
             $dia_semana = get_post_meta($e->ID, 'dia_semana', true);
@@ -231,7 +223,7 @@ function cc_api_mapa_comunidades($request) {
             $tipo_evt = $tipo_evt[0] ?? '';
 
             // FILTROS
-            if ($dia !== null && $dia !== '' && intval($dia_semana) !== intval($dia)) continue;
+            if (!cc_evento_ocorre_no_periodo($e->ID, $periodo, $data_param)) continue;
 
             if ($tipo_evento && $tipo_evt !== $tipo_evento) continue;
 
@@ -255,14 +247,18 @@ function cc_api_mapa_comunidades($request) {
                 'id'        => $e->ID,
                 'titulo'    => $e->post_title,
                 'tipo'      => $tipo_evt,
+                'frequencia'=> get_post_meta($e->ID, 'frequencia', true) ?: 'semanal',
                 'dia'       => $dia_semana,
+                'dia_mes'   => get_post_meta($e->ID, 'dia_mes', true),
+                'numero_semana' => get_post_meta($e->ID, 'numero_semana', true),
+                'mes'       => get_post_meta($e->ID, 'mes', true),
                 'horario'   => $horario,
                 'descricao' => $descricao,
                 'observacao'=> $observacao
             ];
         }
 
-        if (($dia || $tipo_evento || $tag) && empty($lista_eventos)) {
+        if (($periodo || $tipo_evento || $tag) && empty($lista_eventos)) {
             continue;
         }
 
@@ -307,6 +303,62 @@ function cc_api_mapa_comunidades($request) {
     set_transient($cache_key, $resultado, 60);
 
     return rest_ensure_response($resultado);
+}
+
+
+function cc_evento_ocorre_no_periodo($evento_id, $periodo = 'hoje', $data_param = '') {
+    $data_base = cc_normalizar_data_filtro($periodo, $data_param);
+    if (!$data_base) {
+        $data_base = new DateTimeImmutable('today');
+    }
+
+    $frequencia = get_post_meta($evento_id, 'frequencia', true) ?: 'semanal';
+
+    if ($periodo === 'semana') {
+        $inicio = $data_base->modify('monday this week');
+        for ($i = 0; $i < 7; $i++) {
+            $dia = $inicio->modify("+{$i} day");
+            if (cc_evento_ocorre_em_data($frequencia, $evento_id, $dia)) return true;
+        }
+        return false;
+    }
+
+    return cc_evento_ocorre_em_data($frequencia, $evento_id, $data_base);
+}
+
+function cc_normalizar_data_filtro($periodo, $data_param) {
+    if ($periodo === 'data' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $data_param)) {
+        return DateTimeImmutable::createFromFormat('Y-m-d', $data_param) ?: null;
+    }
+
+    return new DateTimeImmutable('today');
+}
+
+function cc_evento_ocorre_em_data($frequencia, $evento_id, DateTimeImmutable $data) {
+    $dia_semana = (int) get_post_meta($evento_id, 'dia_semana', true);
+    $dia_mes = (int) get_post_meta($evento_id, 'dia_mes', true);
+    $numero_semana = (int) get_post_meta($evento_id, 'numero_semana', true);
+    $mes = (int) get_post_meta($evento_id, 'mes', true);
+
+    if ($frequencia === 'mensal') {
+        return $dia_mes > 0 && (int) $data->format('j') === $dia_mes;
+    }
+
+    if ($frequencia === 'numero_semana') {
+        if ($dia_semana < 0 || $dia_semana > 6 || $numero_semana < 1 || $numero_semana > 5) return false;
+        if ((int) $data->format('w') !== $dia_semana) return false;
+
+        $ordem = intdiv(((int) $data->format('j')) - 1, 7) + 1;
+        return $ordem === $numero_semana;
+    }
+
+    if ($frequencia === 'anual') {
+        return $dia_mes > 0 && $mes > 0
+            && (int) $data->format('j') === $dia_mes
+            && (int) $data->format('n') === $mes;
+    }
+
+    return $dia_semana >= 0 && $dia_semana <= 6 && (int) $data->format('w') === $dia_semana;
 }
 
 function cc_calcular_distancia($lat1, $lon1, $lat2, $lon2) {

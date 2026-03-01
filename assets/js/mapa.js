@@ -54,6 +54,25 @@ document.addEventListener("DOMContentLoaded", async function () {
         "6": "Sábado",
     };
 
+
+
+    const mesMap = {
+        "1": "Janeiro", "2": "Fevereiro", "3": "Março", "4": "Abril", "5": "Maio", "6": "Junho",
+        "7": "Julho", "8": "Agosto", "9": "Setembro", "10": "Outubro", "11": "Novembro", "12": "Dezembro",
+    };
+
+    function descricaoRecorrencia(evento) {
+        const frequencia = String(evento?.frequencia || 'semanal');
+        const diaSemana = diaMap[String(evento?.dia)] || 'dia não informado';
+        const diaMes = evento?.dia_mes ? String(evento.dia_mes) : '';
+        const mes = mesMap[String(evento?.mes)] || '';
+        const numeroSemana = evento?.numero_semana ? String(evento.numero_semana) : '';
+
+        if (frequencia === 'mensal') return diaMes ? `Todo dia ${diaMes}` : 'Mensal';
+        if (frequencia === 'numero_semana') return (numeroSemana && diaSemana) ? `${numeroSemana}ª ${diaSemana} do mês` : 'Por número da semana';
+        if (frequencia === 'anual') return (diaMes && mes) ? `Todo dia ${diaMes} de ${mes}` : 'Anual';
+        return `Todo ${diaSemana}`;
+    }
     function isMobile() {
         return window.matchMedia("(max-width: 1023px)").matches;
     }
@@ -299,11 +318,11 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         const eventosHtml = (comunidade.eventos || []).length
             ? comunidade.eventos.map((evento) => {
-                const dia = diaMap[String(evento.dia)] || evento.dia || "Dia não informado";
+                const recorrencia = descricaoRecorrencia(evento);
                 return `
                     <li>
                         <strong>${escapeHtml(evento.titulo || "Evento")}</strong><br>
-                        ${escapeHtml(dia)} • ${escapeHtml(evento.horario || "Horário não informado")}
+                        ${escapeHtml(recorrencia)} • ${escapeHtml(evento.horario || "Horário não informado")}
                         ${evento.observacao ? `<br><small>${escapeHtml(evento.observacao)}</small>` : ""}
                     </li>
                 `;
@@ -333,8 +352,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         });
         const eventosHtml = eventos.length
             ? eventos.map((evento) => {
-                const dia = diaMap[String(evento.dia)] || evento.dia || "Dia";
-                return `<div style="margin-top:6px;padding-top:6px;border-top:1px solid #e2e8f0;"><strong>${escapeHtml(evento.titulo || "Evento")}</strong><br><small>${escapeHtml(dia)} • ${escapeHtml(evento.horario || "")}</small></div>`;
+                const recorrencia = descricaoRecorrencia(evento);
+                return `<div style="margin-top:6px;padding-top:6px;border-top:1px solid #e2e8f0;"><strong>${escapeHtml(evento.titulo || "Evento")}</strong><br><small>${escapeHtml(recorrencia)} • ${escapeHtml(evento.horario || "")}</small></div>`;
             }).join("")
             : '<div style="margin-top:6px;color:#64748b;">Sem missas/confissões nos filtros atuais.</div>';
 
@@ -485,7 +504,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             const res = await fetch(API_FILTROS_URL);
             const filtros = await res.json();
 
-            selectToOption("filtro-dia", filtros.dias || [], "Qualquer dia");
+            selectToOption("filtro-periodo", filtros.periodos || [], "Missas hoje");
             selectToOption("filtro-tipo-evento", filtros.tipos_evento || [], "Todos os tipos");
             selectToOption("filtro-tipo-comunidade", filtros.tipos_comunidade || [], "Todos os tipos");
             selectToOption("filtro-tag", filtros.tags || [], "Todas as tags");
@@ -494,6 +513,17 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
     }
 
+
+
+    function atualizarCampoDataFiltro() {
+        const periodoEl = document.getElementById('filtro-periodo');
+        const dataEl = document.getElementById('filtro-data');
+        if (!periodoEl || !dataEl) return;
+
+        const habilitado = periodoEl.value === 'data';
+        dataEl.disabled = !habilitado;
+        if (!habilitado) dataEl.value = '';
+    }
     async function requestUserLocationIfNeeded() {
         if (!navigator.geolocation) return;
 
@@ -544,6 +574,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     buscaBtn?.addEventListener("click", aplicarBusca);
 
     filtrosForm?.addEventListener("change", () => {
+        atualizarCampoDataFiltro();
         if (!isMobile()) carregarComunidades();
     });
 
@@ -569,6 +600,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     });
 
     await carregarFiltros();
+    atualizarCampoDataFiltro();
     await requestUserLocationIfNeeded();
     await carregarComunidades();
 

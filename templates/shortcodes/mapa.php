@@ -11,8 +11,14 @@
 
                 <form id="mapa-filtros" class="cc-filtros-form">
                     <label>
-                        <span>Dia</span>
-                        <select id="filtro-dia" name="dia"></select>
+                        <span>Período</span>
+                        <select id="filtro-periodo" name="periodo"></select>
+                    </label>
+
+
+                    <label>
+                        <span>Dia selecionado</span>
+                        <input type="date" id="filtro-data" name="data">
                     </label>
 
                     <label>
