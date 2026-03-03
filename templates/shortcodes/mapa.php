@@ -3,10 +3,10 @@
         <div class="cc-mapa-main">
             <div class="cc-mapa-topbar">
                 <label class="cc-busca-wrap" for="filtro-busca">
-                    <span>Pesquisar comunidade</span>
+                    <span>Pesquisar comunidade por texto</span>
                     <div class="cc-busca-acoes">
                         <input id="filtro-busca" list="mapa-comunidades-list" type="search" placeholder="Digite o nome da comunidade" autocomplete="off" />
-                        <button id="mapa-buscar-comunidade" type="button">Pesquisar</button>
+                        <button id="mapa-buscar-comunidade" type="button">Pesquisa por Texto</button>
                     </div>
                     <datalist id="mapa-comunidades-list"></datalist>
                 </label>
