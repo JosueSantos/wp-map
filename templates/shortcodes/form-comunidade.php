@@ -1,9 +1,9 @@
-<div id="mapa-auth-modal" class="hidden fixed inset-0 z-[9999] bg-black/70 px-4 py-8">
+<div id="mapa-auth-modal" class="hidden fixed inset-0 z-[9999] bg-black/70 px-4 py-4 sm:py-8">
     <div class="mx-auto max-w-xl h-full flex items-center justify-center">
-        <div class="w-full bg-white rounded-2xl shadow-2xl p-6 sm:p-8 space-y-4 text-center">
+        <div class="w-full bg-white rounded-2xl shadow-2xl p-5 sm:p-8 space-y-3 sm:space-y-4 text-center">
             <h3 class="text-2xl font-bold text-gray-800">Faça login para continuar</h3>
             <p class="text-gray-600">Para criar ou editar comunidades e eventos, faça login com sua conta WordPress. Se ainda não tiver acesso, faça seu cadastro e depois retorne para concluir o formulário.</p>
-            <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+            <div class="flex flex-col sm:flex-row gap-3 justify-center pt-1 sm:pt-2">
                 <a id="mapa-login-link" href="#" class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold">Entrar</a>
                 <a id="mapa-register-link" href="#" class="px-5 py-2.5 rounded-xl border border-indigo-200 text-indigo-700 font-semibold bg-indigo-50">Criar cadastro</a>
             </div>
@@ -23,7 +23,7 @@
             <div id="progresso-cadastro" class="h-full bg-indigo-600 rounded-full transition-all duration-300" style="width: 25%;"></div>
         </div>
 
-        <div id="etapas-cadastro" class="mt-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 text-sm sm:text-base">
+        <div id="etapas-cadastro" class="mt-3 hidden md:grid md:grid-cols-4 gap-2 text-sm sm:text-base">
             <button type="button" data-step-nav="1" class="step-nav w-full text-left px-3 py-2 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 font-medium">1. Dados principais</button>
             <button type="button" data-step-nav="2" class="step-nav w-full text-left px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-500">2. Localização</button>
             <button type="button" data-step-nav="3" class="step-nav w-full text-left px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-500">3. Contatos</button>

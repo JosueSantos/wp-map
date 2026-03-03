@@ -30,7 +30,7 @@
                                         <select id="filtro-periodo" name="periodo"></select>
                                     </label>
 
-                                    <label>
+                                    <label id="filtro-data-wrap">
                                         <span>Dia selecionado</span>
                                         <input type="date" id="filtro-data" name="data">
                                     </label>
