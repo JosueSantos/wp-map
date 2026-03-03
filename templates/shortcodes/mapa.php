@@ -65,7 +65,7 @@
                             </button>
 
                             <div class="cc-panel-body" id="cc-panel-detalhes-body">
-                                <p>Toque em um pino para ver detalhes e eventos.</p>
+                                <p class="cc-filtro-texto">Toque em um pino para ver detalhes e eventos.</p>
                             </div>
                         </aside>
                     </div>
