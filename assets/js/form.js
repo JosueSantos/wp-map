@@ -469,7 +469,21 @@ function mapaAdicionarEvento(evento = null) {
 
             <div class="evento-campo-mes hidden">
                 <label class="block text-base font-semibold text-gray-700 mb-1">Mês</label>
-                <input type="number" min="1" max="12" class="evento-mes rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full" placeholder="1 a 12">
+                <select class="evento-mes rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
+                    <option value="">Selecione o mês</option>
+                    <option value="1">Janeiro</option>
+                    <option value="2">Fevereiro</option>
+                    <option value="3">Março</option>
+                    <option value="4">Abril</option>
+                    <option value="5">Maio</option>
+                    <option value="6">Junho</option>
+                    <option value="7">Julho</option>
+                    <option value="8">Agosto</option>
+                    <option value="9">Setembro</option>
+                    <option value="10">Outubro</option>
+                    <option value="11">Novembro</option>
+                    <option value="12">Dezembro</option>
+                </select>
             </div>
 
             <div>
