@@ -389,24 +389,12 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     function buildPopup(comunidade) {
-        const eventos = (comunidade.eventos || []).filter((evento) => {
-            const tipo = String(evento?.tipo || "").toLowerCase();
-            return tipo === "missa" || tipo === "confissao" || tipo === "confissão";
-        });
-        const eventosHtml = eventos.length
-            ? eventos.map((evento) => {
-                const recorrencia = descricaoRecorrencia(evento);
-                return `<div style="margin-top:6px;padding-top:6px;border-top:1px solid #e2e8f0;"><strong>${escapeHtml(evento.titulo || "Evento")}</strong><br><small>${escapeHtml(recorrencia)} • ${escapeHtml(evento.horario || "")}</small></div>`;
-            }).join("")
-            : '<div style="margin-top:6px;color:#64748b;">Sem missas/confissões nos filtros atuais.</div>';
-
         return `
             <div style="min-width:250px;">
                 <h3 style="margin:0 0 4px;font-size:14px;color:#0f172a;">${escapeHtml(comunidade.nome)}</h3>
                 ${comunidade.foto ? `<img src="${escapeHtml(comunidade.foto)}" alt="${escapeHtml(comunidade.nome || "Comunidade")}" style="width:100%;max-height:130px;object-fit:cover;border-radius:8px;margin:0 0 6px;" />` : ""}
                 ${comunidade.endereco ? `<p style="margin:0 0 6px;font-size:12px;color:#475569;">${escapeHtml(comunidade.endereco)}</p>` : ""}
-                ${eventosHtml}
-                <p style="margin:12px 0 0;color:#64748b;font-size:12px;">Mais detalhes da comunidade na lateral, abaixo dos filtros.</p>
+                <p style="margin:10px 0 0;color:#64748b;font-size:12px;">Mais detalhes da comunidade, abaixo dos filtros.</p>
             </div>
         `;
     }
@@ -547,7 +535,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             const res = await fetch(API_FILTROS_URL);
             const filtros = await res.json();
 
-            selectToOption("filtro-periodo", filtros.periodos || [], "Missas hoje");
+            selectToOption("filtro-periodo", filtros.periodos || [], "Qualquer período");
             selectToOption("filtro-tipo-evento", filtros.tipos_evento || [], "Todos os tipos");
             selectToOption("filtro-tipo-comunidade", filtros.tipos_comunidade || [], "Todos os tipos");
             selectToOption("filtro-tag", filtros.tags || [], "Todas as tags");
@@ -561,10 +549,12 @@ document.addEventListener("DOMContentLoaded", async function () {
     function atualizarCampoDataFiltro() {
         const periodoEl = document.getElementById('filtro-periodo');
         const dataEl = document.getElementById('filtro-data');
-        if (!periodoEl || !dataEl) return;
+        const dataWrapEl = document.getElementById('filtro-data-wrap');
+        if (!periodoEl || !dataEl || !dataWrapEl) return;
 
         const habilitado = periodoEl.value === 'data';
         dataEl.disabled = !habilitado;
+        dataWrapEl.style.display = habilitado ? '' : 'none';
         if (!habilitado) dataEl.value = '';
     }
     async function requestUserLocationIfNeeded() {

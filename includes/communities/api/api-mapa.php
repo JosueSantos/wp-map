@@ -139,6 +139,7 @@ function cc_api_mapa_filtros() {
     }
 
     $periodos = [
+        ['slug' => '', 'nome' => 'Qualquer período'],
         ['slug' => 'hoje', 'nome' => 'Missas hoje'],
         ['slug' => 'semana', 'nome' => 'Missas nesta semana'],
         ['slug' => 'data', 'nome' => 'Missas por dia selecionado'],
@@ -158,7 +159,7 @@ function cc_api_mapa_comunidades($request) {
 
     if ($cache) return $cache;
 
-    $periodo = sanitize_key($request->get_param('periodo') ?: 'hoje');
+    $periodo = sanitize_key((string) $request->get_param('periodo'));
     $data_param = sanitize_text_field((string) $request->get_param('data'));
     $tipo_evento = sanitize_text_field($request->get_param('tipo_evento'));
     $tipo_comunidade = sanitize_text_field($request->get_param('tipo_comunidade'));
@@ -177,11 +178,15 @@ function cc_api_mapa_comunidades($request) {
     ];
 
     if ($tipo_comunidade) {
+        $tipos_filtrados = $tipo_comunidade === 'capela'
+            ? ['capela', 'paroquia']
+            : [$tipo_comunidade];
+
         // Filtro por Tipo de Comunidade [capela, paroquia ou independente]
         $args['tax_query'] = [[
             'taxonomy' => 'tipo_comunidade',
             'field'    => 'slug',
-            'terms'    => $tipo_comunidade
+            'terms'    => $tipos_filtrados
         ]];
     }
 
@@ -223,7 +228,7 @@ function cc_api_mapa_comunidades($request) {
             $tipo_evt = $tipo_evt[0] ?? '';
 
             // FILTROS
-            if (!cc_evento_ocorre_no_periodo($e->ID, $periodo, $data_param)) continue;
+            if ($periodo !== '' && !cc_evento_ocorre_no_periodo($e->ID, $periodo, $data_param)) continue;
 
             if ($tipo_evento && $tipo_evt !== $tipo_evento) continue;
 
@@ -258,7 +263,7 @@ function cc_api_mapa_comunidades($request) {
             ];
         }
 
-        if (($periodo || $tipo_evento || $tag) && empty($lista_eventos)) {
+        if ((($periodo !== '') || $tipo_evento || $tag) && empty($lista_eventos)) {
             continue;
         }
 
