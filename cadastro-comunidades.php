@@ -42,7 +42,6 @@ function cc_plugin_activate() {
     cc_criar_tabela_alteracoes();
     cc_criar_paginas_auth();
     cc_register_agente_mapa_role();
-    cc_grant_caps_to_agente_mapa();
     flush_rewrite_rules();
 }
 
