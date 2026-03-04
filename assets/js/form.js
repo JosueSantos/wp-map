@@ -59,7 +59,14 @@ async function mapaPreencherFormularioEdicao() {
     mapaMostrarFeedback('Carregando dados da comunidade para edição...', 'info');
 
     try {
-        const response = await fetch(`/wp-json/mapa/v1/comunidade/${editarId}`);
+        const response = await fetch(`/wp-json/mapa/v1/comunidade/${editarId}`, {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                'X-WP-Nonce': MAPA_API.nonce
+            }
+        });
+
         const dados = await response.json();
 
         if (!response.ok) {
