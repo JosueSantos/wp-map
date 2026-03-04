@@ -416,110 +416,117 @@ function mapaAdicionarEvento(evento = null) {
     const container = document.getElementById('eventos');
 
     const div = document.createElement('div');
-    div.className = "bg-gray-50 p-6 rounded-2xl space-y-4 shadow-sm border border-gray-200";
+    div.className = "bg-gray-50 rounded-2xl shadow-sm border border-gray-200 overflow-hidden";
 
     div.innerHTML = `
-        <div>
-            <label class="block text-base font-semibold text-gray-700 mb-1">Tipo de evento</label>
-            <select class="tipo-evento rounded-xl border-2 border-gray-200 bg-white px-3 py-2 w-full focus:ring-2 focus:ring-indigo-500">
-                <option>Carregando tipos...</option>
-            </select>
-        </div>
+        <button type="button" class="evento-toggle w-full px-4 py-3 text-left bg-white hover:bg-gray-100 transition flex items-center justify-between gap-3">
+            <span class="evento-resumo font-semibold text-gray-800 truncate">Novo evento</span>
+            <span class="evento-toggle-icon text-gray-500 text-sm">▼</span>
+        </button>
 
-        <div>
-            <label class="block text-base font-semibold text-gray-700 mb-1">Nome do evento</label>
-            <input type="text" placeholder="Ex.: Missa da comunidade"
-                class="evento-titulo w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2">
-        </div>
-
-        <div>
-            <label class="block text-base font-semibold text-gray-700 mb-1">Frequência</label>
-            <select class="evento-frequencia rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
-                <option value="semanal">Semanal</option>
-                <option value="mensal">Mensal</option>
-                <option value="numero_semana">Por número da semana</option>
-                <option value="anual">Anual</option>
-            </select>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div class="evento-campo-dia-semana">
-                <label class="block text-base font-semibold text-gray-700 mb-1">Dia da semana</label>
-                <select class="evento-dia rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
-                    <option value="">Selecione o dia</option>
-                    <option value="0">Domingo</option>
-                    <option value="1">Segunda-feira</option>
-                    <option value="2">Terça-feira</option>
-                    <option value="3">Quarta-feira</option>
-                    <option value="4">Quinta-feira</option>
-                    <option value="5">Sexta-feira</option>
-                    <option value="6">Sábado</option>
-                </select>
-            </div>
-
-            <div class="evento-campo-dia-mes hidden">
-                <label class="block text-base font-semibold text-gray-700 mb-1">Dia do mês</label>
-                <input type="number" min="1" max="31" class="evento-dia-mes rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full" placeholder="1 a 31">
-            </div>
-
-            <div class="evento-campo-numero-semana hidden">
-                <label class="block text-base font-semibold text-gray-700 mb-1">Número da semana</label>
-                <select class="evento-numero-semana rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
-                    <option value="">Selecione</option>
-                    <option value="1">Semana 1</option>
-                    <option value="2">Semana 2</option>
-                    <option value="3">Semana 3</option>
-                    <option value="4">Semana 4</option>
-                    <option value="5">Semana 5</option>
-                </select>
-            </div>
-
-            <div class="evento-campo-mes hidden">
-                <label class="block text-base font-semibold text-gray-700 mb-1">Mês</label>
-                <select class="evento-mes rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
-                    <option value="">Selecione o mês</option>
-                    <option value="1">Janeiro</option>
-                    <option value="2">Fevereiro</option>
-                    <option value="3">Março</option>
-                    <option value="4">Abril</option>
-                    <option value="5">Maio</option>
-                    <option value="6">Junho</option>
-                    <option value="7">Julho</option>
-                    <option value="8">Agosto</option>
-                    <option value="9">Setembro</option>
-                    <option value="10">Outubro</option>
-                    <option value="11">Novembro</option>
-                    <option value="12">Dezembro</option>
+        <div class="evento-conteudo p-6 space-y-4 border-t border-gray-200">
+            <div>
+                <label class="block text-base font-semibold text-gray-700 mb-1">Tipo de evento</label>
+                <select class="tipo-evento rounded-xl border-2 border-gray-200 bg-white px-3 py-2 w-full focus:ring-2 focus:ring-indigo-500">
+                    <option>Carregando tipos...</option>
                 </select>
             </div>
 
             <div>
-                <label class="block text-base font-semibold text-gray-700 mb-1">Horário</label>
-                <input type="time"
-                    class="evento-horario rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
+                <label class="block text-base font-semibold text-gray-700 mb-1">Nome do evento</label>
+                <input type="text" placeholder="Ex.: Missa da comunidade"
+                    class="evento-titulo w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2">
             </div>
-        </div>
 
-        <div>
-            <label class="block text-base font-semibold text-gray-700 mb-1">Características</label>
-            <select class="tags-evento rounded-xl border-2 border-gray-200 bg-white px-3 py-2 w-full" multiple>
-            </select>
-        </div>
+            <div>
+                <label class="block text-base font-semibold text-gray-700 mb-1">Frequência</label>
+                <select class="evento-frequencia rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
+                    <option value="semanal">Semanal</option>
+                    <option value="mensal">Mensal</option>
+                    <option value="numero_semana">Por número da semana</option>
+                    <option value="anual">Anual</option>
+                </select>
+            </div>
 
-        <div>
-            <label class="block text-base font-semibold text-gray-700 mb-1">Descrição</label>
-            <textarea placeholder="Descrição"
-                class="evento-descricao w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2 min-h-[96px]"></textarea>
-        </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="evento-campo-dia-semana">
+                    <label class="block text-base font-semibold text-gray-700 mb-1">Dia da semana</label>
+                    <select class="evento-dia rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
+                        <option value="">Selecione o dia</option>
+                        <option value="0">Domingo</option>
+                        <option value="1">Segunda-feira</option>
+                        <option value="2">Terça-feira</option>
+                        <option value="3">Quarta-feira</option>
+                        <option value="4">Quinta-feira</option>
+                        <option value="5">Sexta-feira</option>
+                        <option value="6">Sábado</option>
+                    </select>
+                </div>
 
-        <div>
-            <label class="block text-base font-semibold text-gray-700 mb-1">Observação</label>
-            <textarea placeholder="Observação"
-                class="evento-observacao w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2 min-h-[96px]"></textarea>
-        </div>
+                <div class="evento-campo-dia-mes hidden">
+                    <label class="block text-base font-semibold text-gray-700 mb-1">Dia do mês</label>
+                    <input type="number" min="1" max="31" class="evento-dia-mes rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full" placeholder="1 a 31">
+                </div>
 
-        <div class="pt-2 border-t border-gray-200">
-            <button type="button" class="evento-remover px-4 py-2 rounded-lg bg-red-50 text-red-700 border border-red-200 font-medium">Remover evento</button>
+                <div class="evento-campo-numero-semana hidden">
+                    <label class="block text-base font-semibold text-gray-700 mb-1">Número da semana</label>
+                    <select class="evento-numero-semana rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
+                        <option value="">Selecione</option>
+                        <option value="1">Semana 1</option>
+                        <option value="2">Semana 2</option>
+                        <option value="3">Semana 3</option>
+                        <option value="4">Semana 4</option>
+                        <option value="5">Semana 5</option>
+                    </select>
+                </div>
+
+                <div class="evento-campo-mes hidden">
+                    <label class="block text-base font-semibold text-gray-700 mb-1">Mês</label>
+                    <select class="evento-mes rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
+                        <option value="">Selecione o mês</option>
+                        <option value="1">Janeiro</option>
+                        <option value="2">Fevereiro</option>
+                        <option value="3">Março</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Maio</option>
+                        <option value="6">Junho</option>
+                        <option value="7">Julho</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Setembro</option>
+                        <option value="10">Outubro</option>
+                        <option value="11">Novembro</option>
+                        <option value="12">Dezembro</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-base font-semibold text-gray-700 mb-1">Horário</label>
+                    <input type="time"
+                        class="evento-horario rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-base font-semibold text-gray-700 mb-1">Características</label>
+                <select class="tags-evento rounded-xl border-2 border-gray-200 bg-white px-3 py-2 w-full" multiple>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-base font-semibold text-gray-700 mb-1">Descrição</label>
+                <textarea placeholder="Descrição"
+                    class="evento-descricao w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2 min-h-[96px]"></textarea>
+            </div>
+
+            <div>
+                <label class="block text-base font-semibold text-gray-700 mb-1">Observação</label>
+                <textarea placeholder="Observação"
+                    class="evento-observacao w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2 min-h-[96px]"></textarea>
+            </div>
+
+            <div class="pt-2 border-t border-gray-200">
+                <button type="button" class="evento-remover px-4 py-2 rounded-lg bg-red-50 text-red-700 border border-red-200 font-medium">Remover evento</button>
+            </div>
         </div>
     `;
 
@@ -529,6 +536,27 @@ function mapaAdicionarEvento(evento = null) {
 
     const selectTipo = novoEvento.querySelector('.tipo-evento');
     const selectTags = novoEvento.querySelector('.tags-evento');
+    const campoTitulo = novoEvento.querySelector('.evento-titulo');
+    const eventoResumo = novoEvento.querySelector('.evento-resumo');
+    const botaoToggle = novoEvento.querySelector('.evento-toggle');
+    const iconeToggle = novoEvento.querySelector('.evento-toggle-icon');
+    const conteudoEvento = novoEvento.querySelector('.evento-conteudo');
+
+    function atualizarResumoEvento() {
+        const titulo = campoTitulo.value.trim();
+        eventoResumo.textContent = titulo || 'Novo evento';
+    }
+
+    function definirEstadoSanfona(expandido) {
+        conteudoEvento.classList.toggle('hidden', !expandido);
+        iconeToggle.textContent = expandido ? '▼' : '▶';
+    }
+
+    botaoToggle.addEventListener('click', function () {
+        definirEstadoSanfona(conteudoEvento.classList.contains('hidden'));
+    });
+
+    campoTitulo.addEventListener('input', atualizarResumoEvento);
 
     mapaCarregarTiposEvento(selectTipo).then(() => {
         if (evento?.tipo_evento_id) {
@@ -546,7 +574,7 @@ function mapaAdicionarEvento(evento = null) {
 
     if (evento) {
         novoEvento.dataset.eventoId = evento.id ? String(evento.id) : '';
-        novoEvento.querySelector('.evento-titulo').value = evento.titulo || '';
+        campoTitulo.value = evento.titulo || '';
         novoEvento.querySelector('.evento-frequencia').value = evento.frequencia || 'semanal';
         novoEvento.querySelector('.evento-dia').value = evento.dia ?? '';
         novoEvento.querySelector('.evento-dia-mes').value = evento.dia_mes ?? '';
@@ -556,6 +584,9 @@ function mapaAdicionarEvento(evento = null) {
         novoEvento.querySelector('.evento-descricao').value = evento.descricao || '';
         novoEvento.querySelector('.evento-observacao').value = evento.observacao || '';
     }
+
+    atualizarResumoEvento();
+    definirEstadoSanfona(Boolean(evento));
 
 
     const frequenciaSelect = novoEvento.querySelector('.evento-frequencia');

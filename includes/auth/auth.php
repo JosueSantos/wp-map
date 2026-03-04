@@ -1111,18 +1111,20 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="md:col-span-2">
+                <div class="md:col-span-2 border-t border-gray-200 pt-4 mt-2">
                     <?php wp_nonce_field('cc_profile', 'cc_profile_nonce'); ?>
                     <input type="hidden" name="cc_auth_action" value="update_profile">
-                    <button type="submit" class="<?php echo esc_attr(cc_auth_button_class()); ?>"><?php esc_html_e('Salvar perfil', 'cadastro-comunidades'); ?></button>
-                    <a class="ml-0 sm:ml-3 text-indigo-700 underline font-medium" href="<?php echo esc_url(cc_get_auth_page_url('alterar-senha', '/alterar-senha')); ?>"><?php esc_html_e('Alterar senha', 'cadastro-comunidades'); ?></a>
+                    <div class="flex flex-col sm:flex-row sm:flex-wrap gap-3">
+                        <button type="submit" class="<?php echo esc_attr(cc_auth_button_class()); ?> w-full sm:w-auto"><?php esc_html_e('Salvar perfil', 'cadastro-comunidades'); ?></button>
+                        <a class="inline-flex items-center justify-center px-5 py-3 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 font-semibold w-full sm:w-auto" href="<?php echo esc_url(cc_get_auth_page_url('alterar-senha', '/alterar-senha')); ?>"><?php esc_html_e('Alterar senha', 'cadastro-comunidades'); ?></a>
+                    </div>
                 </div>
             </form>
 
-            <form method="post" class="mt-4">
+            <form method="post" class="mt-3">
                 <?php wp_nonce_field('cc_logout', 'cc_logout_nonce'); ?>
                 <input type="hidden" name="cc_auth_action" value="logout">
-                <button type="submit" class="<?php echo esc_attr(cc_auth_button_class('danger')); ?>"><?php esc_html_e('Sair da conta', 'cadastro-comunidades'); ?></button>
+                <button type="submit" class="<?php echo esc_attr(cc_auth_button_class('danger')); ?> w-full sm:w-auto"><?php esc_html_e('Sair da conta', 'cadastro-comunidades'); ?></button>
             </form>
         </section>
 
