@@ -5,9 +5,32 @@ if (!defined('ABSPATH')) exit;
 const CC_ROLE_AGENTE_MAPA = 'agente_mapa';
 
 function cc_register_agente_mapa_role() {
-    add_role(CC_ROLE_AGENTE_MAPA, __('Agente do Mapa', 'cadastro-comunidades'), ['read' => true]);
+    add_role(
+        CC_ROLE_AGENTE_MAPA,
+        __('Agente do Mapa', 'cadastro-comunidades'),
+        [
+            'read' => true,
+            'edit_posts' => true,
+            'publish_posts' => true,
+            'upload_files' => true,
+        ]
+    );
 }
-add_action('init', 'cc_register_agente_mapa_role');
+
+function cc_grant_caps_to_agente_mapa() {
+
+    $role = get_role(CC_ROLE_AGENTE_MAPA);
+    if (!$role) return;
+
+    $capabilities = array_unique(array_merge(
+        array_values(cc_get_comunidade_capabilities()),
+        array_values(cc_get_evento_capabilities())
+    ));
+
+    foreach ($capabilities as $cap) {
+        $role->add_cap($cap);
+    }
+}
 
 function cc_get_auth_page_url($slug, $fallback = '/') {
     $aliases = [

@@ -40,8 +40,9 @@ require_once CC_PATH . 'includes/communities/shortcodes/shortcodes-form.php';
 
 function cc_plugin_activate() {
     cc_criar_tabela_alteracoes();
-    cc_register_agente_mapa_role();
     cc_criar_paginas_auth();
+    cc_register_agente_mapa_role();
+    cc_grant_caps_to_agente_mapa();
     flush_rewrite_rules();
 }
 
