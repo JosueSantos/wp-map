@@ -1,4 +1,4 @@
-<div id="mapa-auth-modal" class="hidden fixed inset-0 w-screen h-screen z-[9999] bg-black/70 px-4 py-8">
+<div id="mapa-auth-modal" class="hidden fixed inset-0 w-screen h-screen z-[9999] bg-black/70 px-4 py-8 alignfull">
     <div class="mx-auto max-w-xl h-full flex items-center justify-center">
         <div class="w-full bg-white rounded-2xl shadow-2xl p-5 sm:p-8 space-y-3 sm:space-y-4 text-center">
             <h3 class="text-2xl font-bold text-gray-800">Faça login para continuar</h3>
