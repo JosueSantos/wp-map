@@ -415,6 +415,16 @@ async function mapaCarregarTagsEvento(select) {
 function mapaAdicionarEvento(evento = null) {
     const container = document.getElementById('eventos');
 
+    if (!evento) {
+        container.querySelectorAll(':scope > div').forEach((eventoExistente) => {
+            const conteudo = eventoExistente.querySelector('.evento-conteudo');
+            const icone = eventoExistente.querySelector('.evento-toggle-icon');
+
+            if (conteudo) conteudo.classList.add('hidden');
+            if (icone) icone.textContent = '▶';
+        });
+    }
+
     const div = document.createElement('div');
     div.className = "bg-gray-50 rounded-2xl shadow-sm border border-gray-200 overflow-hidden";
 
@@ -586,7 +596,7 @@ function mapaAdicionarEvento(evento = null) {
     }
 
     atualizarResumoEvento();
-    definirEstadoSanfona(Boolean(evento));
+    definirEstadoSanfona(false);
 
 
     const frequenciaSelect = novoEvento.querySelector('.evento-frequencia');
@@ -618,6 +628,12 @@ function mapaAdicionarEvento(evento = null) {
 
     frequenciaSelect.addEventListener('change', atualizarCamposFrequencia);
     atualizarCamposFrequencia();
+
+    if (!evento) {
+        definirEstadoSanfona(true);
+        novoEvento.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        campoTitulo.focus();
+    }
 
     novoEvento.querySelector('.evento-remover').addEventListener('click', function () {
         const titulo = novoEvento.querySelector('.evento-titulo').value || 'sem título';
