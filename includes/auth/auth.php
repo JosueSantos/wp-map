@@ -820,7 +820,7 @@ function cc_shortcode_cadastro_mapa() {
     $notice = sanitize_text_field($_GET['cc_auth_notice'] ?? '');
 
     if (is_user_logged_in()) {
-        return '<div class="max-w-3xl mx-auto bg-white border border-gray-200 rounded-2xl p-6"><p class="text-gray-800">' . esc_html__('Você já está logado.', 'cadastro-comunidades') . '</p></div>';
+        return '<div class="max-w-3xl mx-auto bg-white border border-gray-200 rounded-2xl p-6"><p class="text-gray-800">' . esc_html__('Você já está logado.', 'cadastro-comunidades') . ' <a class="text-indigo-700 font-semibold" href="' . esc_url(cc_get_auth_page_url('minha-conta', '/minha-conta')) . '">' . esc_html__('Ir para minha conta', 'cadastro-comunidades') . '</a></p></div>';
     }
 
     $paroquias = cc_get_paroquias_options();
