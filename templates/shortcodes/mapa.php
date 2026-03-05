@@ -15,7 +15,7 @@
             <div class="cc-mapa-content" aria-live="polite">
                 <div class="cc-mapa-sidebar">
                     <div class="cc-overlay-panels">
-                        <aside class="cc-overlay-panel cc-overlay-panel--filtros is-open" data-panel="filtros">
+                        <aside class="cc-overlay-panel cc-overlay-panel--filtros" data-panel="filtros">
                             <button type="button" class="cc-panel-toggle" aria-expanded="true" aria-controls="cc-panel-filtros-body">
                                 <span>Filtros do mapa</span>
                                 <span class="cc-panel-toggle-icon" aria-hidden="true">⌄</span>
