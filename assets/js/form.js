@@ -518,7 +518,7 @@ function mapaAdicionarEvento(evento = null) {
 
             <div>
                 <label class="block text-base font-semibold text-gray-700 mb-1">Características</label>
-                <select class="tags-evento rounded-xl border-2 border-gray-200 bg-white px-3 py-2 w-full" multiple>
+                <select class="tags-evento rounded-xl border-2 border-gray-200 bg-white px-3 py-2 w-full" multiple style="height: auto;">
                 </select>
             </div>
 
