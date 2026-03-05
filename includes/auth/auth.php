@@ -36,6 +36,35 @@ function cc_get_auth_page_url($slug, $fallback = '/') {
     return home_url($fallback);
 }
 
+function cc_get_safe_redirect_url_from_request() {
+    $redirect_to = isset($_REQUEST['redirect_to']) ? wp_unslash($_REQUEST['redirect_to']) : '';
+    $redirect_to = esc_url_raw($redirect_to);
+
+    if (!$redirect_to) {
+        return '';
+    }
+
+    return wp_validate_redirect($redirect_to, '');
+}
+
+function cc_with_redirect_to($url, $redirect_to) {
+    if (!$redirect_to) {
+        return $url;
+    }
+
+    return add_query_arg('redirect_to', $redirect_to, $url);
+}
+
+function cc_get_auth_success_redirect_url() {
+    $redirect_to = cc_get_safe_redirect_url_from_request();
+
+    if ($redirect_to) {
+        return $redirect_to;
+    }
+
+    return cc_get_auth_page_url('minha-conta', '/minha-conta');
+}
+
 function cc_criar_paginas_auth() {
     $pages = [
         'login' => ['title' => __('Login', 'cadastro-comunidades'), 'content' => '[login-mapa]'],
@@ -184,9 +213,11 @@ function cc_render_auth_settings_page() {
     <?php
 }
 
-function cc_get_oauth_state() {
+function cc_get_oauth_state($redirect_to = '') {
     $state = wp_generate_password(20, false, false);
-    set_transient('cc_oauth_state_' . $state, 1, 10 * MINUTE_IN_SECONDS);
+    set_transient('cc_oauth_state_' . $state, [
+        'redirect_to' => $redirect_to,
+    ], 10 * MINUTE_IN_SECONDS);
     return $state;
 }
 
@@ -194,15 +225,21 @@ function cc_validate_oauth_state($state) {
     $state = sanitize_text_field($state);
     if (!$state) return false;
     $key = 'cc_oauth_state_' . $state;
-    $ok = get_transient($key);
-    if (!$ok) return false;
+    $data = get_transient($key);
+    if (!$data) return false;
     delete_transient($key);
-    return true;
+    if (!is_array($data)) {
+        return ['redirect_to' => ''];
+    }
+
+    return [
+        'redirect_to' => wp_validate_redirect((string) ($data['redirect_to'] ?? ''), ''),
+    ];
 }
 
-function cc_get_social_button_url($provider) {
+function cc_get_social_button_url($provider, $redirect_to = '') {
     $settings = cc_get_auth_options();
-    $state = cc_get_oauth_state();
+    $state = cc_get_oauth_state($redirect_to);
     $redirect_uri = cc_get_oauth_callback_url($provider);
 
     if ($provider === 'google' && !empty($settings['google_client_id'])) {
@@ -346,7 +383,8 @@ function cc_maybe_handle_oauth_callback() {
     $code = sanitize_text_field($_GET['code'] ?? '');
     $state = sanitize_text_field($_GET['state'] ?? '');
 
-    if (!$code || !cc_validate_oauth_state($state)) {
+    $state_data = cc_validate_oauth_state($state);
+    if (!$code || !$state_data) {
         wp_die(esc_html__('Falha de segurança OAuth (state inválido).', 'cadastro-comunidades'));
     }
 
@@ -358,7 +396,8 @@ function cc_maybe_handle_oauth_callback() {
 
     wp_set_current_user($user->ID);
     wp_set_auth_cookie($user->ID, true);
-    wp_safe_redirect(cc_get_auth_page_url('minha-conta', '/minha-conta'));
+    $redirect_url = $state_data['redirect_to'] ?: cc_get_auth_page_url('minha-conta', '/minha-conta');
+    wp_safe_redirect($redirect_url);
     exit;
 }
 add_action('init', 'cc_maybe_handle_oauth_callback');
@@ -370,7 +409,8 @@ function cc_handle_custom_auth_forms() {
 
     if ($action === 'login') {
         if (!isset($_POST['cc_login_nonce']) || !wp_verify_nonce($_POST['cc_login_nonce'], 'cc_login')) {
-            wp_safe_redirect(add_query_arg('cc_auth_notice', 'login_nonce', cc_get_auth_page_url('login', '/login')));
+            $login_url = cc_with_redirect_to(cc_get_auth_page_url('login', '/login'), cc_get_safe_redirect_url_from_request());
+            wp_safe_redirect(add_query_arg('cc_auth_notice', 'login_nonce', $login_url));
             exit;
         }
 
@@ -382,17 +422,19 @@ function cc_handle_custom_auth_forms() {
 
         $user = wp_signon($creds, is_ssl());
         if (is_wp_error($user)) {
-            wp_safe_redirect(add_query_arg('cc_auth_notice', 'login_invalid', cc_get_auth_page_url('login', '/login')));
+            $login_url = cc_with_redirect_to(cc_get_auth_page_url('login', '/login'), cc_get_safe_redirect_url_from_request());
+            wp_safe_redirect(add_query_arg('cc_auth_notice', 'login_invalid', $login_url));
             exit;
         }
 
-        wp_safe_redirect(cc_get_auth_page_url('minha-conta', '/minha-conta'));
+        wp_safe_redirect(cc_get_auth_success_redirect_url());
         exit;
     }
 
     if ($action === 'register') {
         if (!isset($_POST['cc_register_nonce']) || !wp_verify_nonce($_POST['cc_register_nonce'], 'cc_register')) {
-            wp_safe_redirect(add_query_arg('cc_auth_notice', 'register_nonce', cc_get_auth_page_url('cadastro', '/cadastro')));
+            $register_url = cc_with_redirect_to(cc_get_auth_page_url('cadastro', '/cadastro'), cc_get_safe_redirect_url_from_request());
+            wp_safe_redirect(add_query_arg('cc_auth_notice', 'register_nonce', $register_url));
             exit;
         }
 
@@ -402,12 +444,14 @@ function cc_handle_custom_auth_forms() {
         $paroquia_id = absint($_POST['paroquia_existente'] ?? 0);
 
         if (!$nome || !$email || !is_email($email)) {
-            wp_safe_redirect(add_query_arg('cc_auth_notice', 'register_invalid_data', cc_get_auth_page_url('cadastro', '/cadastro')));
+            $register_url = cc_with_redirect_to(cc_get_auth_page_url('cadastro', '/cadastro'), cc_get_safe_redirect_url_from_request());
+            wp_safe_redirect(add_query_arg('cc_auth_notice', 'register_invalid_data', $register_url));
             exit;
         }
 
         if (email_exists($email)) {
-            wp_safe_redirect(add_query_arg('cc_auth_notice', 'register_email_exists', cc_get_auth_page_url('cadastro', '/cadastro')));
+            $register_url = cc_with_redirect_to(cc_get_auth_page_url('cadastro', '/cadastro'), cc_get_safe_redirect_url_from_request());
+            wp_safe_redirect(add_query_arg('cc_auth_notice', 'register_email_exists', $register_url));
             exit;
         }
         if (!$senha) $senha = wp_generate_password(12, true);
@@ -429,7 +473,8 @@ function cc_handle_custom_auth_forms() {
         ]);
 
         if (is_wp_error($user_id)) {
-            wp_safe_redirect(add_query_arg('cc_auth_notice', 'register_error', cc_get_auth_page_url('cadastro', '/cadastro')));
+            $register_url = cc_with_redirect_to(cc_get_auth_page_url('cadastro', '/cadastro'), cc_get_safe_redirect_url_from_request());
+            wp_safe_redirect(add_query_arg('cc_auth_notice', 'register_error', $register_url));
             exit;
         }
 
@@ -441,7 +486,7 @@ function cc_handle_custom_auth_forms() {
         wp_set_current_user($user_id);
         wp_set_auth_cookie($user_id, true);
 
-        wp_safe_redirect(cc_get_auth_page_url('minha-conta', '/minha-conta'));
+        wp_safe_redirect(cc_get_auth_success_redirect_url());
         exit;
     }
 
@@ -740,12 +785,12 @@ function cc_render_password_toggle_script() {
     return '<script>document.addEventListener("DOMContentLoaded",function(){document.querySelectorAll(".cc-password-toggle").forEach(function(btn){btn.addEventListener("click",function(){var target=document.getElementById(btn.dataset.target);if(!target)return;var show=target.type==="password";target.type=show?"text":"password";btn.textContent=show?"🙈":"👁️";btn.setAttribute("aria-label",show?"Ocultar senha":"Mostrar senha");});});});</script>';
 }
 
-function cc_render_social_buttons() {
+function cc_render_social_buttons($redirect_to = '') {
     $providers = ['google' => 'Google', 'facebook' => 'Facebook', 'linkedin' => 'LinkedIn'];
     $available_providers = [];
 
     foreach ($providers as $provider => $label) {
-        $url = cc_get_social_button_url($provider);
+        $url = cc_get_social_button_url($provider, $redirect_to);
         if (!$url) {
             continue;
         }
@@ -777,6 +822,7 @@ add_shortcode('mapa-social-buttons', 'cc_render_social_buttons');
 function cc_shortcode_login_mapa() {
     cc_enqueue_auth_ui_assets();
     $notice = sanitize_text_field($_GET['cc_auth_notice'] ?? '');
+    $redirect_to = cc_get_safe_redirect_url_from_request();
 
     if (is_user_logged_in()) {
         return '<div class="max-w-3xl mx-auto bg-white border border-gray-200 rounded-2xl p-6"><p class="text-gray-800">' . esc_html__('Você já está logado.', 'cadastro-comunidades') . ' <a class="text-indigo-700 font-semibold" href="' . esc_url(cc_get_auth_page_url('minha-conta', '/minha-conta')) . '">' . esc_html__('Ir para minha conta', 'cadastro-comunidades') . '</a></p></div>';
@@ -802,12 +848,16 @@ function cc_shortcode_login_mapa() {
 
             <?php wp_nonce_field('cc_login', 'cc_login_nonce'); ?>
             <input type="hidden" name="cc_auth_action" value="login">
+            <?php if (!empty($redirect_to)): ?>
+                <input type="hidden" name="redirect_to" value="<?php echo esc_url($redirect_to); ?>">
+            <?php endif; ?>
 
             <button type="submit" class="<?php echo esc_attr(cc_auth_button_class()); ?> w-full sm:w-auto"><?php esc_html_e('Entrar', 'cadastro-comunidades'); ?></button>
             <a class="ml-0 sm:ml-3 text-indigo-700 underline font-medium" href="<?php echo esc_url(cc_get_auth_page_url('esqueci-senha', '/esqueci-senha')); ?>"><?php esc_html_e('Esqueci minha senha', 'cadastro-comunidades'); ?></a>
+            <a class="ml-0 sm:ml-3 text-indigo-700 underline font-medium" href="<?php echo esc_url(cc_with_redirect_to(cc_get_auth_page_url('cadastro', '/cadastro'), $redirect_to)); ?>"><?php esc_html_e('Criar cadastro', 'cadastro-comunidades'); ?></a>
         </form>
 
-        <?php echo cc_render_social_buttons(); ?>
+        <?php echo cc_render_social_buttons($redirect_to); ?>
         <?php echo cc_render_password_toggle_script(); ?>
     </div>
     <?php
@@ -818,6 +868,7 @@ add_shortcode('login-mapa', 'cc_shortcode_login_mapa');
 function cc_shortcode_cadastro_mapa() {
     cc_enqueue_auth_ui_assets();
     $notice = sanitize_text_field($_GET['cc_auth_notice'] ?? '');
+    $redirect_to = cc_get_safe_redirect_url_from_request();
 
     if (is_user_logged_in()) {
         return '<div class="max-w-3xl mx-auto bg-white border border-gray-200 rounded-2xl p-6"><p class="text-gray-800">' . esc_html__('Você já está logado.', 'cadastro-comunidades') . ' <a class="text-indigo-700 font-semibold" href="' . esc_url(cc_get_auth_page_url('minha-conta', '/minha-conta')) . '">' . esc_html__('Ir para minha conta', 'cadastro-comunidades') . '</a></p></div>';
@@ -860,10 +911,14 @@ function cc_shortcode_cadastro_mapa() {
 
             <?php wp_nonce_field('cc_register', 'cc_register_nonce'); ?>
             <input type="hidden" name="cc_auth_action" value="register">
+            <?php if (!empty($redirect_to)): ?>
+                <input type="hidden" name="redirect_to" value="<?php echo esc_url($redirect_to); ?>">
+            <?php endif; ?>
             <button type="submit" class="<?php echo esc_attr(cc_auth_button_class()); ?> w-full sm:w-auto"><?php esc_html_e('Cadastrar', 'cadastro-comunidades'); ?></button>
+            <a class="ml-0 sm:ml-3 text-indigo-700 underline font-medium" href="<?php echo esc_url(cc_with_redirect_to(cc_get_auth_page_url('login', '/login'), $redirect_to)); ?>"><?php esc_html_e('Já tenho conta', 'cadastro-comunidades'); ?></a>
         </form>
 
-        <?php echo cc_render_social_buttons(); ?>
+        <?php echo cc_render_social_buttons($redirect_to); ?>
         <?php echo cc_render_password_toggle_script(); ?>
     </div>
     <?php
