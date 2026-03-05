@@ -75,10 +75,6 @@
                     <div id="mapa-canvas"></div>
                 </div>
             </div>
-
-            <div class="cc-mapa-stage">
-                <div id="mapa-canvas"></div>
-            </div>
         </div>
     </div>
 </section>
