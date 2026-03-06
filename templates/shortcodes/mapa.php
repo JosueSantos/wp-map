@@ -3,10 +3,10 @@
         <div class="cc-mapa-main">
             <div class="cc-mapa-topbar">
                 <label class="cc-busca-wrap" for="filtro-busca">
-                    <span>Pesquisar comunidade por texto</span>
+                    <span>Pesquisar</span>
                     <div class="cc-busca-acoes">
                         <input id="filtro-busca" list="mapa-comunidades-list" type="search" placeholder="Digite o nome da comunidade" autocomplete="off" />
-                        <button id="mapa-buscar-comunidade" type="button">Pesquisa por Texto</button>
+                        <button id="mapa-buscar-comunidade" type="button"><i class="bi bi-search"></i></button>
                     </div>
                     <datalist id="mapa-comunidades-list"></datalist>
                 </label>
@@ -18,7 +18,7 @@
                         <aside class="cc-overlay-panel cc-overlay-panel--filtros" data-panel="filtros">
                             <button type="button" class="cc-panel-toggle" aria-expanded="true" aria-controls="cc-panel-filtros-body">
                                 <span>Filtros do mapa</span>
-                                <span class="cc-panel-toggle-icon" aria-hidden="true">⌄</span>
+                                <span class="cc-panel-toggle-icon" aria-hidden="true"><i class="bi bi-chevron-down"></i></span>
                             </button>
 
                             <div class="cc-panel-body" id="cc-panel-filtros-body">
@@ -61,7 +61,7 @@
                         <aside id="mapa-detalhes" class="cc-overlay-panel cc-overlay-panel--detalhes" data-panel="detalhes">
                             <button type="button" class="cc-panel-toggle" aria-expanded="false" aria-controls="cc-panel-detalhes-body">
                                 <span>Comunidade selecionada</span>
-                                <span class="cc-panel-toggle-icon" aria-hidden="true">⌄</span>
+                                <span class="cc-panel-toggle-icon" aria-hidden="true"><i class="bi bi-chevron-down"></i></span>
                             </button>
 
                             <div class="cc-panel-body" id="cc-panel-detalhes-body">
