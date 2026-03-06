@@ -832,7 +832,7 @@ function cc_shortcode_login_mapa() {
     ?>
     <div class="max-w-3xl mx-auto bg-white border border-gray-200 shadow-sm rounded-2xl p-6 sm:p-8 space-y-6">
         <div>
-            <h2 class="text-2xl font-bold text-gray-800"><?php esc_html_e('Entrar no Mapa', 'cadastro-comunidades'); ?></h2>
+            <h2 class="text-2xl font-bold text-gray-800"><?php esc_html_e('Entrar', 'cadastro-comunidades'); ?></h2>
             <p class="text-gray-600 mt-1"><?php esc_html_e('Use seu e-mail/usuário e senha para acessar sua conta.', 'cadastro-comunidades'); ?></p>
         </div>
 
@@ -880,7 +880,7 @@ function cc_shortcode_cadastro_mapa() {
     ?>
     <div class="max-w-3xl mx-auto bg-white border border-gray-200 shadow-sm rounded-2xl p-6 sm:p-8 space-y-6">
         <div>
-            <h2 class="text-2xl font-bold text-gray-800"><?php esc_html_e('Criar conta no Mapa', 'cadastro-comunidades'); ?></h2>
+            <h2 class="text-2xl font-bold text-gray-800"><?php esc_html_e('Cadastro', 'cadastro-comunidades'); ?></h2>
             <p class="text-gray-600 mt-1"><?php esc_html_e('Preencha os dados abaixo. Se tiver dificuldade, peça ajuda na sua comunidade/paróquia.', 'cadastro-comunidades'); ?></p>
         </div>
 

@@ -2,9 +2,9 @@
     <div class="mx-auto max-w-xl h-full flex items-center justify-center">
         <div class="w-full bg-white rounded-2xl shadow-2xl p-5 sm:p-8 space-y-3 sm:space-y-4 text-center">
             <h3 class="text-2xl font-bold text-gray-800">Faça login para continuar</h3>
-            <p class="text-gray-600">Para criar ou editar comunidades e eventos, faça login com sua conta WordPress. Se ainda não tiver acesso, faça seu cadastro e depois retorne para concluir o formulário.</p>
+            <p class="text-gray-600">Para criar ou editar comunidades e eventos, faça login com sua conta. Se ainda não tiver acesso, faça seu cadastro e depois retorne para concluir o cadastro.</p>
             <div class="flex flex-col sm:flex-row gap-3 justify-center pt-1 sm:pt-2">
-                <a id="mapa-login-link" href="#" class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold">Entrar</a>
+                <a id="mapa-login-link" href="#" class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white hover:text-white hover:bg-indigo-700 font-semibold transition">Entrar</a>
                 <a id="mapa-register-link" href="#" class="px-5 py-2.5 rounded-xl border border-indigo-200 text-indigo-700 font-semibold bg-indigo-50">Criar cadastro</a>
             </div>
         </div>
