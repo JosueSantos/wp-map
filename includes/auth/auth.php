@@ -866,8 +866,20 @@ function cc_shortcode_login_mapa() {
             <?php endif; ?>
 
             <button type="submit" class="<?php echo esc_attr(cc_auth_button_class()); ?> w-full sm:w-auto"><?php esc_html_e('Entrar', 'cadastro-comunidades'); ?></button>
-            <a class="ml-0 sm:ml-3 text-indigo-700 underline font-medium" href="<?php echo esc_url(cc_get_auth_page_url('esqueci-senha', '/esqueci-senha')); ?>"><?php esc_html_e('Esqueci minha senha', 'cadastro-comunidades'); ?></a>
-            <a class="ml-0 sm:ml-3 text-indigo-700 underline font-medium" href="<?php echo esc_url(cc_with_redirect_to(cc_get_auth_page_url('cadastro', '/cadastro'), $redirect_to)); ?>"><?php esc_html_e('Criar cadastro', 'cadastro-comunidades'); ?></a>
+            
+            <div class="flex flex-col gap-2 pt-2 sm:flex-row sm:items-center sm:gap-4">
+
+                <a class="text-indigo-700 underline font-medium"
+                href="<?php echo esc_url(cc_get_auth_page_url('esqueci-senha', '/esqueci-senha')); ?>">
+                    <?php esc_html_e('Esqueci minha senha', 'cadastro-comunidades'); ?>
+                </a>
+
+                <a class="text-indigo-700 underline font-medium"
+                href="<?php echo esc_url(cc_with_redirect_to(cc_get_auth_page_url('cadastro', '/cadastro'), $redirect_to)); ?>">
+                    <?php esc_html_e('Criar cadastro', 'cadastro-comunidades'); ?>
+                </a>
+
+            </div>
         </form>
 
         <?php echo cc_render_social_buttons($redirect_to); ?>
