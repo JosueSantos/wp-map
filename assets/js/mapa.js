@@ -354,14 +354,14 @@ document.addEventListener("DOMContentLoaded", async function () {
             ? comunidade.eventos.map((evento) => {
                 const recorrencia = descricaoRecorrencia(evento);
                 return `
-                    <li>
-                        <strong>${escapeHtml(evento.titulo || "Evento")}</strong><br>
-                        ${escapeHtml(recorrencia)} • ${escapeHtml(evento.horario || "Horário não informado")}
+                    <li class="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                        <p class="text-sm font-medium text-slate-900">${escapeHtml(evento.titulo || "Evento")}</p>
+                        <p class="text-xs text-slate-600">${escapeHtml(recorrencia)} • ${escapeHtml(evento.horario || "Horário não informado")}</p>
                         ${evento.observacao ? `<br><small>${escapeHtml(evento.observacao)}</small>` : ""}
                     </li>
                 `;
             }).join("")
-            : "<li>Sem eventos para os filtros selecionados.</li>";
+            : "<li class='bg-slate-50 border border-slate-200 rounded-lg p-3'><p class='text-xs text-slate-600'>Sem eventos para os filtros selecionados.</p></li>";
 
         const contatosFormatados = renderContatos(comunidade.contatos);
 
@@ -371,15 +371,17 @@ document.addEventListener("DOMContentLoaded", async function () {
                 <span class="cc-panel-toggle-icon" aria-hidden="true"><i class="bi bi-chevron-down"></i></span>
             </button>
             <div class="cc-panel-body" id="cc-panel-detalhes-body">
-            <article>
-                <h4>${escapeHtml(comunidade.nome || "Comunidade")}</h4>
-                ${comunidade.foto ? `<img src="${escapeHtml(comunidade.foto)}" alt="${escapeHtml(comunidade.nome || "Comunidade")}" style="width:100%;max-height:170px;object-fit:cover;border-radius:8px;margin:.45rem 0;" />` : ""}
-                ${comunidade.endereco ? `<p>${escapeHtml(comunidade.endereco)}</p>` : ""}
-                ${contatosFormatados ? `<div style="display:grid;gap:.55rem;">${contatosFormatados}</div>` : ""}
-                ${comunidade.distancia_km ? `<p><small>Distância: ${Number(comunidade.distancia_km).toFixed(1)} km</small></p>` : ""}
-                <strong>Eventos</strong>
-                <ul style="margin-top:.45rem;padding-left:1rem;display:grid;gap:.4rem;">${eventosHtml}</ul>
-            </article>
+                <article class="space-y-4 mt-2">
+                    ${comunidade.foto ? `<div class="w-full max-w-sm mx-auto"><img src="${escapeHtml(comunidade.foto)}" alt="${escapeHtml(comunidade.nome || "Comunidade")}" class="w-full aspect-square object-cover rounded-xl shadow-sm"></div>` : ""}
+                    <h4 class="text-lg font-semibold text-slate-900">${escapeHtml(comunidade.nome || "Comunidade")}</h4>
+                    ${comunidade.endereco ? `<p class="text-sm text-slate-600 leading-snug text-center">${escapeHtml(comunidade.endereco)}</p>` : ""}
+                    ${contatosFormatados ? `<div style="display:grid;gap:.55rem;">${contatosFormatados}</div>` : ""}
+                    ${comunidade.distancia_km ? `<p><small>Distância: ${Number(comunidade.distancia_km).toFixed(1)} km</small></p>` : ""}
+                    <div class="space-y-2">
+                        <h5 class="text-sm font-semibold text-slate-800 border-b pb-1">Eventos</h5>
+                        <ul class="grid gap-2">${eventosHtml}</ul>
+                    </div>
+                </article>
             </div>
         `;
 
@@ -390,11 +392,10 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     function buildPopup(comunidade) {
         return `
-            <div style="min-width:250px;">
-                <h3 style="margin:0 0 4px;font-size:14px;color:#0f172a;">${escapeHtml(comunidade.nome)}</h3>
-                ${comunidade.foto ? `<img src="${escapeHtml(comunidade.foto)}" alt="${escapeHtml(comunidade.nome || "Comunidade")}" style="width:100%;max-height:130px;object-fit:cover;border-radius:8px;margin:0 0 6px;" />` : ""}
-                ${comunidade.endereco ? `<p style="margin:0 0 6px;font-size:12px;color:#475569;">${escapeHtml(comunidade.endereco)}</p>` : ""}
-                <p style="margin:10px 0 0;color:#64748b;font-size:12px;">Mais detalhes da comunidade, abaixo dos filtros.</p>
+            <div class="w-[250px] text-center">
+                ${comunidade.foto ? `<img src="${escapeHtml(comunidade.foto)}" alt="${escapeHtml(comunidade.nome || "Comunidade")}" class="w-[200px] h-[200px] object-cover rounded-lg mx-auto my-2 shadow-sm" />` : ""}
+                <h3 class="text-sm font-semibold text-slate-900 mb-1">${escapeHtml(comunidade.nome)}</h3>
+                ${comunidade.endereco ? `<p class="text-xs text-slate-600 leading-snug">${escapeHtml(comunidade.endereco)}</p>` : ""}
             </div>
         `;
     }

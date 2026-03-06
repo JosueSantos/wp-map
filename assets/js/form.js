@@ -431,7 +431,7 @@ function mapaAdicionarEvento(evento = null) {
     div.innerHTML = `
         <button type="button" class="evento-toggle w-full px-4 py-3 text-left bg-white hover:bg-gray-100 transition flex items-center justify-between gap-3">
             <span class="evento-resumo font-semibold text-gray-800 truncate">Novo evento</span>
-            <span class="evento-toggle-icon text-gray-500 text-sm">▼</span>
+            <span class="evento-toggle-icon text-gray-500 text-sm"><i class="bi bi-chevron-down"></i></span>
         </button>
 
         <div class="evento-conteudo p-6 space-y-4 border-t border-gray-200">
@@ -559,7 +559,7 @@ function mapaAdicionarEvento(evento = null) {
 
     function definirEstadoSanfona(expandido) {
         conteudoEvento.classList.toggle('hidden', !expandido);
-        iconeToggle.textContent = expandido ? '▼' : '▶';
+        iconeToggle.textContent = expandido ? '<i class="bi bi-chevron-down"></i>' : '<i class="bi bi-chevron-up"></i>';
     }
 
     botaoToggle.addEventListener('click', function () {

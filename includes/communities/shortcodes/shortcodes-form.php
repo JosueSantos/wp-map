@@ -10,6 +10,13 @@ add_shortcode('mapa_form_comunidade', function () {
 
     wp_enqueue_script('mapa-form', CC_URL . 'assets/js/form.js', ['leaflet-js'], '1.2', true);
 
+    wp_enqueue_style(
+        'bootstrap-icons',
+        'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css',
+        [],
+        '1.11.3'
+    );
+
     wp_localize_script('mapa-form', 'MAPA_API', [
         'url'   => rest_url('mapa/v1/comunidade'),
         'nonce' => wp_create_nonce('wp_rest'),

@@ -22,7 +22,7 @@
                             </button>
 
                             <div class="cc-panel-body" id="cc-panel-filtros-body">
-                                <p class="cc-filtro-texto">Selecione os filtros para refinar comunidades e eventos.</p>
+                                <p class="cc-filtro-texto font-bold">Selecione os filtros para refinar comunidades e eventos.</p>
 
                                 <form id="mapa-filtros" class="cc-filtros-form">
                                     <label>
@@ -72,7 +72,7 @@
                 </div>
 
                 <div class="cc-mapa-stage">
-                    <div id="mapa-canvas"></div>
+                    <div id="mapa-canvas" class="mt-2"></div>
                 </div>
             </div>
         </div>

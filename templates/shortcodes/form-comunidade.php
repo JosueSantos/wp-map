@@ -45,7 +45,7 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700">Tipo</label>
                 <select id="tipo"
-                    class="mt-1 w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-base">
+                    class="mt-1 w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-base bg-white">
                     <option value="">Carregando...</option>
                 </select>
             </div>

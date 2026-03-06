@@ -28,7 +28,6 @@
 }
 
 #mapa-igrejas .cc-mapa-content {
-    display: grid;
     grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
     gap: .85rem;
     padding: .85rem;
