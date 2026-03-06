@@ -338,10 +338,10 @@ document.addEventListener("DOMContentLoaded", async function () {
             detalhesEl.innerHTML = `
                 <button type="button" class="cc-panel-toggle" aria-expanded="false" aria-controls="cc-panel-detalhes-body">
                     <span>Comunidade selecionada</span>
-                    <span class="cc-panel-toggle-icon" aria-hidden="true">⌄</span>
+                    <span class="cc-panel-toggle-icon" aria-hidden="true"><i class="bi bi-chevron-down"></i></span>
                 </button>
                 <div class="cc-panel-body" id="cc-panel-detalhes-body">
-                    <p>Toque em um pino para ver detalhes e eventos.</p>
+                    <p class="cc-filtro-texto">Toque em um pino para ver detalhes e eventos.</p>
                 </div>
             `;
             const detalhesPanel = detalhesEl.closest(".cc-overlay-panel");
@@ -368,7 +368,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         detalhesEl.innerHTML = `
             <button type="button" class="cc-panel-toggle" aria-expanded="true" aria-controls="cc-panel-detalhes-body">
                 <span>Comunidade selecionada</span>
-                <span class="cc-panel-toggle-icon" aria-hidden="true">⌄</span>
+                <span class="cc-panel-toggle-icon" aria-hidden="true"><i class="bi bi-chevron-down"></i></span>
             </button>
             <div class="cc-panel-body" id="cc-panel-detalhes-body">
             <article>
