@@ -418,10 +418,11 @@ function mapaAdicionarEvento(evento = null) {
     if (!evento) {
         container.querySelectorAll(':scope > div').forEach((eventoExistente) => {
             const conteudo = eventoExistente.querySelector('.evento-conteudo');
-            const icone = eventoExistente.querySelector('.evento-toggle-icon');
+            const iconeToggle = eventoExistente.querySelector('.evento-toggle-icon');
+            const icone = iconeToggle?.querySelector('i');
 
             if (conteudo) conteudo.classList.add('hidden');
-            if (icone) icone.textContent = '▶';
+            if (icone) icone.classList.toggle('bi-chevron-down', true);
         });
     }
 
