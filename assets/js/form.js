@@ -237,9 +237,9 @@ function mapaIniciarSeletorDeCoordenadas() {
     const lngInicial = parseFloat(lngInput.value);
     const centroInicial = Number.isFinite(latInicial) && Number.isFinite(lngInicial)
         ? [latInicial, lngInicial]
-        : [-5.0892, -42.8016];
+        : [-3.7319, -38.5267];
 
-    mapaCadastro = L.map('mapa-cadastro').setView(centroInicial, 13);
+    mapaCadastro = L.map('mapa-cadastro').setView(centroInicial, 12);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors'
@@ -436,16 +436,15 @@ function mapaAdicionarEvento(evento = null) {
 
         <div class="evento-conteudo p-6 space-y-4 border-t border-gray-200">
             <div>
+                <label class="block text-base font-semibold text-gray-700 mb-1">Nome do evento</label>
+                <input type="text" placeholder="Ex.: Missa da comunidade" class="evento-titulo w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2">
+            </div>
+        
+            <div>
                 <label class="block text-base font-semibold text-gray-700 mb-1">Tipo de evento</label>
                 <select class="tipo-evento rounded-xl border-2 border-gray-200 bg-white px-3 py-2 w-full focus:ring-2 focus:ring-indigo-500">
                     <option>Carregando tipos...</option>
                 </select>
-            </div>
-
-            <div>
-                <label class="block text-base font-semibold text-gray-700 mb-1">Nome do evento</label>
-                <input type="text" placeholder="Ex.: Missa da comunidade"
-                    class="evento-titulo w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2">
             </div>
 
             <div>
@@ -549,6 +548,7 @@ function mapaAdicionarEvento(evento = null) {
     const eventoResumo = novoEvento.querySelector('.evento-resumo');
     const botaoToggle = novoEvento.querySelector('.evento-toggle');
     const iconeToggle = novoEvento.querySelector('.evento-toggle-icon');
+    const icone = iconeToggle.querySelector('i');
     const conteudoEvento = novoEvento.querySelector('.evento-conteudo');
 
     function atualizarResumoEvento() {
@@ -556,9 +556,12 @@ function mapaAdicionarEvento(evento = null) {
         eventoResumo.textContent = titulo || 'Novo evento';
     }
 
+
     function definirEstadoSanfona(expandido) {
         conteudoEvento.classList.toggle('hidden', !expandido);
-        iconeToggle.textContent = expandido ? '<i class="bi bi-chevron-down"></i>' : '<i class="bi bi-chevron-up"></i>';
+
+        icone.classList.toggle('bi-chevron-down', !expandido);
+        icone.classList.toggle('bi-chevron-up', expandido);
     }
 
     botaoToggle.addEventListener('click', function () {

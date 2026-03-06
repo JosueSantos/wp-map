@@ -33,6 +33,12 @@ document.addEventListener("DOMContentLoaded", async function () {
         attribution: "&copy; OpenStreetMap"
     }).addTo(map);
 
+    const resizeObserver = new ResizeObserver(() => {
+        map.invalidateSize();
+    });
+
+    resizeObserver.observe(mapaEl);
+
     const state = {
         userLocation: null,
         userMarker: null,
@@ -51,8 +57,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         "5": "Sexta",
         "6": "Sábado",
     };
-
-
 
     const mesMap = {
         "1": "Janeiro", "2": "Fevereiro", "3": "Março", "4": "Abril", "5": "Maio", "6": "Junho",
@@ -253,41 +257,88 @@ document.addEventListener("DOMContentLoaded", async function () {
         const blocks = [];
 
         if (data.telefones.length) {
-            const itens = data.telefones.map((tel) => `<li>📞 ${escapeHtml(tel)}</li>`).join("");
-            blocks.push(`<div><strong>Telefone</strong><ul style="margin:.25rem 0 0;padding-left:1rem;">${itens}</ul></div>`);
+            const itens = data.telefones
+                .map((tel) => `<li class="flex items-center gap-2"><i class="bi bi-telephone text-slate-500"></i>${escapeHtml(tel)}</li>`)
+                .join("");
+
+            blocks.push(`
+                <div class="space-y-1">
+                    <p class="text-xs font-semibold text-slate-700 uppercase">Telefone</p>
+                    <ul class="text-sm text-slate-700 space-y-1">${itens}</ul>
+                </div>
+            `);
         }
 
         if (data.emails.length) {
-            const itens = data.emails.map((email) => `<li style="overflow-wrap:anywhere;">✉️ <a href="mailto:${encodeURIComponent(email)}" style="word-break:break-word;">${escapeHtml(email)}</a></li>`).join("");
-            blocks.push(`<div><strong>E-mail</strong><ul style="margin:.25rem 0 0;padding-left:1rem;">${itens}</ul></div>`);
+            const itens = data.emails
+                .map((email) => `
+                    <li class="flex items-start gap-2 break-all">
+                        <i class="bi bi-envelope text-slate-500"></i>
+                        <a href="mailto:${encodeURIComponent(email)}" class="hover:underline">
+                            ${escapeHtml(email)}
+                        </a>
+                    </li>
+                `).join("");
+
+            blocks.push(`
+                <div class="space-y-1">
+                    <p class="text-xs font-semibold text-slate-700 uppercase">E-mail</p>
+                    <ul class="text-sm text-slate-700 space-y-1">${itens}</ul>
+                </div>
+            `);
         }
 
         if (data.redes.length) {
+
             const iconMap = {
-                facebook: { cls: "bi bi-facebook", fallback: "f" },
-                instagram: { cls: "bi bi-instagram", fallback: "◎" },
-                whatsapp: { cls: "bi bi-whatsapp", fallback: "✆" },
-                youtube: { cls: "bi bi-youtube", fallback: "▶" },
-                tiktok: { cls: "bi bi-tiktok", fallback: "♪" },
-                linkedin: { cls: "bi bi-linkedin", fallback: "in" },
-                x: { cls: "bi bi-twitter-x", fallback: "𝕏" },
-                site: { cls: "bi bi-globe", fallback: "◉" },
-                rede: { cls: "bi bi-link-45deg", fallback: "↗" },
+                facebook: "bi-facebook",
+                instagram: "bi-instagram",
+                whatsapp: "bi-whatsapp",
+                youtube: "bi-youtube",
+                tiktok: "bi-tiktok",
+                linkedin: "bi-linkedin",
+                x: "bi-twitter-x",
+                site: "bi-globe",
+                rede: "bi-link-45deg",
             };
 
             const itens = data.redes.map((rede) => {
+
                 const type = String(rede.type || "rede").toLowerCase();
-                const cfg = iconMap[type] || iconMap.rede;
-                const cls = `cc-social-pill cc-social-${type}`;
-                return `<a href="${escapeHtml(rede.href)}" target="_blank" rel="noopener noreferrer" class="${cls}"><i class="${cfg.cls}" aria-hidden="true"></i><span>${escapeHtml(rede.label)}</span></a>`;
+                const icon = iconMap[type] || iconMap.rede;
+
+                return `
+                    <a href="${escapeHtml(rede.href)}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-sm">
+                        <i class="bi ${icon} text-slate-600"></i>
+                        <span>${escapeHtml(rede.label)}</span>
+                    </a>
+                `;
             }).join("");
 
-            blocks.push(`<div><strong>Redes sociais</strong><div class="cc-social-grid" style="margin-top:.35rem;">${itens}</div></div>`);
+            blocks.push(`
+                <div class="space-y-2">
+                    <p class="text-xs font-semibold text-slate-700 uppercase">Redes sociais</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        ${itens}
+                    </div>
+                </div>
+            `);
         }
 
         if (data.outros.length) {
-            const itens = data.outros.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
-            blocks.push(`<div><strong>Outros contatos</strong><ul style="margin:.25rem 0 0;padding-left:1rem;">${itens}</ul></div>`);
+            const itens = data.outros
+                .map((item) => `<li>${escapeHtml(item)}</li>`)
+                .join("");
+
+            blocks.push(`
+                <div class="space-y-1">
+                    <p class="text-xs font-semibold text-slate-700 uppercase">Outros contatos</p>
+                    <ul class="text-sm text-slate-700 space-y-1">${itens}</ul>
+                </div>
+            `);
         }
 
         return blocks.join("");
@@ -376,10 +427,10 @@ document.addEventListener("DOMContentLoaded", async function () {
             </button>
             <div class="cc-panel-body" id="cc-panel-detalhes-body">
                 <article class="space-y-4 mt-2">
-                    ${comunidade.foto ? `<div class="w-full max-w-sm mx-auto"><img src="${escapeHtml(comunidade.foto)}" alt="${escapeHtml(comunidade.nome || "Comunidade")}" class="w-full aspect-square object-cover rounded-xl shadow-sm"></div>` : ""}
-                    <h4 class="text-lg font-semibold text-slate-900">${escapeHtml(comunidade.nome || "Comunidade")}</h4>
-                    ${comunidade.endereco ? `<p class="text-sm text-slate-600 leading-snug text-center">${escapeHtml(comunidade.endereco)}</p>` : ""}
-                    ${contatosFormatados ? `<div style="display:grid;gap:.55rem;">${contatosFormatados}</div>` : ""}
+                    ${comunidade.foto ? `<div class="w-full max-w-sm mx-auto"><div class="aspect-square overflow-hidden rounded-xl bg-slate-100"><img src="${escapeHtml(comunidade.foto)}" alt="${escapeHtml(comunidade.nome || "Comunidade")}" class="w-full h-full object-contain shadow-sm"></div></div>` : ""}
+                    <h4 class="text-lg font-semibold text-slate-900 text-center">${escapeHtml(comunidade.nome || "Comunidade")}</h4>
+                    ${comunidade.endereco ? `<p class="text-sm text-slate-600 leading-snug text-center max-w-xs mx-auto">${escapeHtml(comunidade.endereco)}</p>` : ""}
+                    ${contatosFormatados ? `<div class="space-y-3">${contatosFormatados}</div>` : ""}
                     ${comunidade.distancia_km ? `<p><small>Distância: ${Number(comunidade.distancia_km).toFixed(1)} km</small></p>` : ""}
                     <div class="space-y-2">
                         <h5 class="text-sm font-semibold text-slate-800 border-b pb-1">Eventos</h5>
@@ -397,7 +448,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     function buildPopup(comunidade) {
         return `
             <div class="w-[250px] text-center">
-                ${comunidade.foto ? `<img src="${escapeHtml(comunidade.foto)}" alt="${escapeHtml(comunidade.nome || "Comunidade")}" class="w-[200px] h-[200px] object-cover rounded-lg mx-auto my-2 shadow-sm" />` : ""}
                 <h3 class="text-sm font-semibold text-slate-900 mb-1">${escapeHtml(comunidade.nome)}</h3>
                 ${comunidade.endereco ? `<p class="text-xs text-slate-600 leading-snug">${escapeHtml(comunidade.endereco)}</p>` : ""}
             </div>
