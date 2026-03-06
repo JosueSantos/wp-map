@@ -441,7 +441,7 @@ function cc_handle_custom_auth_forms() {
         $nome = sanitize_text_field($_POST['nome'] ?? '');
         $email = sanitize_email($_POST['email'] ?? '');
         $senha = $_POST['senha'] ?? '';
-        $paroquia_id = absint($_POST['paroquia_existente'] ?? 0);
+        $paroquia_id = cc_extract_id_from_autocomplete($_POST['paroquia_existente'] ?? 0);
 
         if (!$nome || !$email || !is_email($email)) {
             $register_url = cc_with_redirect_to(cc_get_auth_page_url('cadastro', '/cadastro'), cc_get_safe_redirect_url_from_request());
@@ -498,7 +498,7 @@ function cc_handle_custom_auth_forms() {
         $user_id = get_current_user_id();
         $nome = sanitize_text_field($_POST['nome'] ?? '');
         $email = sanitize_email($_POST['email'] ?? '');
-        $paroquia_id = absint($_POST['paroquia_existente'] ?? 0);
+        $paroquia_id = cc_extract_id_from_autocomplete($_POST['paroquia_existente'] ?? 0);
 
         if (!$nome || !is_email($email)) wp_die(__('Nome e e-mail válidos são obrigatórios.', 'cadastro-comunidades'));
 
@@ -711,6 +711,19 @@ function cc_get_paroquias_options() {
     ]);
 }
 
+function cc_extract_id_from_autocomplete($raw_value) {
+    if (is_numeric($raw_value)) {
+        return absint($raw_value);
+    }
+
+    $value = sanitize_text_field((string) $raw_value);
+    if (preg_match('/#(\d+)\)$/', $value, $matches)) {
+        return absint($matches[1]);
+    }
+
+    return 0;
+}
+
 
 function cc_enqueue_auth_ui_assets() {
     wp_enqueue_script('tailwind-cdn', 'https://cdn.tailwindcss.com', [], null);
@@ -901,12 +914,13 @@ function cc_shortcode_cadastro_mapa() {
 
             <div>
                 <label class="block text-sm font-medium text-gray-700"><?php esc_html_e('Paróquia (opcional)', 'cadastro-comunidades'); ?></label>
-                <select name="paroquia_existente" class="<?php echo esc_attr(cc_auth_input_class()); ?>">
+                <input id="cc-register-paroquia" type="text" name="paroquia_existente" list="cc-paroquias-datalist" class="<?php echo esc_attr(cc_auth_input_class()); ?>" placeholder="<?php esc_attr_e('Digite para buscar paróquia', 'cadastro-comunidades'); ?>">
+                <datalist id="cc-paroquias-datalist">
                     <option value=""><?php esc_html_e('Sem vínculo de paróquia', 'cadastro-comunidades'); ?></option>
                     <?php foreach ($paroquias as $paroquia): ?>
-                        <option value="<?php echo esc_attr($paroquia->ID); ?>"><?php echo esc_html($paroquia->post_title); ?></option>
+                        <option value="<?php echo esc_attr($paroquia->post_title . ' (#' . (int) $paroquia->ID . ')'); ?>"></option>
                     <?php endforeach; ?>
-                </select>
+                </datalist>
             </div>
 
             <?php wp_nonce_field('cc_register', 'cc_register_nonce'); ?>
@@ -1158,13 +1172,9 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700"><?php esc_html_e('Paróquia (opcional)', 'cadastro-comunidades'); ?></label>
-                    <select name="paroquia_existente" class="<?php echo esc_attr(cc_auth_input_class()); ?>">
-                        <option value=""><?php esc_html_e('Sem vínculo de paróquia', 'cadastro-comunidades'); ?></option>
-                        <?php $current_paroquia = (int) get_user_meta($user->ID, 'cc_paroquia_id', true); ?>
-                        <?php foreach ($paroquias as $paroquia): ?>
-                            <option value="<?php echo esc_attr($paroquia->ID); ?>" <?php selected($current_paroquia, (int) $paroquia->ID); ?>><?php echo esc_html($paroquia->post_title); ?></option>
-                        <?php endforeach; ?>
-                    </select>
+                    <?php $current_paroquia = (int) get_user_meta($user->ID, 'cc_paroquia_id', true); ?>
+                    <?php $current_paroquia_nome = $current_paroquia > 0 ? get_the_title($current_paroquia) : ''; ?>
+                    <input id="cc-profile-paroquia" type="text" name="paroquia_existente" list="cc-paroquias-datalist" class="<?php echo esc_attr(cc_auth_input_class()); ?>" placeholder="<?php esc_attr_e('Digite para buscar paróquia', 'cadastro-comunidades'); ?>" value="<?php echo esc_attr($current_paroquia_nome ? ($current_paroquia_nome . ' (#' . $current_paroquia . ')') : ''); ?>">
                 </div>
                 <div class="md:col-span-2 border-t border-gray-200 pt-4 mt-2">
                     <?php wp_nonce_field('cc_profile', 'cc_profile_nonce'); ?>
@@ -1267,6 +1277,14 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
                 <?php if (empty($alteracoes)): ?><li class="text-gray-600"><?php esc_html_e('Sem alterações para os filtros selecionados.', 'cadastro-comunidades'); ?></li><?php endif; ?>
             </ul>
         </section>
+
+
+        <datalist id="cc-paroquias-datalist">
+            <option value=""><?php esc_html_e('Sem vínculo de paróquia', 'cadastro-comunidades'); ?></option>
+            <?php foreach ($paroquias as $paroquia): ?>
+                <option value="<?php echo esc_attr($paroquia->post_title . ' (#' . (int) $paroquia->ID . ')'); ?>"></option>
+            <?php endforeach; ?>
+        </datalist>
 
         <datalist id="cc-comunidades-datalist">
             <?php foreach ($all_comunidades as $comunidade): ?>

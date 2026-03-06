@@ -220,6 +220,7 @@ function cc_api_mapa_comunidades($request) {
         foreach ($eventos as $e) {
 
             $dia_semana = get_post_meta($e->ID, 'dia_semana', true);
+            $dias_semana = cc_evento_get_dias_semana($e->ID);
             $horario    = get_post_meta($e->ID, 'horario', true);
             $descricao  = get_post_meta($e->ID, 'descricao', true);
             $observacao = get_post_meta($e->ID, 'observacao', true);
@@ -254,6 +255,7 @@ function cc_api_mapa_comunidades($request) {
                 'tipo'      => $tipo_evt,
                 'frequencia'=> get_post_meta($e->ID, 'frequencia', true) ?: 'semanal',
                 'dia'       => $dia_semana,
+                'dias'      => $dias_semana,
                 'dia_mes'   => get_post_meta($e->ID, 'dia_mes', true),
                 'numero_semana' => get_post_meta($e->ID, 'numero_semana', true),
                 'mes'       => get_post_meta($e->ID, 'mes', true),
@@ -311,6 +313,28 @@ function cc_api_mapa_comunidades($request) {
 }
 
 
+
+function cc_evento_get_dias_semana($evento_id) {
+    $dias = get_post_meta($evento_id, 'dias_semana', true);
+
+    if (is_array($dias)) {
+        $normalizados = array_values(array_unique(array_filter(array_map('intval', $dias), function($dia) {
+            return $dia >= 0 && $dia <= 6;
+        })));
+
+        sort($normalizados);
+        return $normalizados;
+    }
+
+    $dia_unico = get_post_meta($evento_id, 'dia_semana', true);
+    if ($dia_unico === '' || $dia_unico === null) {
+        return [];
+    }
+
+    $dia_unico = (int) $dia_unico;
+    return ($dia_unico >= 0 && $dia_unico <= 6) ? [$dia_unico] : [];
+}
+
 function cc_evento_ocorre_no_periodo($evento_id, $periodo = 'hoje', $data_param = '') {
     $data_base = cc_normalizar_data_filtro($periodo, $data_param);
     if (!$data_base) {
@@ -340,7 +364,8 @@ function cc_normalizar_data_filtro($periodo, $data_param) {
 }
 
 function cc_evento_ocorre_em_data($frequencia, $evento_id, DateTimeImmutable $data) {
-    $dia_semana = (int) get_post_meta($evento_id, 'dia_semana', true);
+    $dias_semana = cc_evento_get_dias_semana($evento_id);
+    $dia_semana = !empty($dias_semana) ? (int) $dias_semana[0] : -1;
     $dia_mes = (int) get_post_meta($evento_id, 'dia_mes', true);
     $numero_semana = (int) get_post_meta($evento_id, 'numero_semana', true);
     $mes = (int) get_post_meta($evento_id, 'mes', true);
@@ -363,7 +388,11 @@ function cc_evento_ocorre_em_data($frequencia, $evento_id, DateTimeImmutable $da
             && (int) $data->format('n') === $mes;
     }
 
-    return $dia_semana >= 0 && $dia_semana <= 6 && (int) $data->format('w') === $dia_semana;
+    if (empty($dias_semana)) {
+        return false;
+    }
+
+    return in_array((int) $data->format('w'), $dias_semana, true);
 }
 
 function cc_calcular_distancia($lat1, $lon1, $lat2, $lon2) {

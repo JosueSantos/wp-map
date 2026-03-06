@@ -460,17 +460,16 @@ function mapaAdicionarEvento(evento = null) {
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="evento-campo-dia-semana">
-                    <label class="block text-base font-semibold text-gray-700 mb-1">Dia da semana</label>
-                    <select class="evento-dia rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
-                        <option value="">Selecione o dia</option>
-                        <option value="0">Domingo</option>
-                        <option value="1">Segunda-feira</option>
-                        <option value="2">Terça-feira</option>
-                        <option value="3">Quarta-feira</option>
-                        <option value="4">Quinta-feira</option>
-                        <option value="5">Sexta-feira</option>
-                        <option value="6">Sábado</option>
-                    </select>
+                    <label class="block text-base font-semibold text-gray-700 mb-2">Dia(s) da semana</label>
+                    <div class="evento-dias-semana grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-xl border-2 border-gray-200 bg-white p-3">
+                        <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="0"> Domingo</label>
+                        <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="1"> Segunda-feira</label>
+                        <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="2"> Terça-feira</label>
+                        <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="3"> Quarta-feira</label>
+                        <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="4"> Quinta-feira</label>
+                        <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="5"> Sexta-feira</label>
+                        <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="6"> Sábado</label>
+                    </div>
                 </div>
 
                 <div class="evento-campo-dia-mes hidden">
@@ -586,7 +585,10 @@ function mapaAdicionarEvento(evento = null) {
         novoEvento.dataset.eventoId = evento.id ? String(evento.id) : '';
         campoTitulo.value = evento.titulo || '';
         novoEvento.querySelector('.evento-frequencia').value = evento.frequencia || 'semanal';
-        novoEvento.querySelector('.evento-dia').value = evento.dia ?? '';
+        const diasEvento = Array.isArray(evento.dias) ? evento.dias : (evento.dia !== undefined && evento.dia !== null && evento.dia !== '' ? [evento.dia] : []);
+        novoEvento.querySelectorAll('.evento-dia-check').forEach((checkbox) => {
+            checkbox.checked = diasEvento.map(String).includes(checkbox.value);
+        });
         novoEvento.querySelector('.evento-dia-mes').value = evento.dia_mes ?? '';
         novoEvento.querySelector('.evento-numero-semana').value = evento.numero_semana ?? '';
         novoEvento.querySelector('.evento-mes').value = evento.mes ?? '';
@@ -807,7 +809,7 @@ function mapaEnviar() {
             id: Number.isInteger(eventoId) ? eventoId : null,
             titulo: div.querySelector('.evento-titulo').value,
             frequencia: div.querySelector('.evento-frequencia').value,
-            dia: div.querySelector('.evento-dia').value,
+            dias: Array.from(div.querySelectorAll('.evento-dia-check:checked')).map((checkbox) => checkbox.value),
             dia_mes: div.querySelector('.evento-dia-mes').value,
             numero_semana: div.querySelector('.evento-numero-semana').value,
             mes: div.querySelector('.evento-mes').value,
