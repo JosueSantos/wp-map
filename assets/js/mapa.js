@@ -61,6 +61,9 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     function descricaoRecorrencia(evento) {
         const frequencia = String(evento?.frequencia || 'semanal');
+        const dias = Array.isArray(evento?.dias)
+            ? evento.dias.map((dia) => String(dia)).filter((dia) => Object.prototype.hasOwnProperty.call(diaMap, dia))
+            : [];
         const diaSemana = diaMap[String(evento?.dia)] || 'dia não informado';
         const diaMes = evento?.dia_mes ? String(evento.dia_mes) : '';
         const mes = mesMap[String(evento?.mes)] || '';
@@ -69,6 +72,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         if (frequencia === 'mensal') return diaMes ? `Todo dia ${diaMes}` : 'Mensal';
         if (frequencia === 'numero_semana') return (numeroSemana && diaSemana) ? `${numeroSemana}ª ${diaSemana} do mês` : 'Por número da semana';
         if (frequencia === 'anual') return (diaMes && mes) ? `Todo dia ${diaMes} de ${mes}` : 'Anual';
+        if (dias.length) return `Toda ${dias.map((dia) => diaMap[dia]).join(', ')}`;
         return `Todo ${diaSemana}`;
     }
     function isMobile() {

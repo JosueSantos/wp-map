@@ -142,6 +142,7 @@ function cc_api_obter_comunidade_para_edicao($request) {
             'titulo' => $evento->post_title,
             'frequencia' => get_post_meta($evento->ID, 'frequencia', true) ?: 'semanal',
             'dia' => get_post_meta($evento->ID, 'dia_semana', true),
+            'dias' => cc_api_get_evento_dias_semana($evento->ID),
             'dia_mes' => get_post_meta($evento->ID, 'dia_mes', true),
             'numero_semana' => get_post_meta($evento->ID, 'numero_semana', true),
             'mes' => get_post_meta($evento->ID, 'mes', true),
@@ -168,6 +169,28 @@ function cc_api_obter_comunidade_para_edicao($request) {
         'eventos' => $eventos,
         'imagem_url' => get_the_post_thumbnail_url($comunidade_id, 'medium') ?: '',
     ]);
+}
+
+
+function cc_api_get_evento_dias_semana($evento_id) {
+    $dias = get_post_meta($evento_id, 'dias_semana', true);
+
+    if (is_array($dias)) {
+        $normalizados = array_values(array_unique(array_filter(array_map('intval', $dias), function($dia) {
+            return $dia >= 0 && $dia <= 6;
+        })));
+
+        sort($normalizados);
+        return $normalizados;
+    }
+
+    $dia_unico = get_post_meta($evento_id, 'dia_semana', true);
+    if ($dia_unico === '' || $dia_unico === null) {
+        return [];
+    }
+
+    $dia_unico = (int) $dia_unico;
+    return ($dia_unico >= 0 && $dia_unico <= 6) ? [$dia_unico] : [];
 }
 
 function cc_api_salvar_eventos($comunidade_id, $eventos = []) {
@@ -207,7 +230,26 @@ function cc_api_salvar_eventos($comunidade_id, $eventos = []) {
             $frequencia = 'semanal';
         }
 
-        $dia_semana = isset($evt['dia']) && $evt['dia'] !== '' ? max(0, min(6, (int) $evt['dia'])) : '';
+        $dias_semana = [];
+        if (isset($evt['dias']) && is_array($evt['dias'])) {
+            foreach ($evt['dias'] as $dia_item) {
+                if ($dia_item === '' || $dia_item === null) continue;
+                $dia_item = (int) $dia_item;
+                if ($dia_item >= 0 && $dia_item <= 6) {
+                    $dias_semana[] = $dia_item;
+                }
+            }
+        } elseif (isset($evt['dia']) && $evt['dia'] !== '') {
+            $dia_item = (int) $evt['dia'];
+            if ($dia_item >= 0 && $dia_item <= 6) {
+                $dias_semana[] = $dia_item;
+            }
+        }
+
+        $dias_semana = array_values(array_unique($dias_semana));
+        sort($dias_semana);
+        $dia_semana = !empty($dias_semana) ? $dias_semana[0] : '';
+
         $dia_mes = isset($evt['dia_mes']) && $evt['dia_mes'] !== '' ? max(1, min(31, (int) $evt['dia_mes'])) : '';
         $numero_semana = isset($evt['numero_semana']) && $evt['numero_semana'] !== '' ? max(1, min(5, (int) $evt['numero_semana'])) : '';
         $mes = isset($evt['mes']) && $evt['mes'] !== '' ? max(1, min(12, (int) $evt['mes'])) : '';
@@ -217,8 +259,10 @@ function cc_api_salvar_eventos($comunidade_id, $eventos = []) {
         update_post_meta($evento_id, 'frequencia', $frequencia);
         if ($dia_semana === '') {
             delete_post_meta($evento_id, 'dia_semana');
+            delete_post_meta($evento_id, 'dias_semana');
         } else {
             update_post_meta($evento_id, 'dia_semana', $dia_semana);
+            update_post_meta($evento_id, 'dias_semana', $dias_semana);
         }
 
         if ($dia_mes === '') {
