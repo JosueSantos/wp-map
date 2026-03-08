@@ -26,28 +26,26 @@
 
                                 <form id="mapa-filtros" class="cc-filtros-form">
                                     <label>
-                                        <span>Período</span>
-                                        <select id="filtro-periodo" name="periodo"></select>
+                                        <span>Filtro rápido de celebrações</span>
+                                        <select id="filtro-evento-periodo"></select>
                                     </label>
 
                                     <label id="filtro-data-wrap">
-                                        <span>Dia selecionado</span>
+                                        <span>Data específica</span>
                                         <input type="date" id="filtro-data" name="data">
                                     </label>
 
-                                    <label>
-                                        <span>Tipo de evento</span>
-                                        <select id="filtro-tipo-evento" name="tipo_evento"></select>
-                                    </label>
+                                    <input type="hidden" id="filtro-periodo" name="periodo" value="">
+                                    <input type="hidden" id="filtro-tipo-evento" name="tipo_evento" value="">
 
                                     <label>
-                                        <span>Tipo de comunidade</span>
-                                        <select id="filtro-tipo-comunidade" name="tipo_comunidade"></select>
-                                    </label>
-
-                                    <label>
-                                        <span>Tag</span>
+                                        <span>Evento: categoria</span>
                                         <select id="filtro-tag" name="tag"></select>
+                                    </label>
+
+                                    <label>
+                                        <span>Evento: comunidade</span>
+                                        <select id="filtro-tipo-comunidade" name="tipo_comunidade"></select>
                                     </label>
                                 </form>
 

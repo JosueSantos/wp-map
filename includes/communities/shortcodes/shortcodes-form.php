@@ -8,7 +8,7 @@ add_shortcode('mapa_form_comunidade', function () {
 
     wp_enqueue_script('leaflet-js', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', [], null, true);
 
-    wp_enqueue_script('mapa-form', CC_URL . 'assets/js/form.js', ['leaflet-js'], '1.2', true);
+    wp_enqueue_script('mapa-form', CC_URL . 'assets/js/form.js', ['leaflet-js'], '1.3', true);
 
     wp_enqueue_style(
         'bootstrap-icons',
@@ -27,7 +27,8 @@ add_shortcode('mapa_form_comunidade', function () {
             : wp_login_url($redirect_to),
         'register_url' => function_exists('cc_with_redirect_to')
             ? cc_with_redirect_to(cc_get_auth_page_url('cadastro', '/cadastro'), $redirect_to)
-            : wp_registration_url()
+            : wp_registration_url(),
+        'map_url' => home_url('/mapa-de-comunidades/')
     ]);
 
     wp_enqueue_script('tailwind-cdn', 'https://cdn.tailwindcss.com', [], null);

@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const buscaEl = document.getElementById("filtro-busca");
     const buscaListEl = document.getElementById("mapa-comunidades-list");
     const buscaBtn = document.getElementById("mapa-buscar-comunidade");
+    const filtroEventoPeriodoEl = document.getElementById("filtro-evento-periodo");
 
     const fallbackCenter = [-3.7319, -38.5267]; // Fortaleza
     const fallbackZoom = 13;
@@ -585,15 +586,54 @@ document.addEventListener("DOMContentLoaded", async function () {
         select.innerHTML = opts.join("");
     }
 
+    function preencherFiltroEventoPeriodo(tiposEvento) {
+        if (!filtroEventoPeriodoEl) return;
+
+        const mapTipos = {};
+        (tiposEvento || []).forEach((tipo) => {
+            mapTipos[String(tipo.slug || '').toLowerCase()] = tipo;
+        });
+
+        const opcoes = [{ value: '|', label: 'Todos os eventos' }];
+
+        const missa = mapTipos['missa'];
+        if (missa) {
+            opcoes.push({ value: `hoje|${missa.slug}`, label: 'Missa hoje' });
+            opcoes.push({ value: `semana|${missa.slug}`, label: 'Missa esta semana' });
+            opcoes.push({ value: `data|${missa.slug}`, label: 'Missa data específica' });
+        }
+
+        const confissao = mapTipos['confissao'] || mapTipos['confissão'];
+        if (confissao) {
+            opcoes.push({ value: `hoje|${confissao.slug}`, label: 'Confissão hoje' });
+            opcoes.push({ value: `semana|${confissao.slug}`, label: 'Confissão esta semana' });
+            opcoes.push({ value: `data|${confissao.slug}`, label: 'Confissão data específica' });
+        }
+
+        filtroEventoPeriodoEl.innerHTML = opcoes
+            .map((opcao) => `<option value="${escapeHtml(opcao.value)}">${escapeHtml(opcao.label)}</option>`)
+            .join('');
+    }
+
+    function sincronizarFiltrosEventoPeriodo() {
+        const periodoEl = document.getElementById('filtro-periodo');
+        const tipoEventoEl = document.getElementById('filtro-tipo-evento');
+        if (!filtroEventoPeriodoEl || !periodoEl || !tipoEventoEl) return;
+
+        const [periodo, tipoEvento] = String(filtroEventoPeriodoEl.value || '|').split('|');
+        periodoEl.value = periodo || '';
+        tipoEventoEl.value = tipoEvento || '';
+    }
+
     async function carregarFiltros() {
         try {
             const res = await fetch(API_FILTROS_URL);
             const filtros = await res.json();
 
-            selectToOption("filtro-periodo", filtros.periodos || [], "Qualquer período");
-            selectToOption("filtro-tipo-evento", filtros.tipos_evento || [], "Todos os tipos");
-            selectToOption("filtro-tipo-comunidade", filtros.tipos_comunidade || [], "Todos os tipos");
-            selectToOption("filtro-tag", filtros.tags || [], "Todas as tags");
+            preencherFiltroEventoPeriodo(filtros.tipos_evento || []);
+            selectToOption("filtro-tipo-comunidade", filtros.tipos_comunidade || [], "Todas as comunidades");
+            selectToOption("filtro-tag", filtros.tags || [], "Todas as categorias de evento");
+            sincronizarFiltrosEventoPeriodo();
         } catch (err) {
             console.error("Erro ao carregar filtros:", err);
         }
@@ -602,12 +642,12 @@ document.addEventListener("DOMContentLoaded", async function () {
 
 
     function atualizarCampoDataFiltro() {
-        const periodoEl = document.getElementById('filtro-periodo');
         const dataEl = document.getElementById('filtro-data');
         const dataWrapEl = document.getElementById('filtro-data-wrap');
-        if (!periodoEl || !dataEl || !dataWrapEl) return;
+        if (!dataEl || !dataWrapEl) return;
 
-        const habilitado = periodoEl.value === 'data';
+        const valorFiltroCombinado = String(filtroEventoPeriodoEl?.value || '|');
+        const habilitado = valorFiltroCombinado.startsWith('data|');
         dataEl.disabled = !habilitado;
         dataWrapEl.style.display = habilitado ? '' : 'none';
         if (!habilitado) dataEl.value = '';
@@ -662,6 +702,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     buscaBtn?.addEventListener("click", aplicarBusca);
 
     filtrosForm?.addEventListener("change", () => {
+        sincronizarFiltrosEventoPeriodo();
         atualizarCampoDataFiltro();
         if (!isMobile()) carregarComunidades();
     });
@@ -672,6 +713,9 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     limparBtn?.addEventListener("click", () => {
         filtrosForm?.reset();
+        if (filtroEventoPeriodoEl) filtroEventoPeriodoEl.value = '|';
+        sincronizarFiltrosEventoPeriodo();
+        atualizarCampoDataFiltro();
         if (buscaEl) buscaEl.value = "";
         state.termoBusca = "";
         updateAutocomplete(state.autocompleteBase);

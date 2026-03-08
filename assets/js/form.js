@@ -780,6 +780,47 @@ function mapaMostrarFeedback(mensagem, tipo = 'info') {
     debug.innerText = mensagem;
 }
 
+
+function mapaDefinirEstadoBotaoEnvio(emEnvio) {
+    const botao = document.getElementById('mapa-submit-btn');
+    if (!botao) return;
+
+    if (!botao.dataset.labelOriginal) {
+        botao.dataset.labelOriginal = botao.textContent.trim();
+    }
+
+    botao.disabled = !!emEnvio;
+    botao.classList.toggle('opacity-70', !!emEnvio);
+    botao.classList.toggle('cursor-not-allowed', !!emEnvio);
+    botao.textContent = emEnvio ? 'Salvando...' : botao.dataset.labelOriginal;
+}
+
+function mapaExibirModalSucesso(resp) {
+    const modal = document.getElementById('mapa-sucesso-modal');
+    const texto = document.getElementById('mapa-sucesso-texto');
+    const botaoNovo = document.getElementById('mapa-sucesso-novo');
+    const botaoMapa = document.getElementById('mapa-sucesso-mapa');
+
+    if (!modal || !botaoNovo || !botaoMapa) return;
+
+    if (texto) {
+        texto.textContent = modoEdicao
+            ? 'A comunidade foi atualizada com sucesso.'
+            : `Comunidade cadastrada com sucesso! Código: ${resp?.comunidade_id || '-'}.`;
+    }
+
+    botaoNovo.onclick = function () {
+        window.location.href = window.location.pathname;
+    };
+
+    botaoMapa.onclick = function () {
+        window.location.href = MAPA_API?.map_url || '/';
+    };
+
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
 function mapaEnviar() {
 
     if (!MAPA_API?.is_logged_in) {
@@ -848,6 +889,7 @@ function mapaEnviar() {
     }
 
     mapaMostrarFeedback('Enviando cadastro... aguarde.', 'info');
+    mapaDefinirEstadoBotaoEnvio(true);
 
     fetch(MAPA_API.url, {
         method: 'POST',
@@ -865,8 +907,12 @@ function mapaEnviar() {
     })
     .then(resp => {
         mapaMostrarFeedback(modoEdicao ? 'Comunidade atualizada com sucesso!' : `Cadastro realizado com sucesso! ID da comunidade: ${resp.comunidade_id}.`, 'sucesso');
+        mapaExibirModalSucesso(resp);
     })
     .catch(error => {
         mapaMostrarFeedback(error.message || 'Erro ao enviar cadastro. Tente novamente.', 'erro');
+    })
+    .finally(() => {
+        mapaDefinirEstadoBotaoEnvio(false);
     });
 }
