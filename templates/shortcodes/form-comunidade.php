@@ -11,6 +11,19 @@
     </div>
 </div>
 
+<div id="mapa-sucesso-modal" class="hidden fixed inset-0 w-screen h-screen z-[9999] bg-black/70 px-4 py-8 alignfull" style="margin: 0;">
+    <div class="mx-auto max-w-xl h-full flex items-center justify-center">
+        <div class="w-full bg-white rounded-2xl shadow-2xl p-5 sm:p-8 space-y-4 text-center">
+            <h3 class="text-2xl font-bold text-gray-800">Cadastro salvo com sucesso!</h3>
+            <p id="mapa-sucesso-texto" class="text-gray-600">Sua comunidade foi salva e já está disponível no mapa.</p>
+            <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                <button id="mapa-sucesso-novo" type="button" class="px-5 py-2.5 rounded-xl border border-indigo-200 text-indigo-700 font-semibold bg-indigo-50">Cadastrar outra comunidade</button>
+                <button id="mapa-sucesso-mapa" type="button" class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white hover:text-white hover:bg-indigo-700 font-semibold transition">Ir para o mapa de comunidades</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="max-w-5xl mx-auto bg-white shadow-xl rounded-2xl p-4 sm:p-8 space-y-6">
     <p id="mapa-user-greeting" class="text-lg text-gray-700 font-medium hidden"></p>
     <div class="sticky top-8 z-20 bg-white/95 backdrop-blur-sm py-3 border-b border-gray-100 rounded-xl px-2 shadow-sm">
@@ -136,7 +149,7 @@
 
     <div class="pt-1">
         <div class="pt-4 mt-2 border-t border-gray-200">
-            <button onclick="mapaEnviar()"
+            <button id="mapa-submit-btn" onclick="mapaEnviar()"
                 class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-semibold transition shadow-sm">
                 Salvar Comunidade
             </button>
