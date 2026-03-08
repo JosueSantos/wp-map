@@ -265,6 +265,10 @@ function cc_api_mapa_comunidades($request) {
             ];
         }
 
+        if (!empty($lista_eventos)) {
+            usort($lista_eventos, 'cc_comparar_eventos_por_data');
+        }
+
         if ((($periodo !== '') || $tipo_evento || $tag) && empty($lista_eventos)) {
             continue;
         }
@@ -310,6 +314,166 @@ function cc_api_mapa_comunidades($request) {
     set_transient($cache_key, $resultado, 60);
 
     return rest_ensure_response($resultado);
+}
+
+function cc_comparar_eventos_por_data($evento_a, $evento_b) {
+    $agora = new DateTimeImmutable('now');
+    $data_a = cc_evento_proxima_ocorrencia($evento_a, $agora);
+    $data_b = cc_evento_proxima_ocorrencia($evento_b, $agora);
+
+    return $data_a <=> $data_b;
+}
+
+function cc_evento_proxima_ocorrencia($evento, DateTimeImmutable $base) {
+    $frequencia = sanitize_key((string) ($evento['frequencia'] ?? 'semanal')) ?: 'semanal';
+    $hora = cc_evento_normalizar_horario($evento['horario'] ?? '00:00');
+
+    if ($frequencia === 'mensal') {
+        return cc_evento_proxima_data_mensal($base, (int) ($evento['dia_mes'] ?? 1), $hora);
+    }
+
+    if ($frequencia === 'numero_semana') {
+        return cc_evento_proxima_data_numero_semana($base, (int) ($evento['numero_semana'] ?? 1), (int) ($evento['dia'] ?? 0), $hora);
+    }
+
+    if ($frequencia === 'anual') {
+        return cc_evento_proxima_data_anual($base, (int) ($evento['dia_mes'] ?? 1), (int) ($evento['mes'] ?? 1), $hora);
+    }
+
+    $dias = isset($evento['dias']) && is_array($evento['dias']) ? array_values($evento['dias']) : [];
+    if (empty($dias) && isset($evento['dia'])) {
+        $dias = [(int) $evento['dia']];
+    }
+
+    return cc_evento_proxima_data_semanal($base, $dias, $hora);
+}
+
+function cc_evento_normalizar_horario($horario) {
+    $hora = trim((string) $horario);
+    if (!preg_match('/^(\d{1,2}):(\d{2})/', $hora, $match)) {
+        return '00:00';
+    }
+
+    $h = max(0, min(23, (int) $match[1]));
+    $m = max(0, min(59, (int) $match[2]));
+    return sprintf('%02d:%02d', $h, $m);
+}
+
+function cc_evento_compor_data_hora(DateTimeImmutable $data, $hora) {
+    return DateTimeImmutable::createFromFormat('Y-m-d H:i', $data->format('Y-m-d') . ' ' . $hora) ?: $data;
+}
+
+function cc_evento_proxima_data_semanal(DateTimeImmutable $base, array $dias, $hora) {
+    $dias_validos = array_values(array_unique(array_filter(array_map('intval', $dias), function($dia) {
+        return $dia >= 0 && $dia <= 6;
+    })));
+
+    if (empty($dias_validos)) {
+        return cc_evento_compor_data_hora($base, $hora);
+    }
+
+    sort($dias_validos);
+    $hoje_dia = (int) $base->format('w');
+    $candidatos = [];
+
+    foreach ($dias_validos as $dia) {
+        $delta = ($dia - $hoje_dia + 7) % 7;
+        $data = $base->modify("+{$delta} day");
+        $data_hora = cc_evento_compor_data_hora($data, $hora);
+
+        if ($data_hora < $base) {
+            $data_hora = $data_hora->modify('+7 day');
+        }
+
+        $candidatos[] = $data_hora;
+    }
+
+    usort($candidatos, function($a, $b) {
+        return $a <=> $b;
+    });
+
+    return $candidatos[0];
+}
+
+function cc_evento_proxima_data_mensal(DateTimeImmutable $base, $dia_mes, $hora) {
+    $dia = max(1, min(31, (int) $dia_mes));
+    $ano = (int) $base->format('Y');
+    $mes = (int) $base->format('n');
+
+    for ($i = 0; $i < 24; $i++) {
+        $mes_teste = $mes + $i;
+        $ano_teste = $ano + (int) floor(($mes_teste - 1) / 12);
+        $mes_normalizado = (($mes_teste - 1) % 12) + 1;
+        $ultimo_dia = (int) (new DateTimeImmutable("{$ano_teste}-{$mes_normalizado}-01"))->format('t');
+        $dia_normalizado = min($dia, $ultimo_dia);
+        $data = new DateTimeImmutable(sprintf('%04d-%02d-%02d', $ano_teste, $mes_normalizado, $dia_normalizado));
+        $data_hora = cc_evento_compor_data_hora($data, $hora);
+
+        if ($data_hora >= $base) {
+            return $data_hora;
+        }
+    }
+
+    return cc_evento_compor_data_hora($base, $hora);
+}
+
+function cc_evento_proxima_data_numero_semana(DateTimeImmutable $base, $numero_semana, $dia_semana, $hora) {
+    $numero = max(1, min(5, (int) $numero_semana));
+    $dia = max(0, min(6, (int) $dia_semana));
+    $ano = (int) $base->format('Y');
+    $mes = (int) $base->format('n');
+
+    for ($i = 0; $i < 24; $i++) {
+        $mes_teste = $mes + $i;
+        $ano_teste = $ano + (int) floor(($mes_teste - 1) / 12);
+        $mes_normalizado = (($mes_teste - 1) % 12) + 1;
+        $data = cc_evento_data_numero_semana($ano_teste, $mes_normalizado, $numero, $dia);
+
+        if (!$data) {
+            continue;
+        }
+
+        $data_hora = cc_evento_compor_data_hora($data, $hora);
+        if ($data_hora >= $base) {
+            return $data_hora;
+        }
+    }
+
+    return cc_evento_compor_data_hora($base, $hora);
+}
+
+function cc_evento_data_numero_semana($ano, $mes, $numero_semana, $dia_semana) {
+    $inicio_mes = new DateTimeImmutable(sprintf('%04d-%02d-01', $ano, $mes));
+    $w_inicio = (int) $inicio_mes->format('w');
+    $delta = ($dia_semana - $w_inicio + 7) % 7;
+    $dia = 1 + $delta + (($numero_semana - 1) * 7);
+    $ultimo_dia = (int) $inicio_mes->format('t');
+
+    if ($dia > $ultimo_dia) {
+        return null;
+    }
+
+    return new DateTimeImmutable(sprintf('%04d-%02d-%02d', $ano, $mes, $dia));
+}
+
+function cc_evento_proxima_data_anual(DateTimeImmutable $base, $dia_mes, $mes, $hora) {
+    $dia = max(1, min(31, (int) $dia_mes));
+    $mes_num = max(1, min(12, (int) $mes));
+    $ano = (int) $base->format('Y');
+
+    for ($i = 0; $i < 5; $i++) {
+        $ano_teste = $ano + $i;
+        $ultimo_dia = (int) (new DateTimeImmutable(sprintf('%04d-%02d-01', $ano_teste, $mes_num)))->format('t');
+        $dia_normalizado = min($dia, $ultimo_dia);
+        $data = new DateTimeImmutable(sprintf('%04d-%02d-%02d', $ano_teste, $mes_num, $dia_normalizado));
+        $data_hora = cc_evento_compor_data_hora($data, $hora);
+
+        if ($data_hora >= $base) {
+            return $data_hora;
+        }
+    }
+
+    return cc_evento_compor_data_hora($base, $hora);
 }
 
 

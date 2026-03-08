@@ -37,6 +37,7 @@ require_once CC_PATH . 'includes/communities/api/api-form.php';
 require_once CC_PATH . 'includes/communities/shortcodes/shortcodes-comunidade.php';
 require_once CC_PATH . 'includes/communities/shortcodes/shortcodes-mapa.php';
 require_once CC_PATH . 'includes/communities/shortcodes/shortcodes-form.php';
+require_once CC_PATH . 'includes/communities/single-comunidade.php';
 
 function cc_plugin_activate() {
     cc_criar_tabela_alteracoes();

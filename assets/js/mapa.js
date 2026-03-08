@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const buscaListEl = document.getElementById("mapa-comunidades-list");
     const buscaBtn = document.getElementById("mapa-buscar-comunidade");
     const filtroEventoPeriodoEl = document.getElementById("filtro-evento-periodo");
+    const urlCadastro = containerEl.dataset.urlCadastro || "";
 
     const fallbackCenter = [-3.7319, -38.5267]; // Fortaleza
     const fallbackZoom = 13;
@@ -406,8 +407,10 @@ document.addEventListener("DOMContentLoaded", async function () {
             return;
         }
 
-        const eventosHtml = (comunidade.eventos || []).length
-            ? comunidade.eventos.map((evento) => {
+        const eventosOrdenados = Array.isArray(comunidade.eventos) ? comunidade.eventos : [];
+
+        const eventosHtml = eventosOrdenados.length
+            ? eventosOrdenados.map((evento) => {
                 const recorrencia = descricaoRecorrencia(evento);
                 return `
                     <li class="bg-slate-50 border border-slate-200 rounded-lg p-3">
@@ -420,6 +423,10 @@ document.addEventListener("DOMContentLoaded", async function () {
             : "<li class='bg-slate-50 border border-slate-200 rounded-lg p-3'><p class='text-xs text-slate-600'>Sem eventos para os filtros selecionados.</p></li>";
 
         const contatosFormatados = renderContatos(comunidade.contatos);
+
+        const linkEdicao = urlCadastro && Number(comunidade.id) > 0
+            ? `${urlCadastro}${urlCadastro.includes("?") ? "&" : "?"}editar_comunidade=${Number(comunidade.id)}`
+            : "";
 
         detalhesEl.innerHTML = `
             <button type="button" class="cc-panel-toggle" aria-expanded="true" aria-controls="cc-panel-detalhes-body">
@@ -437,6 +444,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                         <h5 class="text-sm font-semibold text-slate-800 border-b pb-1">Eventos</h5>
                         <ul class="grid gap-2">${eventosHtml}</ul>
                     </div>
+                    ${linkEdicao ? `<p class="text-xs text-slate-600 pt-2 border-t border-slate-200"><a href="${escapeHtml(linkEdicao)}" class="text-sky-700 hover:underline font-medium">Existe alguma informação incorreta ou desatualizada?</a></p>` : ""}
                 </article>
             </div>
         `;
