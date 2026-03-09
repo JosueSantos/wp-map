@@ -19,6 +19,9 @@ add_action('wp_enqueue_scripts', function () {
     }
 
     wp_enqueue_script('tailwind-cdn', 'https://cdn.tailwindcss.com', [], null);
+    wp_enqueue_style('leaflet-css', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', [], '1.9.4');
+    wp_enqueue_script('leaflet-js', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', [], '1.9.4', true);
+    wp_enqueue_style('cc-mapa-css', CC_URL . 'assets/css/mapa.css', [], '1.2');
     wp_enqueue_style(
         'bootstrap-icons',
         'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css',

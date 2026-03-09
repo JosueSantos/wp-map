@@ -810,11 +810,11 @@ function mapaExibirModalSucesso(resp) {
     }
 
     botaoNovo.onclick = function () {
-        window.location.href = window.location.pathname;
+        window.location.href = MAPA_API?.form_url || window.location.href.split('?')[0];
     };
 
     botaoMapa.onclick = function () {
-        window.location.href = MAPA_API?.map_url || '/';
+        window.location.href = MAPA_API?.map_url || '/mapa-de-comunidades/';
     };
 
     modal.classList.remove('hidden');

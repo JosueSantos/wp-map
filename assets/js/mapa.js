@@ -388,6 +388,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         });
     }
 
+
     function renderDetalhes(comunidade) {
         if (!detalhesEl) return;
 
@@ -427,6 +428,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         const linkEdicao = urlCadastro && Number(comunidade.id) > 0
             ? `${urlCadastro}${urlCadastro.includes("?") ? "&" : "?"}editar_comunidade=${Number(comunidade.id)}`
             : "";
+        const linkSingle = comunidade.permalink || "";
+        const shareUrl = encodeURIComponent(linkSingle || window.location.href);
+        const shareText = encodeURIComponent(`Confira esta comunidade: ${comunidade.nome || "Comunidade"}`);
 
         detalhesEl.innerHTML = `
             <button type="button" class="cc-panel-toggle" aria-expanded="true" aria-controls="cc-panel-detalhes-body">
@@ -440,6 +444,11 @@ document.addEventListener("DOMContentLoaded", async function () {
                     ${comunidade.endereco ? `<p class="text-sm text-slate-600 leading-snug text-center max-w-xs mx-auto">${escapeHtml(comunidade.endereco)}</p>` : ""}
                     ${contatosFormatados ? `<div class="space-y-3">${contatosFormatados}</div>` : ""}
                     ${comunidade.distancia_km ? `<p><small>Distância: ${Number(comunidade.distancia_km).toFixed(1)} km</small></p>` : ""}
+                    <div class="cc-detalhes-acoes">
+                        ${linkSingle ? `<a class="cc-btn-detalhes cc-btn-detalhes--primary" href="${escapeHtml(linkSingle)}"><i class="bi bi-info-circle"></i> Ver mais informações</a>` : ""}
+                        <a class="cc-btn-detalhes cc-btn-detalhes--secondary" href="https://wa.me/?text=${shareText}%20${shareUrl}" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp"></i> Compartilhar no WhatsApp</a>
+                        <a class="cc-btn-detalhes cc-btn-detalhes--secondary" href="https://www.facebook.com/sharer/sharer.php?u=${shareUrl}" target="_blank" rel="noopener noreferrer"><i class="bi bi-facebook"></i> Compartilhar no Facebook</a>
+                    </div>
                     <div class="space-y-2">
                         <h5 class="text-sm font-semibold text-slate-800 border-b pb-1">Eventos</h5>
                         <ul class="grid gap-2">${eventosHtml}</ul>
