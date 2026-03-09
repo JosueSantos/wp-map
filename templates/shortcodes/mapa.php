@@ -15,6 +15,17 @@
             <div class="cc-mapa-content" aria-live="polite">
                 <div class="cc-mapa-sidebar">
                     <div class="cc-overlay-panels">
+                        <aside id="mapa-detalhes" class="cc-overlay-panel cc-overlay-panel--detalhes" data-panel="detalhes">
+                            <button type="button" class="cc-panel-toggle" aria-expanded="false" aria-controls="cc-panel-detalhes-body">
+                                <span>Comunidade selecionada</span>
+                                <span class="cc-panel-toggle-icon" aria-hidden="true"><i class="bi bi-chevron-down"></i></span>
+                            </button>
+
+                            <div class="cc-panel-body" id="cc-panel-detalhes-body">
+                                <p class="cc-filtro-texto">Toque em um pino para ver detalhes e eventos.</p>
+                            </div>
+                        </aside>
+
                         <aside class="cc-overlay-panel cc-overlay-panel--filtros" data-panel="filtros">
                             <button type="button" class="cc-panel-toggle" aria-expanded="true" aria-controls="cc-panel-filtros-body">
                                 <span>Filtros do mapa</span>
@@ -53,17 +64,6 @@
                                     <button id="mapa-aplicar-filtros" type="button">Aplicar filtros</button>
                                     <button id="mapa-limpar-filtros" type="button">Limpar</button>
                                 </div>
-                            </div>
-                        </aside>
-
-                        <aside id="mapa-detalhes" class="cc-overlay-panel cc-overlay-panel--detalhes" data-panel="detalhes">
-                            <button type="button" class="cc-panel-toggle" aria-expanded="false" aria-controls="cc-panel-detalhes-body">
-                                <span>Comunidade selecionada</span>
-                                <span class="cc-panel-toggle-icon" aria-hidden="true"><i class="bi bi-chevron-down"></i></span>
-                            </button>
-
-                            <div class="cc-panel-body" id="cc-panel-detalhes-body">
-                                <p class="cc-filtro-texto">Toque em um pino para ver detalhes e eventos.</p>
                             </div>
                         </aside>
                     </div>

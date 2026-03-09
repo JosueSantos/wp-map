@@ -298,6 +298,7 @@ function cc_api_mapa_comunidades($request) {
             'parent_paroquia' => (int) get_post_meta($c->ID, 'parent_paroquia', true),
             'eventos'   => $lista_eventos,
             'distancia_km' => $distancia,
+            'permalink' => get_permalink($c->ID),
         ];
     }
 

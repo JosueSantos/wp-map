@@ -114,25 +114,25 @@
     <section id="secao-etapa-3" data-step="3" class="rounded-2xl border border-gray-200 p-4 sm:p-6">
         <h3 class="text-lg font-semibold text-gray-800 mb-4">3. Contatos</h3>
 
-        <div id="contatos-container" class="space-y-3"></div>
-
         <button type="button"
             onclick="mapaAdicionarContato()"
             class="mt-3 w-full sm:w-auto px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-base font-medium transition">
             + Adicionar contato
         </button>
+
+        <div id="contatos-container" class="space-y-3 mt-3"></div>
     </section>
 
     <section id="secao-etapa-4" data-step="4" class="rounded-2xl border border-gray-200 p-4 sm:p-6">
         <h3 class="text-lg font-semibold text-gray-800 mb-4">4. Eventos [Missa, Confissão, Ação social]</h3>
-
-        <div id="eventos" class="space-y-3"></div>
 
         <button type="button"
             onclick="mapaAdicionarEvento()"
             class="w-full sm:w-auto mt-3 px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-base font-medium transition">
             + Adicionar evento
         </button>
+
+        <div id="eventos" class="space-y-3 mt-3"></div>
     </section>
 
     <section id="secao-imagem" class="rounded-2xl border border-gray-200 p-4 sm:p-6 space-y-3">
