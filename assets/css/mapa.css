@@ -243,6 +243,19 @@
     color: #1e293b;
 }
 
+
+#mapa-igrejas .cc-btn-detalhes--whatsapp {
+    background: #16a34a;
+    border-color: #16a34a;
+    color: #fff;
+}
+
+#mapa-igrejas .cc-btn-detalhes--facebook {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+}
+
 #mapa-igrejas .cc-social-grid {
     display: grid;
     gap: .5rem;

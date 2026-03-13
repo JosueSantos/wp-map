@@ -141,7 +141,8 @@ async function mapaCarregarTiposComunidade() {
 
         const prioridadeTipo = {
             capela: 0,
-            paroquia: 1,
+            igreja_matriz: 1,
+            paroquia: 2,
         };
 
         const termosOrdenados = [...termos].sort((a, b) => {
@@ -672,8 +673,18 @@ function mapaAdicionarEvento(evento = null) {
 }
 
 const TIPOS_CONTATO = [
-  "telefone","whatsapp","instagram","facebook","youtube","site","email"
+  "telefone", "whatsapp", "instagram", "facebook", "youtube", "site", "email"
 ];
+
+const LABELS_TIPOS_CONTATO = {
+    telefone: "Telefone",
+    whatsapp: "Whatsapp",
+    instagram: "Instagram",
+    facebook: "Facebook",
+    youtube: "Youtube",
+    site: "Site",
+    email: "Email",
+};
 
 function mapaAdicionarContato(tipoInicial = '', valorInicial = '') {
     const container = document.getElementById('contatos-container');
@@ -682,7 +693,7 @@ function mapaAdicionarContato(tipoInicial = '', valorInicial = '') {
     div.className = "grid grid-cols-1 sm:grid-cols-2 gap-3 bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm";
 
     const options = TIPOS_CONTATO.map(tipo =>
-        `<option value="${tipo}">${tipo}</option>`
+        `<option value="${tipo}">${LABELS_TIPOS_CONTATO[tipo] || tipo}</option>`
     ).join('');
 
     div.innerHTML = `

@@ -35,6 +35,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         attribution: "&copy; OpenStreetMap"
     }).addTo(map);
 
+    const markerClusterGroup = L.markerClusterGroup();
+    map.addLayer(markerClusterGroup);
+
     const resizeObserver = new ResizeObserver(() => {
         map.invalidateSize();
     });
@@ -260,7 +263,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         if (data.telefones.length) {
             const itens = data.telefones
-                .map((tel) => `<li class="flex items-center gap-2"><i class="bi bi-telephone text-slate-500"></i>${escapeHtml(tel)}</li>`)
+                .map((tel) => `<li class="flex items-center gap-2"><i class="bi bi-telephone text-slate-500"></i><a href="tel:${escapeHtml(String(tel).replace(/[^0-9+]/g, ""))}" target="_blank" rel="noopener noreferrer" class="hover:underline">${escapeHtml(tel)}</a></li>`)
                 .join("");
 
             blocks.push(`
@@ -276,7 +279,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 .map((email) => `
                     <li class="flex items-start gap-2 break-all">
                         <i class="bi bi-envelope text-slate-500"></i>
-                        <a href="mailto:${encodeURIComponent(email)}" class="hover:underline">
+                        <a href="mailto:${encodeURIComponent(email)}" target="_blank" rel="noopener noreferrer" class="hover:underline">
                             ${escapeHtml(email)}
                         </a>
                     </li>
@@ -446,8 +449,8 @@ document.addEventListener("DOMContentLoaded", async function () {
                     ${comunidade.distancia_km ? `<p><small>Distância: ${Number(comunidade.distancia_km).toFixed(1)} km</small></p>` : ""}
                     <div class="cc-detalhes-acoes">
                         ${linkSingle ? `<a class="cc-btn-detalhes cc-btn-detalhes--primary" href="${escapeHtml(linkSingle)}"><i class="bi bi-info-circle"></i> Ver mais informações</a>` : ""}
-                        <a class="cc-btn-detalhes cc-btn-detalhes--secondary" href="https://wa.me/?text=${shareText}%20${shareUrl}" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp"></i> Compartilhar no WhatsApp</a>
-                        <a class="cc-btn-detalhes cc-btn-detalhes--secondary" href="https://www.facebook.com/sharer/sharer.php?u=${shareUrl}" target="_blank" rel="noopener noreferrer"><i class="bi bi-facebook"></i> Compartilhar no Facebook</a>
+                        <a class="cc-btn-detalhes cc-btn-detalhes--whatsapp" href="https://wa.me/?text=${shareText}%20${shareUrl}" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp"></i> Compartilhar no WhatsApp</a>
+                        <a class="cc-btn-detalhes cc-btn-detalhes--facebook" href="https://www.facebook.com/sharer/sharer.php?u=${shareUrl}" target="_blank" rel="noopener noreferrer"><i class="bi bi-facebook"></i> Compartilhar no Facebook</a>
                     </div>
                     <div class="space-y-2">
                         <h5 class="text-sm font-semibold text-slate-800 border-b pb-1">Atividades</h5>
@@ -478,7 +481,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     function clearMarkers() {
-        state.markers.forEach((marker) => marker.remove());
+        markerClusterGroup.clearLayers();
         state.markers = [];
     }
 
@@ -487,7 +490,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         const lng = Number(comunidade.longitude);
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
-        const marker = L.marker([lat, lng]).addTo(map);
+        const marker = L.marker([lat, lng]);
         marker.bindTooltip(`${escapeHtml(comunidade.nome)}`, {
             direction: "top",
             offset: [0, -10],
@@ -500,6 +503,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             if (isMobile()) scrollDetalhesIntoView();
         });
 
+        markerClusterGroup.addLayer(marker);
         state.markers.push(marker);
     }
 

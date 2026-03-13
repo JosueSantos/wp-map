@@ -120,3 +120,15 @@ GET /comunidades
 | tag | string | [libras, tridentina, crianças ...] |
 | limite | integer | Quantidade máxima de comunidades retornadas |
 | proximidade | boolean | Ordena pela maior proximidade |
+
+
+## Atualizações recentes
+
+- A página single de comunidade agora usa endereço com link clicável para o Google Maps (abre em nova aba), sem exibir latitude/longitude no bloco de informações rápidas.
+- Botões de compartilhamento padronizados: WhatsApp em verde e Facebook em azul.
+- Contatos passaram a ser exibidos como links clicáveis (telefone, WhatsApp, redes, site e e-mail), abrindo em nova aba quando aplicável.
+- Em **Minha Conta**, os locais cadastrados e observados exibem **Ver detalhes** (single) e **Editar**.
+- Na lista de observação de alterações foi adicionado **Ver detalhes** para cada local quando disponível.
+- O mapa principal agora agrupa pinos próximos com `Leaflet.markercluster`.
+- No cadastro de comunidades, o campo **Tipo do Local** prioriza **Capela** e **Igreja Matriz** no topo.
+- No cadastro de contatos, os rótulos dos tipos agora iniciam com maiúscula (ex.: Telefone, Site).
