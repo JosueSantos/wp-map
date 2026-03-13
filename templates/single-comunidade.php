@@ -73,6 +73,49 @@ function cc_formatar_recorrencia_single($evento) {
 $share_url = urlencode(get_permalink($comunidade_id));
 $share_text = urlencode('Confira este local: ' . $nome);
 
+
+function cc_contato_label($tipo) {
+    $map = [
+        'telefone' => 'Telefone',
+        'whatsapp' => 'Whatsapp',
+        'instagram' => 'Instagram',
+        'facebook' => 'Facebook',
+        'youtube' => 'Youtube',
+        'site' => 'Site',
+        'email' => 'Email',
+    ];
+
+    $key = sanitize_key((string) $tipo);
+    return $map[$key] ?? ucfirst((string) $tipo ?: 'Contato');
+}
+
+function cc_contato_link($tipo, $valor) {
+    $tipo = sanitize_key((string) $tipo);
+    $valor = trim((string) $valor);
+
+    if ($valor === '') return '';
+
+    if ($tipo === 'email') {
+        return 'mailto:' . sanitize_email($valor);
+    }
+
+    if ($tipo === 'telefone' || $tipo === 'whatsapp') {
+        $digits = preg_replace('/[^0-9]/', '', $valor);
+        if ($digits === '') return '';
+        return $tipo === 'whatsapp' ? 'https://wa.me/' . $digits : 'tel:' . $digits;
+    }
+
+    if (preg_match('#^https?://#i', $valor)) {
+        return $valor;
+    }
+
+    if (in_array($tipo, ['instagram', 'facebook', 'youtube', 'site'], true)) {
+        return 'https://' . ltrim($valor, '/');
+    }
+
+    return '';
+}
+
 get_header();
 ?>
 <main class="bg-slate-50 min-h-screen py-10">
@@ -86,12 +129,12 @@ get_header();
             <?php endif; ?>
 
             <?php if ($endereco): ?>
-                <p class="text-slate-700"><i class="bi bi-geo-alt"></i> <?php echo esc_html($endereco); ?></p>
+                <p class="text-slate-700"><i class="bi bi-geo-alt"></i> <a class="text-sky-700 hover:underline" href="https://www.google.com/maps/search/?api=1&query=<?php echo rawurlencode($endereco); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html($endereco); ?></a></p>
             <?php endif; ?>
 
             <div class="flex flex-wrap gap-3 pt-2">
-                <a class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sky-600 text-white hover:bg-sky-700" href="https://wa.me/?text=<?php echo $share_text . '%20' . $share_url; ?>" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp"></i> Compartilhar no WhatsApp</a>
-                <a class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 text-white hover:bg-slate-900" href="https://www.facebook.com/sharer/sharer.php?u=<?php echo $share_url; ?>" target="_blank" rel="noopener noreferrer"><i class="bi bi-facebook"></i> Compartilhar no Facebook</a>
+                <a class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700" href="https://wa.me/?text=<?php echo $share_text . '%20' . $share_url; ?>" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp"></i> Compartilhar no WhatsApp</a>
+                <a class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700" href="https://www.facebook.com/sharer/sharer.php?u=<?php echo $share_url; ?>" target="_blank" rel="noopener noreferrer"><i class="bi bi-facebook"></i> Compartilhar no Facebook</a>
                 <a class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100" href="mailto:?subject=<?php echo rawurlencode($nome); ?>&body=<?php echo $share_text . '%20' . $share_url; ?>"><i class="bi bi-envelope"></i> Compartilhar por e-mail</a>
             </div>
         </header>
@@ -161,11 +204,8 @@ get_header();
             <aside class="space-y-6">
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-3">
                     <h2 class="text-xl font-semibold text-slate-900">Informações rápidas</h2>
-                    <?php if ($latitude !== '' && $longitude !== ''): ?>
-                        <p class="text-sm text-slate-700 break-all"><strong>Coordenadas:</strong> <?php echo esc_html($latitude . ', ' . $longitude); ?></p>
-                    <?php endif; ?>
                     <?php if ($endereco): ?>
-                        <p class="text-sm text-slate-700"><strong>Endereço:</strong> <?php echo esc_html($endereco); ?></p>
+                        <p class="text-sm text-slate-700"><strong>Endereço:</strong> <a class="text-sky-700 hover:underline" href="https://www.google.com/maps/search/?api=1&query=<?php echo rawurlencode($endereco); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html($endereco); ?></a></p>
                     <?php endif; ?>
                 </div>
 
@@ -174,7 +214,10 @@ get_header();
                         <h2 class="text-xl font-semibold text-slate-900">Contatos</h2>
                         <ul class="space-y-2">
                             <?php foreach ($contatos as $contato): ?>
-                                <li class="text-sm text-slate-700"><strong><?php echo esc_html($contato['tipo'] ?? 'Contato'); ?>:</strong> <?php echo esc_html($contato['valor'] ?? ''); ?></li>
+                                <?php $contato_tipo = $contato['tipo'] ?? 'contato'; ?>
+                                <?php $contato_valor = $contato['valor'] ?? ''; ?>
+                                <?php $contato_link = cc_contato_link($contato_tipo, $contato_valor); ?>
+                                <li class="text-sm text-slate-700"><strong><?php echo esc_html(cc_contato_label($contato_tipo)); ?>:</strong> <?php if ($contato_link): ?><a class="text-sky-700 hover:underline break-all" href="<?php echo esc_url($contato_link); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html($contato_valor); ?></a><?php else: ?><?php echo esc_html($contato_valor); ?><?php endif; ?></li>
                             <?php endforeach; ?>
                         </ul>
                     </div>
@@ -198,7 +241,10 @@ get_header();
                         maxZoom: 19,
                         attribution: '&copy; OpenStreetMap contributors'
                     }).addTo(map);
-                    L.marker([lat, lng]).addTo(map).bindPopup('<?php echo esc_js($nome); ?>').openPopup();
+                    const markers = L.markerClusterGroup();
+                    markers.addLayer(L.marker([lat, lng]).bindPopup('<?php echo esc_js($nome); ?>'));
+                    map.addLayer(markers);
+                    markers.eachLayer(function (marker) { marker.openPopup(); });
                 });
             </script>
         <?php endif; ?>
