@@ -6,6 +6,7 @@ let modoEdicao = false;
 let comunidadeEditandoId = null;
 let eventosRemovidos = [];
 let mapaDefinirCoordenadas = null;
+let tagsEventoCache = [];
 
 document.addEventListener('DOMContentLoaded', async function () {
     mapaConfigurarBloqueioDeNaoLogado();
@@ -247,6 +248,7 @@ function mapaIniciarSeletorDeCoordenadas() {
     const lngInput = document.getElementById('longitude');
     const enderecoInput = document.getElementById('endereco');
     const botaoBusca = document.getElementById('buscar-endereco-mapa');
+    const botaoLocalizacaoAtual = document.getElementById('mapa-usar-localizacao-atual');
     const mensagemAjuste = document.getElementById('mapa-ajuste-msg');
     const mensagemErro = document.getElementById('mapa-endereco-erro');
 
@@ -274,6 +276,12 @@ function mapaIniciarSeletorDeCoordenadas() {
     botaoBusca.addEventListener('click', function () {
         mapaBuscarEnderecoNoOpenStreetMap(enderecoInput.value, mensagemErro);
     });
+
+    if (botaoLocalizacaoAtual) {
+        botaoLocalizacaoAtual.addEventListener('click', function () {
+            mapaUsarLocalizacaoAtual(mensagemErro);
+        });
+    }
 
     enderecoInput.addEventListener('keydown', function (event) {
         if (event.key === 'Enter') {
@@ -344,6 +352,40 @@ function mapaIniciarSeletorDeCoordenadas() {
             erroEl.classList.remove('hidden');
         }
     }
+
+    function mapaUsarLocalizacaoAtual(erroEl) {
+        if (!navigator.geolocation) {
+            erroEl.textContent = 'Seu navegador não suporta geolocalização. Marque o ponto manualmente no mapa.';
+            erroEl.classList.remove('hidden');
+            return;
+        }
+
+        erroEl.classList.add('hidden');
+
+        navigator.geolocation.getCurrentPosition(
+            (posicao) => {
+                const latitude = posicao?.coords?.latitude;
+                const longitude = posicao?.coords?.longitude;
+
+                if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+                    erroEl.textContent = 'Não foi possível obter coordenadas válidas da sua localização atual.';
+                    erroEl.classList.remove('hidden');
+                    return;
+                }
+
+                mapaAtualizarMarcadorCadastro(latitude, longitude, true);
+            },
+            () => {
+                erroEl.textContent = 'Permita o acesso à localização para usar sua posição atual.';
+                erroEl.classList.remove('hidden');
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0,
+            }
+        );
+    }
 }
 
 
@@ -412,20 +454,34 @@ async function mapaCarregarTiposEvento(select) {
 }
 
 async function mapaCarregarTagsEvento(select) {
+    if (!Array.isArray(tagsEventoCache) || !tagsEventoCache.length) {
+        const response = await fetch('/wp-json/wp/v2/tags_evento?per_page=100&_fields=id,name,meta');
+        tagsEventoCache = await response.json();
+    }
 
-    const response = await fetch('/wp-json/wp/v2/tags_evento?per_page=100');
-    const termos = await response.json();
+    const tipoEventoId = parseInt(select.dataset.tipoEventoId || '', 10);
+    const selecionadas = Array.from(select.selectedOptions).map((option) => parseInt(option.value, 10));
 
     select.innerHTML = '';
 
-    termos.forEach(termo => {
+    tagsEventoCache.forEach((termo) => {
+        const exclusivos = Array.isArray(termo?.meta?.exclusive_tipo_evento_ids)
+            ? termo.meta.exclusive_tipo_evento_ids.map((id) => parseInt(id, 10)).filter(Number.isInteger)
+            : [];
+
+        const semExclusividade = exclusivos.length === 0;
+        const permitidoPeloTipo = Number.isInteger(tipoEventoId) && tipoEventoId > 0 && exclusivos.includes(tipoEventoId);
+
+        if (!semExclusividade && !permitidoPeloTipo) {
+            return;
+        }
 
         const option = document.createElement('option');
         option.value = termo.id;
         option.textContent = termo.name;
+        option.selected = selecionadas.includes(parseInt(termo.id, 10));
 
         select.appendChild(option);
-
     });
 }
 
@@ -592,14 +648,20 @@ function mapaAdicionarEvento(evento = null) {
         if (evento?.tipo_evento_id) {
             selectTipo.value = String(evento.tipo_evento_id);
         }
+
+        selectTags.dataset.tipoEventoId = selectTipo.value || '';
+        mapaCarregarTagsEvento(selectTags).then(() => {
+            if (Array.isArray(evento?.tags_evento_ids)) {
+                Array.from(selectTags.options).forEach((option) => {
+                    option.selected = evento.tags_evento_ids.includes(parseInt(option.value, 10));
+                });
+            }
+        });
     });
 
-    mapaCarregarTagsEvento(selectTags).then(() => {
-        if (Array.isArray(evento?.tags_evento_ids)) {
-            Array.from(selectTags.options).forEach((option) => {
-                option.selected = evento.tags_evento_ids.includes(parseInt(option.value, 10));
-            });
-        }
+    selectTipo.addEventListener('change', function () {
+        selectTags.dataset.tipoEventoId = this.value || '';
+        mapaCarregarTagsEvento(selectTags);
     });
 
     if (evento) {

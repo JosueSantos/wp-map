@@ -293,11 +293,39 @@ function cc_api_salvar_eventos($comunidade_id, $eventos = []) {
         }
 
         if (!empty($evt['tags_evento']) && is_array($evt['tags_evento'])) {
-            wp_set_object_terms($evento_id, array_map('intval', $evt['tags_evento']), 'tags_evento');
+            $tags_evento_ids = cc_api_filtrar_tags_evento_por_tipo(
+                array_map('intval', $evt['tags_evento']),
+                !empty($evt['tipo_evento']) ? (int) $evt['tipo_evento'] : 0
+            );
+
+            wp_set_object_terms($evento_id, $tags_evento_ids, 'tags_evento');
         } else {
             wp_set_object_terms($evento_id, [], 'tags_evento');
         }
     }
+}
+
+function cc_api_filtrar_tags_evento_por_tipo($tags_ids = [], $tipo_evento_id = 0) {
+    if (empty($tags_ids) || !is_array($tags_ids)) {
+        return [];
+    }
+
+    $tipo_evento_id = (int) $tipo_evento_id;
+    $tags_validas = [];
+
+    foreach ($tags_ids as $tag_id) {
+        $tag_id = (int) $tag_id;
+        if ($tag_id <= 0) continue;
+
+        $exclusivos = get_term_meta($tag_id, 'exclusive_tipo_evento_ids', true);
+        $exclusivos = is_array($exclusivos) ? array_map('intval', $exclusivos) : [];
+
+        if (empty($exclusivos) || ($tipo_evento_id > 0 && in_array($tipo_evento_id, $exclusivos, true))) {
+            $tags_validas[] = $tag_id;
+        }
+    }
+
+    return array_values(array_unique($tags_validas));
 }
 
 function cc_api_remover_eventos($comunidade_id, $eventos_removidos = []) {

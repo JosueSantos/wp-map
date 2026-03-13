@@ -92,7 +92,13 @@
                         Buscar no mapa
                     </button>
                 </div>
-                <p id="mapa-ajuste-msg" class="mt-3 text-base text-gray-700 hidden">Esta certo a marcação no mapa? Clique para ajustar</p>
+                <div id="mapa-ajuste-msg" class="mt-3 hidden">
+                    <p class="text-base text-gray-700">Esta certo a marcação no mapa? Clique para ajustar</p>
+                    <button type="button" id="mapa-usar-localizacao-atual"
+                        class="mt-2 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-sm font-medium transition">
+                        Utilize minha localização atual
+                    </button>
+                </div>
                 <p id="mapa-endereco-erro" class="mt-3 text-base font-medium text-red-700 hidden"></p>
                 <div id="mapa-cadastro" class="mt-3 rounded-xl border" style="height: 320px; z-index: 1;"></div>
             </div>
