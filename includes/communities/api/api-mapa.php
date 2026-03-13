@@ -112,6 +112,22 @@ function cc_api_mapa_filtros() {
         ];
     }
 
+    usort($lista_tipos_comunidade, function ($a, $b) {
+        $prioridade = [
+            'capela' => 0,
+            'paroquia' => 1,
+        ];
+
+        $pa = $prioridade[$a['slug']] ?? 99;
+        $pb = $prioridade[$b['slug']] ?? 99;
+
+        if ($pa !== $pb) {
+            return $pa <=> $pb;
+        }
+
+        return strcasecmp($a['nome'], $b['nome']);
+    });
+
     $lista_tipos_evento = [];
     foreach ($tipos_evento as $termo) {
         $lista_tipos_evento[] = [
