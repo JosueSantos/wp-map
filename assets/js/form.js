@@ -139,9 +139,25 @@ async function mapaCarregarTiposComunidade() {
         const response = await fetch('/wp-json/wp/v2/tipo_comunidade?per_page=100');
         const termos = await response.json();
 
+        const prioridadeTipo = {
+            capela: 0,
+            paroquia: 1,
+        };
+
+        const termosOrdenados = [...termos].sort((a, b) => {
+            const prioridadeA = prioridadeTipo[a.slug] ?? 99;
+            const prioridadeB = prioridadeTipo[b.slug] ?? 99;
+
+            if (prioridadeA !== prioridadeB) {
+                return prioridadeA - prioridadeB;
+            }
+
+            return String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR', { sensitivity: 'base' });
+        });
+
         select.innerHTML = '<option value="">Selecione</option>';
 
-        termos.forEach(termo => {
+        termosOrdenados.forEach(termo => {
 
             const option = document.createElement('option');
             option.value = termo.id; // IMPORTANTE: usar ID

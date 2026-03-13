@@ -40,6 +40,7 @@
     align-self: start;
     position: sticky;
     top: .25rem;
+    z-index: 450;
     max-height: calc(78vh - 2rem);
     overflow: auto;
     padding-right: .15rem;
@@ -97,6 +98,8 @@
 
 #mapa-igrejas .cc-overlay-panel {
     width: 100%;
+    position: relative;
+    z-index: 460;
     border: 1px solid rgba(148, 163, 184, .55);
     border-radius: .9rem;
     background: #fff;
