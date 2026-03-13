@@ -119,13 +119,13 @@ function mapaAplicarDadosDaComunidade(dados) {
     const contatosContainer = document.getElementById('contatos-container');
     contatosContainer.innerHTML = '';
     (dados.contatos || []).forEach((contato) => {
-        mapaAdicionarContato(contato.tipo || '', contato.valor || '');
+        mapaAdicionarContato(contato.tipo || '', contato.valor || '', false);
     });
 
     const eventosContainer = document.getElementById('eventos');
     eventosContainer.innerHTML = '';
     (dados.eventos || []).forEach((evento) => {
-        mapaAdicionarEvento(evento);
+        mapaAdicionarEvento(evento, false);
     });
 
     mapaAtualizarPreviewImagemExistente(dados.imagem_url || '');
@@ -485,7 +485,7 @@ async function mapaCarregarTagsEvento(select) {
     });
 }
 
-function mapaAdicionarEvento(evento = null) {
+function mapaAdicionarEvento(evento = null, adicionarNoTopo = true) {
     const container = document.getElementById('eventos');
 
     if (!evento) {
@@ -612,9 +612,13 @@ function mapaAdicionarEvento(evento = null) {
         </div>
     `;
 
-    container.appendChild(div);
+    if (adicionarNoTopo) {
+        container.prepend(div);
+    } else {
+        container.appendChild(div);
+    }
 
-    const novoEvento = container.lastElementChild;
+    const novoEvento = div;
 
     const selectTipo = novoEvento.querySelector('.tipo-evento');
     const selectTags = novoEvento.querySelector('.tags-evento');
@@ -748,7 +752,7 @@ const LABELS_TIPOS_CONTATO = {
     email: "Email",
 };
 
-function mapaAdicionarContato(tipoInicial = '', valorInicial = '') {
+function mapaAdicionarContato(tipoInicial = '', valorInicial = '', adicionarNoTopo = true) {
     const container = document.getElementById('contatos-container');
 
     const div = document.createElement('div');
@@ -768,7 +772,11 @@ function mapaAdicionarContato(tipoInicial = '', valorInicial = '') {
             class="contato-valor rounded-lg border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 text-base">
     `;
 
-    container.appendChild(div);
+    if (adicionarNoTopo) {
+        container.prepend(div);
+    } else {
+        container.appendChild(div);
+    }
 
     div.querySelector('.contato-tipo').value = tipoInicial;
     div.querySelector('.contato-valor').value = valorInicial;

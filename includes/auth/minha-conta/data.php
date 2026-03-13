@@ -50,7 +50,7 @@ function cc_get_alteracoes_do_usuario($user_id, $filtros = []) {
         if ($paroquia_id > 0) {
             $conds[] = 'a.paroquia_id = %d';
             $params[] = $paroquia_id;
-            $conds[] = 'EXISTS (SELECT 1 FROM {$wpdb->postmeta} pm WHERE pm.post_id = a.comunidade_id AND pm.meta_key = %s AND pm.meta_value = %d)';
+            $conds[] = "EXISTS (SELECT 1 FROM {$wpdb->postmeta} pm WHERE pm.post_id = a.comunidade_id AND pm.meta_key = %s AND pm.meta_value = %d)";
             $params[] = 'parent_paroquia';
             $params[] = $paroquia_id;
         }
