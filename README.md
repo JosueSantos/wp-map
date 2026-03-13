@@ -11,37 +11,6 @@
 
 Plugin WordPress para cadastro de **Comunidades (Paróquias, Capelas, Associações)** e seus **Eventos (Missas, Confissões, etc)** com API pública para alimentar mapas, apps ou outros sites.
 
-## Arquitetura orientada a contexto
-
-| Pasta | Responsabilidade |
-|---|---|
-| `includes/core` | Infraestrutura base (helpers e bootstrap de suporte) |
-| `includes/auth` | Login, OAuth e formulários de autenticação |
-| `includes/communities` | Regras de comunidade (post types, taxonomias, APIs e shortcodes) |
-| `includes/admin` | Recursos exclusivos para administração do WordPress |
-| `includes/database` | Criação e manutenção de tabelas |
-| `templates` | HTML separado da lógica de negócio |
-
-### Estrutura de pastas
-
-```text
-wp-map/
-├── assets/
-├── includes/
-│   ├── admin/
-│   ├── auth/
-│   ├── communities/
-│   │   ├── api/
-│   │   └── shortcodes/
-│   ├── core/
-│   └── database/
-├── templates/
-│   └── shortcodes/
-├── cadastro-comunidades.php
-├── README.md
-└── readme.txt
-```
-
 ---
 
 ## Estrutura de Dados

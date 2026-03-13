@@ -1,9 +1,11 @@
 <?php
 /**
  * Plugin Name: Cadastro de Comunidades
+ * Plugin URI:  https://github.com/JosueSantos/wp-map
  * Description: Cadastro Colaborativo de Igrejas Católicas
  * Version: 1.1.0
  * Author: SERCOM - Serviço de Comunicação da Arquidiocese de Fortaleza
+ * Author URI:  https://www.arquidiocesedefortaleza.org.br/
  * Text Domain: cadastro-comunidades
  * License: GPL2
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
