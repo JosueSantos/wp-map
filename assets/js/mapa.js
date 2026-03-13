@@ -395,11 +395,11 @@ document.addEventListener("DOMContentLoaded", async function () {
         if (!comunidade) {
             detalhesEl.innerHTML = `
                 <button type="button" class="cc-panel-toggle" aria-expanded="false" aria-controls="cc-panel-detalhes-body">
-                    <span>Comunidade selecionada</span>
+                    <span>Local selecionado</span>
                     <span class="cc-panel-toggle-icon" aria-hidden="true"><i class="bi bi-chevron-down"></i></span>
                 </button>
                 <div class="cc-panel-body" id="cc-panel-detalhes-body">
-                    <p class="cc-filtro-texto">Toque em um pino para ver detalhes e eventos.</p>
+                    <p class="cc-filtro-texto">Toque em um pino para ver detalhes e atividades.</p>
                 </div>
             `;
             const detalhesPanel = detalhesEl.closest(".cc-overlay-panel");
@@ -415,13 +415,13 @@ document.addEventListener("DOMContentLoaded", async function () {
                 const recorrencia = descricaoRecorrencia(evento);
                 return `
                     <li class="bg-slate-50 border border-slate-200 rounded-lg p-3">
-                        <p class="text-sm font-medium text-slate-900">${escapeHtml(evento.titulo || "Evento")}</p>
+                        <p class="text-sm font-medium text-slate-900">${escapeHtml(evento.titulo || "Atividade")}</p>
                         <p class="text-xs text-slate-600">${escapeHtml(recorrencia)} • ${escapeHtml(evento.horario || "Horário não informado")}</p>
                         ${evento.observacao ? `<br><small>${escapeHtml(evento.observacao)}</small>` : ""}
                     </li>
                 `;
             }).join("")
-            : "<li class='bg-slate-50 border border-slate-200 rounded-lg p-3'><p class='text-xs text-slate-600'>Sem eventos para os filtros selecionados.</p></li>";
+            : "<li class='bg-slate-50 border border-slate-200 rounded-lg p-3'><p class='text-xs text-slate-600'>Sem atividades para os filtros selecionados.</p></li>";
 
         const contatosFormatados = renderContatos(comunidade.contatos);
 
@@ -430,11 +430,11 @@ document.addEventListener("DOMContentLoaded", async function () {
             : "";
         const linkSingle = comunidade.permalink || "";
         const shareUrl = encodeURIComponent(linkSingle || window.location.href);
-        const shareText = encodeURIComponent(`Confira esta comunidade: ${comunidade.nome || "Comunidade"}`);
+        const shareText = encodeURIComponent(`Confira este local: ${comunidade.nome || "Comunidade"}`);
 
         detalhesEl.innerHTML = `
             <button type="button" class="cc-panel-toggle" aria-expanded="true" aria-controls="cc-panel-detalhes-body">
-                <span>Comunidade selecionada</span>
+                <span>Local selecionado</span>
                 <span class="cc-panel-toggle-icon" aria-hidden="true"><i class="bi bi-chevron-down"></i></span>
             </button>
             <div class="cc-panel-body" id="cc-panel-detalhes-body">
@@ -450,7 +450,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                         <a class="cc-btn-detalhes cc-btn-detalhes--secondary" href="https://www.facebook.com/sharer/sharer.php?u=${shareUrl}" target="_blank" rel="noopener noreferrer"><i class="bi bi-facebook"></i> Compartilhar no Facebook</a>
                     </div>
                     <div class="space-y-2">
-                        <h5 class="text-sm font-semibold text-slate-800 border-b pb-1">Eventos</h5>
+                        <h5 class="text-sm font-semibold text-slate-800 border-b pb-1">Atividades</h5>
                         <ul class="grid gap-2">${eventosHtml}</ul>
                     </div>
                     ${linkEdicao ? `<p class="text-xs text-slate-600 pt-2 border-t border-slate-200"><a href="${escapeHtml(linkEdicao)}" class="text-sky-700 hover:underline font-medium">Existe alguma informação incorreta ou desatualizada?</a></p>` : ""}
@@ -611,7 +611,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             mapTipos[String(tipo.slug || '').toLowerCase()] = tipo;
         });
 
-        const opcoes = [{ value: '|', label: 'Todos os eventos' }];
+        const opcoes = [{ value: '|', label: 'Todas as atividades' }];
 
         const missa = mapTipos['missa'];
         if (missa) {
@@ -648,8 +648,8 @@ document.addEventListener("DOMContentLoaded", async function () {
             const filtros = await res.json();
 
             preencherFiltroEventoPeriodo(filtros.tipos_evento || []);
-            selectToOption("filtro-tipo-comunidade", filtros.tipos_comunidade || [], "Todas as comunidades");
-            selectToOption("filtro-tag", filtros.tags || [], "Todas as categorias de evento");
+            selectToOption("filtro-tipo-comunidade", filtros.tipos_comunidade || [], "Todas os locais");
+            selectToOption("filtro-tag", filtros.tags || [], "Todas as categorias das atividades");
             sincronizarFiltrosEventoPeriodo();
         } catch (err) {
             console.error("Erro ao carregar filtros:", err);

@@ -122,7 +122,7 @@ function cc_handle_custom_auth_forms() {
         $post = get_post($comunidade_id);
 
         if (!$post || $post->post_type !== 'comunidade') {
-            wp_die(__('Comunidade inválida.', 'cadastro-comunidades'));
+            wp_die(__('Local inválido.', 'cadastro-comunidades'));
         }
 
         cc_observar_comunidade_com_vinculos(get_current_user_id(), $comunidade_id);

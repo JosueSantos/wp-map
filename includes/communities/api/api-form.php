@@ -328,7 +328,7 @@ function cc_api_cadastrar_comunidade($request) {
     }
 
     if (empty($data['nome'])) {
-        return new WP_Error('nome_obrigatorio', 'Nome da comunidade é obrigatório', ['status' => 400]);
+        return new WP_Error('nome_obrigatorio', 'Nome do local é obrigatório', ['status' => 400]);
     }
 
     if (!isset($data['latitude']) || !is_numeric($data['latitude']) || !isset($data['longitude']) || !is_numeric($data['longitude'])) {
@@ -353,7 +353,7 @@ function cc_api_cadastrar_comunidade($request) {
     if ($is_edicao) {
         $post_existente = get_post($comunidade_id);
         if (!$post_existente || $post_existente->post_type !== 'comunidade') {
-            return new WP_Error('comunidade_nao_encontrada', 'Comunidade para edição não encontrada.', ['status' => 404]);
+            return new WP_Error('comunidade_nao_encontrada', 'Local para edição não encontrado.', ['status' => 404]);
         }
 
         wp_update_post([

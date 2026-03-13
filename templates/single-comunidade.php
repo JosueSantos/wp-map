@@ -5,7 +5,7 @@ global $post;
 
 if (!$post || $post->post_type !== 'comunidade') {
     get_header();
-    echo '<main class="max-w-4xl mx-auto px-4 py-10"><p>Comunidade não encontrada.</p></main>';
+    echo '<main class="max-w-4xl mx-auto px-4 py-10"><p>Local não encontrado.</p></main>';
     get_footer();
     return;
 }
@@ -71,14 +71,14 @@ function cc_formatar_recorrencia_single($evento) {
 }
 
 $share_url = urlencode(get_permalink($comunidade_id));
-$share_text = urlencode('Confira esta comunidade: ' . $nome);
+$share_text = urlencode('Confira este local: ' . $nome);
 
 get_header();
 ?>
 <main class="bg-slate-50 min-h-screen py-10">
     <article class="max-w-5xl mx-auto px-4 space-y-8">
         <header class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 lg:p-8 space-y-4">
-            <p class="text-sm text-slate-500">Comunidade</p>
+            <p class="text-sm text-slate-500">Local</p>
             <h1 class="text-3xl font-bold text-slate-900"><?php echo esc_html($nome); ?></h1>
 
             <?php if (!empty($tipos)): ?>
@@ -106,7 +106,7 @@ get_header();
 
                 <?php if (!empty(trim(wp_strip_all_tags((string) $conteudo)))): ?>
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 prose max-w-none">
-                        <h2>Sobre a comunidade</h2>
+                        <h2>Sobre o local</h2>
                         <?php echo $conteudo; ?>
                     </div>
                 <?php endif; ?>
@@ -129,10 +129,10 @@ get_header();
                 <?php endif; ?>
 
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
-                    <h2 class="text-2xl font-semibold text-slate-900">Eventos da comunidade</h2>
+                    <h2 class="text-2xl font-semibold text-slate-900">Atividades do local</h2>
 
                     <?php if (empty($eventos)): ?>
-                        <p class="text-slate-600">Nenhum evento cadastrado.</p>
+                        <p class="text-slate-600">Nenhuma atividade cadastrada.</p>
                     <?php else: ?>
                         <ul class="space-y-3">
                             <?php foreach ($eventos as $evento): ?>
@@ -183,7 +183,7 @@ get_header();
         </section>
         <?php if ($latitude !== '' && $longitude !== ''): ?>
             <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-3">
-                <h2 class="text-2xl font-semibold text-slate-900">Mapa da comunidade</h2>
+                <h2 class="text-2xl font-semibold text-slate-900">Mapa</h2>
                 <div id="single-comunidade-map" style="height: 360px; border-radius: 0.75rem;"></div>
             </section>
             <script>

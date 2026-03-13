@@ -2,7 +2,7 @@
     <div class="mx-auto max-w-xl h-full flex items-center justify-center">
         <div class="w-full bg-white rounded-2xl shadow-2xl p-5 sm:p-8 space-y-3 sm:space-y-4 text-center">
             <h3 class="text-2xl font-bold text-gray-800">Faça login para continuar</h3>
-            <p class="text-gray-600">Para criar ou editar comunidades e eventos, faça login com sua conta. Se ainda não tiver acesso, faça seu cadastro e depois retorne para concluir o cadastro.</p>
+            <p class="text-gray-600">Para criar ou editar locais e atividades, faça login com sua conta. Se ainda não tiver acesso, faça seu cadastro e depois retorne para concluir.</p>
             <div class="flex flex-col sm:flex-row gap-3 justify-center pt-1 sm:pt-2">
                 <a id="mapa-login-link" href="#" class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white hover:text-white hover:bg-indigo-700 font-semibold transition">Entrar</a>
                 <a id="mapa-register-link" href="#" class="px-5 py-2.5 rounded-xl border border-indigo-200 text-indigo-700 font-semibold bg-indigo-50">Criar cadastro</a>
@@ -15,10 +15,10 @@
     <div class="mx-auto max-w-xl h-full flex items-center justify-center">
         <div class="w-full bg-white rounded-2xl shadow-2xl p-5 sm:p-8 space-y-4 text-center">
             <h3 class="text-2xl font-bold text-gray-800">Cadastro salvo com sucesso!</h3>
-            <p id="mapa-sucesso-texto" class="text-gray-600">Sua comunidade foi salva e já está disponível no mapa.</p>
+            <p id="mapa-sucesso-texto" class="text-gray-600">Foi salvo e já está disponível no mapa.</p>
             <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-                <button id="mapa-sucesso-novo" type="button" class="px-5 py-2.5 rounded-xl border border-indigo-200 text-indigo-700 font-semibold bg-indigo-50">Cadastrar outra comunidade</button>
-                <button id="mapa-sucesso-mapa" type="button" class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white hover:text-white hover:bg-indigo-700 font-semibold transition">Ir para o mapa de comunidades</button>
+                <button id="mapa-sucesso-novo" type="button" class="px-5 py-2.5 rounded-xl border border-indigo-200 text-indigo-700 font-semibold bg-indigo-50">Cadastrar outro Local</button>
+                <button id="mapa-sucesso-mapa" type="button" class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white hover:text-white hover:bg-indigo-700 font-semibold transition">Ir para o mapa</button>
             </div>
         </div>
     </div>
@@ -28,7 +28,7 @@
     <p id="mapa-user-greeting" class="text-lg text-gray-700 font-medium hidden"></p>
     <div class="sticky top-8 z-20 bg-white/95 backdrop-blur-sm py-3 border-b border-gray-100 rounded-xl px-2 shadow-sm">
         <div class="space-y-2">
-            <h2 class="text-2xl font-bold text-gray-800">Cadastrar Comunidade</h2>
+            <h2 class="text-2xl font-bold text-gray-800">Cadastrar</h2>
             <p class="text-gray-600 text-base">Fluxo guiado por etapas para facilitar o preenchimento.</p>
         </div>
 
@@ -40,7 +40,7 @@
             <button type="button" data-step-nav="1" class="step-nav w-full text-left px-3 py-2 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 font-medium">1. Dados principais</button>
             <button type="button" data-step-nav="2" class="step-nav w-full text-left px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-500">2. Localização</button>
             <button type="button" data-step-nav="3" class="step-nav w-full text-left px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-500">3. Contatos</button>
-            <button type="button" data-step-nav="4" class="step-nav w-full text-left px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-500">4. Eventos</button>
+            <button type="button" data-step-nav="4" class="step-nav w-full text-left px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-500">4. Atividades</button>
         </div>
     </div>
 
@@ -56,7 +56,7 @@
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700">Tipo</label>
+                <label class="block text-sm font-medium text-gray-700">Tipo do Local</label>
                 <select id="tipo"
                     class="mt-1 w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-base bg-white">
                     <option value="">Carregando...</option>
@@ -64,14 +64,14 @@
             </div>
 
             <div id="campo-paroquia" class="hidden md:col-span-2 rounded-xl border border-amber-200 bg-amber-50 p-4">
-                <label class="block text-sm font-medium text-amber-900">Paróquia Responsável (obrigatório para Capela)</label>
+                <label class="block text-sm font-medium text-amber-900">Igreja Matriz Responsável (obrigatório para Capela)</label>
                 <input type="text" id="busca-paroquia"
-                    placeholder="Digite para buscar paróquia..."
+                    placeholder="Digite para buscar a paróquia..."
                     class="mt-1 w-full rounded-xl border-2 border-amber-300 bg-white px-3 py-2 focus:ring-2 focus:ring-amber-500 text-base">
                 <input type="hidden" id="parent_paroquia">
                 <div id="resultado-paroquias" class="bg-white border rounded-xl mt-2 hidden"></div>
                 <p class="mt-2 text-sm sm:text-base text-amber-900 leading-relaxed">
-                    Se a paróquia não existir, cadastre primeiro a paróquia antes de seguir com o cadastro da capela.
+                    Se a paróquia não existir, cadastre primeiro a igreja matriz antes de seguir com o cadastro da capela.
                 </p>
             </div>
         </div>
@@ -124,26 +124,26 @@
     </section>
 
     <section id="secao-etapa-4" data-step="4" class="rounded-2xl border border-gray-200 p-4 sm:p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">4. Eventos [Missa, Confissão, Ação social]</h3>
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">4. Atividades [Missa, Confissão, Ação social]</h3>
 
         <button type="button"
             onclick="mapaAdicionarEvento()"
             class="w-full sm:w-auto mt-3 px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-base font-medium transition">
-            + Adicionar evento
+            + Adicionar atividade
         </button>
 
         <div id="eventos" class="space-y-3 mt-3"></div>
     </section>
 
     <section id="secao-imagem" class="rounded-2xl border border-gray-200 p-4 sm:p-6 space-y-3">
-        <h3 class="text-lg font-semibold text-gray-800">Imagem da comunidade (opcional)</h3>
+        <h3 class="text-lg font-semibold text-gray-800">Imagem do local (opcional)</h3>
         <p class="text-base text-gray-600">Aceita JPG, PNG, WEBP ou GIF. Máximo sugerido: 5MB.</p>
         <input type="file" id="imagem-comunidade" accept="image/jpeg,image/png,image/webp,image/gif"
             class="block w-full rounded-xl border-2 border-gray-200 bg-gray-50 p-2 text-base text-gray-700 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
         <p id="imagem-comunidade-msg" class="text-base hidden"></p>
         <div id="imagem-comunidade-preview-wrap" class="hidden">
             <p class="text-sm text-gray-600">Imagem atual:</p>
-            <img id="imagem-comunidade-preview" src="" alt="Imagem atual da comunidade" class="mt-2 w-40 h-40 object-cover rounded-lg border border-gray-200">
+            <img id="imagem-comunidade-preview" src="" alt="Imagem atual do local" class="mt-2 w-40 h-40 object-cover rounded-lg border border-gray-200">
         </div>
     </section>
 
@@ -151,7 +151,7 @@
         <div class="pt-4 mt-2 border-t border-gray-200">
             <button id="mapa-submit-btn" onclick="mapaEnviar()"
                 class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-semibold transition shadow-sm">
-                Salvar Comunidade
+                Salvar
             </button>
         </div>
     </div>

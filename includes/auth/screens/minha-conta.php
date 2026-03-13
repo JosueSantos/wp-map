@@ -38,7 +38,7 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
     <div class="max-w-5xl mx-auto space-y-6">
         <section class="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8">
             <h3 class="text-2xl font-bold text-gray-800"><?php esc_html_e('Minha Conta', 'cadastro-comunidades'); ?></h3>
-            <p class="text-gray-600 mt-1"><?php esc_html_e('Aqui você atualiza seus dados e acompanha suas comunidades.', 'cadastro-comunidades'); ?></p>
+            <p class="text-gray-600 mt-1"><?php esc_html_e('Aqui você atualiza seus dados e acompanha seus locais registrados.', 'cadastro-comunidades'); ?></p>
 
             <form method="post" class="mt-5 grid md:grid-cols-2 gap-4">
                 <div>
@@ -73,7 +73,7 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
         </section>
 
         <section class="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8">
-            <h4 class="text-xl font-semibold text-gray-800"><?php esc_html_e('Comunidades cadastradas por você', 'cadastro-comunidades'); ?></h4>
+            <h4 class="text-xl font-semibold text-gray-800"><?php esc_html_e('Locais cadastrados por você', 'cadastro-comunidades'); ?></h4>
             <ul class="mt-3 space-y-2">
                 <?php foreach ($comunidades_criadas as $comunidade): ?>
                     <li class="flex items-center justify-between gap-3 rounded-xl border border-gray-200 p-3 text-gray-800">
@@ -81,18 +81,18 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
                         <a href="<?php echo esc_url(cc_get_editar_comunidade_url_custom($comunidade->ID, $url_editar_comunidade)); ?>" class="<?php echo esc_attr(cc_auth_button_class('secondary')); ?>"><?php esc_html_e('Editar', 'cadastro-comunidades'); ?></a>
                     </li>
                 <?php endforeach; ?>
-                <?php if (empty($comunidades_criadas)): ?><li><?php esc_html_e('Nenhuma comunidade cadastrada ainda.', 'cadastro-comunidades'); ?></li><?php endif; ?>
+                <?php if (empty($comunidades_criadas)): ?><li><?php esc_html_e('Nenhum local cadastrado ainda.', 'cadastro-comunidades'); ?></li><?php endif; ?>
             </ul>
         </section>
 
         <section class="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 space-y-4">
-            <h4 class="text-xl font-semibold text-gray-800"><?php esc_html_e('Observação de comunidades', 'cadastro-comunidades'); ?></h4>
-            <p class="text-gray-600"><?php esc_html_e('Você pode acompanhar alterações em comunidades mesmo sem ser o criador.', 'cadastro-comunidades'); ?></p>
+            <h4 class="text-xl font-semibold text-gray-800"><?php esc_html_e('Observação de Locais', 'cadastro-comunidades'); ?></h4>
+            <p class="text-gray-600"><?php esc_html_e('Você pode acompanhar alterações em locais mesmo sem ser o criador.', 'cadastro-comunidades'); ?></p>
 
             <form method="post" class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
                 <div class="flex-1">
                     <label class="block text-sm font-medium text-gray-700"><?php esc_html_e('Selecionar comunidade', 'cadastro-comunidades'); ?></label>
-                    <input id="cc-observe-comunidade-nome" type="text" name="comunidade_nome" list="cc-comunidades-datalist" required class="<?php echo esc_attr(cc_auth_input_class()); ?>" placeholder="<?php esc_attr_e('Digite para buscar comunidade', 'cadastro-comunidades'); ?>">
+                    <input id="cc-observe-comunidade-nome" type="text" name="comunidade_nome" list="cc-comunidades-datalist" required class="<?php echo esc_attr(cc_auth_input_class()); ?>" placeholder="<?php esc_attr_e('Digite para buscar', 'cadastro-comunidades'); ?>">
                     <input id="cc-observe-comunidade-id" type="hidden" name="comunidade_id">
                 </div>
                 <div>
@@ -117,17 +117,17 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
                         </div>
                     </li>
                 <?php endforeach; ?>
-                <?php if (empty($comunidades_observadas)): ?><li class="text-gray-600"><?php esc_html_e('Nenhuma comunidade observada.', 'cadastro-comunidades'); ?></li><?php endif; ?>
+                <?php if (empty($comunidades_observadas)): ?><li class="text-gray-600"><?php esc_html_e('Nenhum local observado.', 'cadastro-comunidades'); ?></li><?php endif; ?>
             </ul>
         </section>
 
         <section class="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 space-y-4">
             <h4 class="text-xl font-semibold text-gray-800"><?php esc_html_e('Observação de alterações', 'cadastro-comunidades'); ?></h4>
-            <p class="text-gray-600"><?php esc_html_e('Filtre por comunidade e período para encontrar atualizações com facilidade.', 'cadastro-comunidades'); ?></p>
+            <p class="text-gray-600"><?php esc_html_e('Filtre por local e período para encontrar atualizações com facilidade.', 'cadastro-comunidades'); ?></p>
 
             <form method="get" class="grid md:grid-cols-4 gap-3 items-end">
                 <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700"><?php esc_html_e('Comunidade', 'cadastro-comunidades'); ?></label>
+                    <label class="block text-sm font-medium text-gray-700"><?php esc_html_e('Local', 'cadastro-comunidades'); ?></label>
                     <?php $filtro_label = ''; ?>
                     <?php if ($filtros['comunidade_id'] > 0) { foreach ($all_comunidades as $comunidade_item) { if ((int) $comunidade_item->ID === (int) $filtros['comunidade_id']) { $filtro_label = $comunidade_item->post_title . ' (#' . (int) $comunidade_item->ID . ')'; break; } } } ?>
                     <input id="cc-filtro-comunidade-nome" type="text" name="f_comunidade_nome" list="cc-comunidades-datalist" class="<?php echo esc_attr(cc_auth_input_class()); ?>" placeholder="<?php esc_attr_e('Todas', 'cadastro-comunidades'); ?>" value="<?php echo esc_attr($filtro_label); ?>">
@@ -149,7 +149,7 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
             <ul class="space-y-2">
                 <?php foreach ($alteracoes as $alteracao): ?>
                     <li class="rounded-xl border border-gray-200 p-3 text-gray-800">
-                        <strong><?php echo esc_html($alteracao->comunidade_nome ?: 'Comunidade removida'); ?></strong>
+                        <strong><?php echo esc_html($alteracao->comunidade_nome ?: 'Local removida'); ?></strong>
                         <span class="text-gray-500"> — <?php echo esc_html($alteracao->usuario_nome ?: 'Usuário removido'); ?> — <?php echo esc_html(mysql2date('d/m/Y H:i', $alteracao->created_at)); ?></span>
                     </li>
                 <?php endforeach; ?>

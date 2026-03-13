@@ -56,7 +56,7 @@ async function mapaPreencherFormularioEdicao() {
     modoEdicao = true;
     comunidadeEditandoId = editarId;
 
-    mapaMostrarFeedback('Carregando dados da comunidade para edição...', 'info');
+    mapaMostrarFeedback('Carregando dados do local para edição...', 'info');
 
     try {
         const response = await fetch(`/wp-json/mapa/v1/comunidade/${editarId}`, {
@@ -70,17 +70,17 @@ async function mapaPreencherFormularioEdicao() {
         const dados = await response.json();
 
         if (!response.ok) {
-            throw new Error(dados?.message || 'Não foi possível carregar a comunidade para edição.');
+            throw new Error(dados?.message || 'Não foi possível carregar o local para edição.');
         }
 
         mapaAplicarDadosDaComunidade(dados);
-        mapaMostrarFeedback('Você está editando esta comunidade. Ajuste os campos e salve.', 'info');
+        mapaMostrarFeedback('Você está editando este local. Ajuste os campos e salve.', 'info');
 
         const titulo = document.querySelector('#secao-etapa-1 h3');
         if (titulo) titulo.textContent = '1. Dados principais (edição)';
 
         const heading = document.querySelector('h2');
-        if (heading) heading.textContent = 'Editar Comunidade';
+        if (heading) heading.textContent = 'Editar Local';
     } catch (error) {
         mapaMostrarFeedback(error.message || 'Falha ao carregar dados de edição.', 'erro');
     }
@@ -447,18 +447,18 @@ function mapaAdicionarEvento(evento = null) {
 
     div.innerHTML = `
         <button type="button" class="evento-toggle w-full px-4 py-3 text-left bg-white hover:bg-gray-100 transition flex items-center justify-between gap-3">
-            <span class="evento-resumo font-semibold text-gray-800 truncate">Novo evento</span>
+            <span class="evento-resumo font-semibold text-gray-800 truncate">Nova atividade</span>
             <span class="evento-toggle-icon text-gray-500 text-sm"><i class="bi bi-chevron-down"></i></span>
         </button>
 
         <div class="evento-conteudo p-6 space-y-4 border-t border-gray-200">
             <div>
-                <label class="block text-base font-semibold text-gray-700 mb-1">Nome do evento</label>
+                <label class="block text-base font-semibold text-gray-700 mb-1">Nome da atividade</label>
                 <input type="text" placeholder="Ex.: Missa da comunidade" class="evento-titulo w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2">
             </div>
         
             <div>
-                <label class="block text-base font-semibold text-gray-700 mb-1">Tipo de evento</label>
+                <label class="block text-base font-semibold text-gray-700 mb-1">Tipo de atividade</label>
                 <select class="tipo-evento rounded-xl border-2 border-gray-200 bg-white px-3 py-2 w-full focus:ring-2 focus:ring-indigo-500">
                     <option>Carregando tipos...</option>
                 </select>
@@ -550,7 +550,7 @@ function mapaAdicionarEvento(evento = null) {
             </div>
 
             <div class="pt-2 border-t border-gray-200">
-                <button type="button" class="evento-remover px-4 py-2 rounded-lg bg-red-50 text-red-700 border border-red-200 font-medium">Remover evento</button>
+                <button type="button" class="evento-remover px-4 py-2 rounded-lg bg-red-50 text-red-700 border border-red-200 font-medium">Remover atividade</button>
             </div>
         </div>
     `;
@@ -570,7 +570,7 @@ function mapaAdicionarEvento(evento = null) {
 
     function atualizarResumoEvento() {
         const titulo = campoTitulo.value.trim();
-        eventoResumo.textContent = titulo || 'Novo evento';
+        eventoResumo.textContent = titulo || 'Nova atividade';
     }
 
 
@@ -821,8 +821,8 @@ function mapaExibirModalSucesso(resp) {
 
     if (texto) {
         texto.textContent = modoEdicao
-            ? 'A comunidade foi atualizada com sucesso.'
-            : `Comunidade cadastrada com sucesso! Código: ${resp?.comunidade_id || '-'}.`;
+            ? 'O local foi atualizada com sucesso.'
+            : `Local cadastrado com sucesso! Código: ${resp?.comunidade_id || '-'}.`;
     }
 
     botaoNovo.onclick = function () {
@@ -922,7 +922,7 @@ function mapaEnviar() {
         return resp;
     })
     .then(resp => {
-        mapaMostrarFeedback(modoEdicao ? 'Comunidade atualizada com sucesso!' : `Cadastro realizado com sucesso! ID da comunidade: ${resp.comunidade_id}.`, 'sucesso');
+        mapaMostrarFeedback(modoEdicao ? 'Local atualizado com sucesso!' : `Cadastro realizado com sucesso! ID da comunidade: ${resp.comunidade_id}.`, 'sucesso');
         mapaExibirModalSucesso(resp);
     })
     .catch(error => {

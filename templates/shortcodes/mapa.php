@@ -5,7 +5,7 @@
                 <label class="cc-busca-wrap" for="filtro-busca">
                     <span>Pesquisar</span>
                     <div class="cc-busca-acoes">
-                        <input id="filtro-busca" list="mapa-comunidades-list" type="search" placeholder="Digite o nome da comunidade" autocomplete="off" />
+                        <input id="filtro-busca" list="mapa-comunidades-list" type="search" placeholder="Digite o nome do Local" autocomplete="off" />
                         <button id="mapa-buscar-comunidade" type="button"><i class="bi bi-search"></i></button>
                     </div>
                     <datalist id="mapa-comunidades-list"></datalist>
@@ -17,12 +17,12 @@
                     <div class="cc-overlay-panels">
                         <aside id="mapa-detalhes" class="cc-overlay-panel cc-overlay-panel--detalhes" data-panel="detalhes">
                             <button type="button" class="cc-panel-toggle" aria-expanded="false" aria-controls="cc-panel-detalhes-body">
-                                <span>Comunidade selecionada</span>
+                                <span>Local selecionado</span>
                                 <span class="cc-panel-toggle-icon" aria-hidden="true"><i class="bi bi-chevron-down"></i></span>
                             </button>
 
                             <div class="cc-panel-body" id="cc-panel-detalhes-body">
-                                <p class="cc-filtro-texto">Toque em um pino para ver detalhes e eventos.</p>
+                                <p class="cc-filtro-texto">Toque em um pino para ver detalhes e atividades.</p>
                             </div>
                         </aside>
 
@@ -33,11 +33,11 @@
                             </button>
 
                             <div class="cc-panel-body" id="cc-panel-filtros-body">
-                                <p class="cc-filtro-texto font-bold">Selecione os filtros para refinar comunidades e eventos.</p>
+                                <p class="cc-filtro-texto font-bold">Selecione os filtros para refinar os locais e as atividades.</p>
 
                                 <form id="mapa-filtros" class="cc-filtros-form">
                                     <label>
-                                        <span>Filtro rápido de celebrações</span>
+                                        <span>Filtro rápido de missas e confissões</span>
                                         <select id="filtro-evento-periodo"></select>
                                     </label>
 
@@ -50,12 +50,12 @@
                                     <input type="hidden" id="filtro-tipo-evento" name="tipo_evento" value="">
 
                                     <label>
-                                        <span>Evento: categoria</span>
+                                        <span>Categoria da atividade</span>
                                         <select id="filtro-tag" name="tag"></select>
                                     </label>
 
                                     <label>
-                                        <span>Evento: comunidade</span>
+                                        <span>Tipo de Local</span>
                                         <select id="filtro-tipo-comunidade" name="tipo_comunidade"></select>
                                     </label>
                                 </form>
