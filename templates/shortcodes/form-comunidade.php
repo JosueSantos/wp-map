@@ -24,7 +24,7 @@
     </div>
 </div>
 
-<div class="max-w-5xl mx-auto bg-white shadow-xl rounded-2xl p-4 sm:p-8 space-y-6">
+<div class="max-w-5xl mx-auto bg-white shadow-xl rounded-2xl p-4 sm:p-6 space-y-5">
     <p id="mapa-user-greeting" class="text-lg text-gray-700 font-medium hidden"></p>
     <div class="sticky top-8 z-20 bg-white/95 backdrop-blur-sm py-3 border-b border-gray-100 rounded-xl px-2 shadow-sm">
         <div class="space-y-2">
@@ -33,14 +33,15 @@
         </div>
 
         <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div id="progresso-cadastro" class="h-full bg-indigo-600 rounded-full transition-all duration-300" style="width: 25%;"></div>
+            <div id="progresso-cadastro" class="h-full bg-indigo-600 rounded-full transition-all duration-300" style="width: 20%;"></div>
         </div>
 
-        <div id="etapas-cadastro" class="mt-3 hidden md:grid md:grid-cols-4 gap-2 text-sm sm:text-base">
+        <div id="etapas-cadastro" class="mt-3 hidden md:grid md:grid-cols-5 gap-2 text-sm sm:text-base">
             <button type="button" data-step-nav="1" class="step-nav w-full text-left px-3 py-2 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 font-medium">1. Dados principais</button>
             <button type="button" data-step-nav="2" class="step-nav w-full text-left px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-500">2. Localização</button>
             <button type="button" data-step-nav="3" class="step-nav w-full text-left px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-500">3. Contatos</button>
             <button type="button" data-step-nav="4" class="step-nav w-full text-left px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-500">4. Atividades</button>
+            <button type="button" data-step-nav="5" class="step-nav w-full text-left px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-500">5. Imagem</button>
         </div>
     </div>
 
@@ -152,7 +153,7 @@
         </div>
     </section>
 
-    <section id="secao-imagem" class="rounded-2xl border border-gray-200 p-4 sm:p-6 space-y-3">
+    <section id="secao-imagem" data-step="5" class="rounded-2xl border border-gray-200 p-4 sm:p-6 space-y-3">
         <h3 class="text-lg font-semibold text-gray-800">Imagem do local (opcional)</h3>
         <p class="text-base text-gray-600">Aceita JPG, PNG, WEBP ou GIF. Máximo sugerido: 5MB.</p>
         <input type="file" id="imagem-comunidade" accept="image/jpeg,image/png,image/webp,image/gif"

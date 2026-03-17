@@ -8,7 +8,7 @@ add_shortcode('mapa_form_comunidade', function () {
 
     wp_enqueue_script('leaflet-js', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', [], null, true);
 
-    wp_enqueue_script('mapa-form', CC_URL . 'assets/js/form.js', ['leaflet-js'], '1.3', true);
+    wp_enqueue_script('mapa-form', CC_URL . 'assets/js/form.js', ['leaflet-js'], '1.4', true);
 
     wp_enqueue_style(
         'bootstrap-icons',
