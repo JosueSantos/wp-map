@@ -60,7 +60,7 @@
                 <label class="block text-sm font-medium text-gray-700">Tipo do Local</label>
                 <select id="tipo"
                     class="mt-1 w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-base bg-white">
-                    <option value="">Carregando...</option>
+                    <option value="">carregando informações aguarde</option>
                 </select>
             </div>
 
@@ -143,6 +143,12 @@
                 <h4 class="font-semibold text-gray-800">Confissões</h4>
                 <div id="eventos-confissoes" data-evento-grupo="confissao" class="eventos-lista space-y-3 mt-3"></div>
                 <button type="button" onclick="mapaAdicionarEventoPorGrupo('confissao')" class="w-full sm:w-auto mt-3 px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-base font-medium transition">+ Adicionar confissão</button>
+            </div>
+
+            <div class="rounded-xl border border-gray-200 p-4">
+                <h4 class="font-semibold text-gray-800">Adoração ao Santíssimo</h4>
+                <div id="eventos-adoracao-santissimo" data-evento-grupo="adoracao_santissimo" class="eventos-lista space-y-3 mt-3"></div>
+                <button type="button" onclick="mapaAdicionarEventoPorGrupo('adoracao_santissimo')" class="w-full sm:w-auto mt-3 px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-base font-medium transition">+ Adicionar adoração ao Santíssimo</button>
             </div>
 
             <div class="rounded-xl border border-gray-200 p-4">
