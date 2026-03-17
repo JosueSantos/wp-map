@@ -150,6 +150,24 @@ document.addEventListener("DOMContentLoaded", async function () {
         return `https://${raw.replace(/^\/+/, "")}`;
     }
 
+    function buildSocialLink(type, value) {
+        const raw = String(value || '').trim();
+        if (!raw) return '';
+
+        if (/^https?:\/\//i.test(raw)) return raw;
+
+        if (type === 'instagram' && /^@[a-z0-9._]+$/i.test(raw)) return `https://instagram.com/${raw.slice(1)}`;
+        if (type === 'facebook' && /^@[a-z0-9._-]+$/i.test(raw)) return `https://facebook.com/${raw.slice(1)}`;
+        if (type === 'youtube' && /^@[a-z0-9._-]+$/i.test(raw)) return `https://youtube.com/${raw}`;
+
+        if (type === 'whatsapp') {
+            const digits = raw.replace(/\D+/g, '');
+            return digits ? `https://wa.me/${digits}` : '';
+        }
+
+        return ensureUrl(raw);
+    }
+
     function extractContatos(contatos) {
         let data = contatos;
         const parsed = parseJsonString(contatos);
@@ -174,12 +192,13 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
 
         function pushRede(type, label, value) {
-            const href = ensureUrl(value);
+            const original = String(value || '').trim();
+            const href = buildSocialLink(String(type || '').toLowerCase(), original);
             if (!href) return;
             const key = `rede:${type.toLowerCase()}:${href.toLowerCase()}`;
             if (seen.has(key)) return;
             seen.add(key);
-            result.redes.push({ type, label, href });
+            result.redes.push({ type, label, href, display: original || href });
         }
 
         function classify(key, value) {
@@ -322,7 +341,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                     rel="noopener noreferrer"
                     class="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-sm">
                         <i class="bi ${icon} text-slate-600"></i>
-                        <span>${escapeHtml(rede.label)}</span>
+                        <span>${escapeHtml(rede.display || rede.label)}</span>
                     </a>
                 `;
             }).join("");

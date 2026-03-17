@@ -71,6 +71,48 @@ function cc_api_validar_tipo_capela($tipo_id, $parent_paroquia) {
     return true;
 }
 
+function cc_api_normalizar_contato($tipo, $valor) {
+    $tipo = sanitize_key((string) $tipo);
+    $valor = trim((string) $valor);
+
+    if ($tipo === '' || $valor === '') {
+        return null;
+    }
+
+    if ($tipo === 'email') {
+        $email = sanitize_email($valor);
+        return is_email($email) ? $email : null;
+    }
+
+    if ($tipo === 'telefone' || $tipo === 'whatsapp') {
+        $digits = preg_replace('/\D+/', '', $valor);
+        return strlen($digits) >= 10 ? $digits : null;
+    }
+
+    if (in_array($tipo, ['instagram', 'facebook', 'youtube'], true)) {
+        if (preg_match('/^@[a-z0-9._]+$/i', $valor)) {
+            return $valor;
+        }
+
+        if (filter_var($valor, FILTER_VALIDATE_URL)) {
+            return esc_url_raw($valor);
+        }
+
+        return null;
+    }
+
+    if ($tipo === 'site') {
+        if (filter_var($valor, FILTER_VALIDATE_URL)) {
+            return esc_url_raw($valor);
+        }
+
+        $valor_https = 'https://' . ltrim($valor, '/');
+        return filter_var($valor_https, FILTER_VALIDATE_URL) ? esc_url_raw($valor_https) : null;
+    }
+
+    return sanitize_text_field($valor);
+}
+
 function cc_api_processar_upload_imagem($comunidade_id, $file_params) {
 
     if (empty($file_params['imagem_comunidade'])) {
@@ -422,9 +464,15 @@ function cc_api_cadastrar_comunidade($request) {
         foreach ($data['contatos'] as $c) {
             if (empty($c['tipo']) || empty($c['valor'])) continue;
 
+            $tipo = sanitize_key($c['tipo']);
+            $valor_normalizado = cc_api_normalizar_contato($tipo, $c['valor']);
+            if ($valor_normalizado === null) {
+                return new WP_Error('contato_invalido', 'Um ou mais contatos possuem formato inválido para o tipo selecionado.', ['status' => 400]);
+            }
+
             $contatos_limpos[] = [
-                'tipo'  => sanitize_text_field($c['tipo']),
-                'valor' => sanitize_text_field($c['valor'])
+                'tipo'  => $tipo,
+                'valor' => $valor_normalizado
             ];
         }
 
