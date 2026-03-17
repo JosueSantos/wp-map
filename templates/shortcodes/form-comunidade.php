@@ -5,7 +5,7 @@
             <p class="text-gray-600">Para criar ou editar locais e atividades, faça login com sua conta. Se ainda não tiver acesso, faça seu cadastro e depois retorne para concluir.</p>
             <div class="flex flex-col sm:flex-row gap-3 justify-center pt-1 sm:pt-2">
                 <a id="mapa-login-link" href="#" class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white hover:text-white hover:bg-indigo-700 font-semibold transition">Entrar</a>
-                <a id="mapa-register-link" href="#" class="px-5 py-2.5 rounded-xl border border-indigo-200 text-indigo-700 font-semibold bg-indigo-50">Criar cadastro</a>
+                <a id="mapa-register-link" href="#" class="px-5 py-2.5 rounded-xl border border-indigo-200 text-indigo-700 font-semibold bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-800 transition">Criar cadastro</a>
             </div>
         </div>
     </div>
@@ -17,7 +17,7 @@
             <h3 class="text-2xl font-bold text-gray-800">Cadastro salvo com sucesso!</h3>
             <p id="mapa-sucesso-texto" class="text-gray-600">Foi salvo e já está disponível no mapa.</p>
             <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-                <button id="mapa-sucesso-novo" type="button" class="px-5 py-2.5 rounded-xl border border-indigo-200 text-indigo-700 font-semibold bg-indigo-50">Cadastrar outro Local</button>
+                <button id="mapa-sucesso-novo" type="button" class="px-5 py-2.5 rounded-xl border border-indigo-200 text-indigo-700 font-semibold bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-800 transition">Cadastrar outro Local</button>
                 <button id="mapa-sucesso-mapa" type="button" class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white hover:text-white hover:bg-indigo-700 font-semibold transition">Ir para o mapa</button>
             </div>
         </div>

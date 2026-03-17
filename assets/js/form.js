@@ -693,7 +693,7 @@ function mapaCriarOcorrencia(ocorrencia = null) {
     return item;
 }
 
-function mapaAdicionarEventoPorGrupo(grupo, evento = null, adicionarNoTopo = true) {
+function mapaAdicionarEventoPorGrupo(grupo, evento = null, adicionarNoTopo = false) {
     const grupoConfig = EVENTO_GRUPOS[grupo];
     if (!grupoConfig) return;
 
@@ -750,11 +750,9 @@ function mapaAdicionarEventoPorGrupo(grupo, evento = null, adicionarNoTopo = tru
             </div>
 
             <div>
-                <div class="flex items-center justify-between gap-3">
-                    <p class="text-base font-semibold text-gray-700">Frequências e horários</p>
-                    <button type="button" class="evento-ocorrencia-adicionar px-4 py-2 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 font-medium">+ Adicionar frequência</button>
-                </div>
+                <p class="text-base font-semibold text-gray-700">Frequências e horários</p>
                 <div class="evento-ocorrencias space-y-3 mt-3"></div>
+                <button type="button" class="evento-ocorrencia-adicionar mt-3 px-4 py-2 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 font-medium hover:bg-indigo-100 transition">+ Adicionar frequência</button>
             </div>
 
             <div class="pt-2 border-t border-gray-200">
@@ -865,7 +863,7 @@ function mapaAdicionarEventoPorGrupo(grupo, evento = null, adicionarNoTopo = tru
     });
 }
 
-function mapaAdicionarEvento(evento = null, adicionarNoTopo = true) {
+function mapaAdicionarEvento(evento = null, adicionarNoTopo = false) {
     const grupo = evento ? mapaResolverGrupoPorTipoEvento(evento.tipo_evento_id) : 'missa';
     mapaAdicionarEventoPorGrupo(grupo || 'missa', evento, adicionarNoTopo);
 }
@@ -1106,11 +1104,12 @@ function mapaExibirModalSucesso(resp) {
     }
 
     botaoNovo.onclick = function () {
-        window.location.href = MAPA_API?.form_url || window.location.href.split('?')[0];
+        const baseFormUrl = MAPA_API?.form_url || window.location.pathname;
+        window.location.href = String(baseFormUrl).split('?')[0];
     };
 
     botaoMapa.onclick = function () {
-        window.location.href = MAPA_API?.map_url || '/mapa-de-comunidades/';
+        window.location.href = MAPA_API?.map_url || '/';
     };
 
     modal.classList.remove('hidden');
