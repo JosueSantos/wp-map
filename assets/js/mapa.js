@@ -286,7 +286,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         if (data.telefones.length) {
             const itens = data.telefones
-                .map((tel) => `<li class="flex items-center gap-2"><i class="bi bi-telephone text-slate-500"></i><a href="tel:${escapeHtml(String(tel).replace(/[^0-9+]/g, ""))}" target="_blank" rel="noopener noreferrer" class="hover:underline">${escapeHtml(tel)}</a></li>`)
+                .map((tel) => `<li class="flex items-center gap-2"><i class="bi bi-telephone text-slate-500"></i><a href="tel:${escapeHtml(String(tel).replace(/[^0-9+]/g, ""))}" target="_blank" rel="noopener noreferrer" class="text-sky-700 hover:text-sky-900 hover:underline transition">${escapeHtml(tel)}</a></li>`)
                 .join("");
 
             blocks.push(`
@@ -302,7 +302,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 .map((email) => `
                     <li class="flex items-start gap-2 break-all">
                         <i class="bi bi-envelope text-slate-500"></i>
-                        <a href="mailto:${encodeURIComponent(email)}" target="_blank" rel="noopener noreferrer" class="hover:underline">
+                        <a href="mailto:${encodeURIComponent(email)}" target="_blank" rel="noopener noreferrer" class="text-sky-700 hover:text-sky-900 hover:underline transition">
                             ${escapeHtml(email)}
                         </a>
                     </li>
@@ -339,7 +339,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                     <a href="${escapeHtml(rede.href)}"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-sm">
+                    class="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sky-700 hover:text-sky-900 hover:bg-slate-50 text-sm transition">
                         <i class="bi ${icon} text-slate-600"></i>
                         <span>${escapeHtml(rede.display || rede.label)}</span>
                     </a>

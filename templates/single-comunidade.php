@@ -89,6 +89,22 @@ function cc_contato_label($tipo) {
     return $map[$key] ?? ucfirst((string) $tipo ?: 'Contato');
 }
 
+
+function cc_contato_icon_class($tipo) {
+    $map = [
+        'telefone' => 'bi-telephone',
+        'whatsapp' => 'bi-whatsapp',
+        'instagram' => 'bi-instagram',
+        'facebook' => 'bi-facebook',
+        'youtube' => 'bi-youtube',
+        'site' => 'bi-globe',
+        'email' => 'bi-envelope',
+    ];
+
+    $key = sanitize_key((string) $tipo);
+    return $map[$key] ?? 'bi-person-lines-fill';
+}
+
 function cc_contato_link($tipo, $valor) {
     $tipo = sanitize_key((string) $tipo);
     $valor = trim((string) $valor);
@@ -141,7 +157,7 @@ get_header();
             <?php endif; ?>
 
             <?php if ($endereco): ?>
-                <p class="text-slate-700"><i class="bi bi-geo-alt"></i> <a class="text-sky-700 hover:underline" href="https://www.google.com/maps/search/?api=1&query=<?php echo rawurlencode($endereco); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html($endereco); ?></a></p>
+                <p class="text-slate-700"><i class="bi bi-geo-alt"></i> <a class="text-sky-700 hover:text-sky-900 hover:underline transition" href="https://www.google.com/maps/search/?api=1&query=<?php echo rawurlencode($endereco); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html($endereco); ?></a></p>
             <?php endif; ?>
 
             <div class="flex flex-wrap gap-3 pt-2">
@@ -168,7 +184,7 @@ get_header();
 
                 <?php if ($paroquia_id && $paroquia_link): ?>
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                        <p class="text-slate-700"><strong>Pertence a Paróquia:</strong> <a href="<?php echo esc_url($paroquia_link); ?>" class="text-sky-700 hover:underline"><?php echo esc_html($paroquia_nome ?: 'Paróquia'); ?></a></p>
+                        <p class="text-slate-700"><strong>Pertence a Paróquia:</strong> <a href="<?php echo esc_url($paroquia_link); ?>" class="text-sky-700 hover:text-sky-900 hover:underline transition"><?php echo esc_html($paroquia_nome ?: 'Paróquia'); ?></a></p>
                     </div>
                 <?php endif; ?>
 
@@ -177,7 +193,7 @@ get_header();
                         <h2 class="text-2xl font-semibold text-slate-900">Comunidades vinculadas</h2>
                         <ul class="list-disc pl-5 space-y-1">
                             <?php foreach ($comunidades_atreladas as $comunidade_filha): ?>
-                                <li><a href="<?php echo esc_url(get_permalink($comunidade_filha->ID)); ?>" class="text-sky-700 hover:underline"><?php echo esc_html($comunidade_filha->post_title); ?></a></li>
+                                <li><a href="<?php echo esc_url(get_permalink($comunidade_filha->ID)); ?>" class="text-sky-700 hover:text-sky-900 hover:underline transition"><?php echo esc_html($comunidade_filha->post_title); ?></a></li>
                             <?php endforeach; ?>
                         </ul>
                     </div>
@@ -217,7 +233,7 @@ get_header();
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-3">
                     <h2 class="text-xl font-semibold text-slate-900">Informações rápidas</h2>
                     <?php if ($endereco): ?>
-                        <p class="text-sm text-slate-700"><strong>Endereço:</strong> <a class="text-sky-700 hover:underline" href="https://www.google.com/maps/search/?api=1&query=<?php echo rawurlencode($endereco); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html($endereco); ?></a></p>
+                        <p class="text-sm text-slate-700"><strong>Endereço:</strong> <a class="text-sky-700 hover:text-sky-900 hover:underline transition" href="https://www.google.com/maps/search/?api=1&query=<?php echo rawurlencode($endereco); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html($endereco); ?></a></p>
                     <?php endif; ?>
                 </div>
 
@@ -229,7 +245,10 @@ get_header();
                                 <?php $contato_tipo = $contato['tipo'] ?? 'contato'; ?>
                                 <?php $contato_valor = $contato['valor'] ?? ''; ?>
                                 <?php $contato_link = cc_contato_link($contato_tipo, $contato_valor); ?>
-                                <li class="text-sm text-slate-700"><strong><?php echo esc_html(cc_contato_label($contato_tipo)); ?>:</strong> <?php if ($contato_link): ?><a class="text-sky-700 hover:underline break-all" href="<?php echo esc_url($contato_link); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html($contato_valor); ?></a><?php else: ?><?php echo esc_html($contato_valor); ?><?php endif; ?></li>
+                                <li class="text-sm text-slate-700 flex items-start gap-2">
+                                    <i class="bi <?php echo esc_attr(cc_contato_icon_class($contato_tipo)); ?> text-slate-500 mt-0.5" aria-hidden="true"></i>
+                                    <span><strong><?php echo esc_html(cc_contato_label($contato_tipo)); ?>:</strong> <?php if ($contato_link): ?><a class="text-sky-700 hover:text-sky-900 hover:underline break-all transition" href="<?php echo esc_url($contato_link); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html($contato_valor); ?></a><?php else: ?><?php echo esc_html($contato_valor); ?><?php endif; ?></span>
+                                </li>
                             <?php endforeach; ?>
                         </ul>
                     </div>

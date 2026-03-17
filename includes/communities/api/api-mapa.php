@@ -137,35 +137,50 @@ function cc_api_mapa_filtros() {
     }
 
     $lista_tags = [];
+    $lista_tags_lookup = [];
     foreach ($tags_taxonomia as $termo) {
-        $tipo_evento_slug = '';
         $tipo_evento_ids = get_term_meta($termo->term_id, 'exclusive_tipo_evento_ids', true);
         if (!is_array($tipo_evento_ids)) {
             $tipo_evento_ids = array_filter(array_map('intval', explode(',', (string) $tipo_evento_ids)));
         }
 
-        if (!empty($tipo_evento_ids)) {
-            $tipo_evento = get_term((int) $tipo_evento_ids[0], 'tipo_evento');
+        $tipo_evento_slugs = [];
+        foreach ($tipo_evento_ids as $tipo_evento_id) {
+            $tipo_evento = get_term((int) $tipo_evento_id, 'tipo_evento');
             if ($tipo_evento && !is_wp_error($tipo_evento)) {
-                $tipo_evento_slug = $tipo_evento->slug;
+                $tipo_evento_slugs[] = $tipo_evento->slug;
             }
         }
 
-        $lista_tags[$termo->slug] = [
-            'slug' => $termo->slug,
-            'nome' => $termo->name,
-            'tipo_evento_slug' => $tipo_evento_slug,
-        ];
+        if (empty($tipo_evento_slugs)) {
+            $tipo_evento_slugs = [''];
+        }
+
+        foreach (array_unique($tipo_evento_slugs) as $tipo_evento_slug) {
+            $chave = $termo->slug . '|' . $tipo_evento_slug;
+            if (isset($lista_tags_lookup[$chave])) {
+                continue;
+            }
+
+            $lista_tags[] = [
+                'slug' => $termo->slug,
+                'nome' => $termo->name,
+                'tipo_evento_slug' => $tipo_evento_slug,
+            ];
+            $lista_tags_lookup[$chave] = true;
+        }
     }
 
     foreach ($tags_meta as $tag) {
         $slug = sanitize_title($tag);
-        if (!isset($lista_tags[$slug])) {
-            $lista_tags[$slug] = [
+        $chave = $slug . '|';
+        if (!isset($lista_tags_lookup[$chave])) {
+            $lista_tags[] = [
                 'slug' => $slug,
                 'nome' => $tag,
                 'tipo_evento_slug' => '',
             ];
+            $lista_tags_lookup[$chave] = true;
         }
     }
 
@@ -180,7 +195,7 @@ function cc_api_mapa_filtros() {
         'periodos' => $periodos,
         'tipos_evento' => $lista_tipos_evento,
         'tipos_comunidade' => $lista_tipos_comunidade,
-        'tags' => array_values($lista_tags),
+        'tags' => $lista_tags,
     ]);
 }
 
