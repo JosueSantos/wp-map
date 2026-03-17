@@ -5,6 +5,7 @@ function cc_register_post_types() {
     register_post_type('comunidade', [
         'label' => 'Comunidades',
         'public' => true,
+        'rewrite' => ['slug' => 'local', 'with_front' => false],
         'menu_icon' => 'dashicons-location-alt',
         'supports' => ['title','editor','thumbnail'],
         'show_in_rest' => true,

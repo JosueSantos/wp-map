@@ -735,7 +735,11 @@ function mapaAdicionarEventoPorGrupo(grupo, evento = null, adicionarNoTopo = tru
                 </div>
 
                 <div class="campo-caracteristicas md:col-span-2">
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Características</label>
+                    <div class="flex items-center justify-between gap-2 mb-1">
+                        <label class="block text-sm font-semibold text-gray-700">Características</label>
+                        <button type="button" class="evento-limpar-caracteristicas text-xs text-indigo-700 hover:underline">Limpar seleção</button>
+                    </div>
+                    <p class="text-xs text-gray-500 mb-1">Dica: para desmarcar uma característica, clique nela novamente.</p>
                     <select class="tags-evento rounded-xl border-2 border-gray-200 bg-white px-3 py-2 w-full" multiple style="height: auto;"></select>
                 </div>
 
@@ -767,6 +771,7 @@ function mapaAdicionarEventoPorGrupo(grupo, evento = null, adicionarNoTopo = tru
 
     const selectTipo = div.querySelector('.tipo-evento');
     const selectTags = div.querySelector('.tags-evento');
+    const btnLimparCaracteristicas = div.querySelector('.evento-limpar-caracteristicas');
     const campoTitulo = div.querySelector('.evento-titulo');
     const eventoResumo = div.querySelector('.evento-resumo');
     const botaoToggle = div.querySelector('.evento-toggle');
@@ -787,6 +792,21 @@ function mapaAdicionarEventoPorGrupo(grupo, evento = null, adicionarNoTopo = tru
 
     botaoToggle.addEventListener('click', () => definirEstadoSanfona(conteudoEvento.classList.contains('hidden')));
     campoTitulo.addEventListener('input', atualizarResumoEvento);
+
+    if (btnLimparCaracteristicas) {
+        btnLimparCaracteristicas.addEventListener('click', () => {
+            Array.from(selectTags.options).forEach((option) => {
+                option.selected = false;
+            });
+        });
+    }
+
+    selectTags.addEventListener('mousedown', (event) => {
+        const option = event.target;
+        if (!option || option.tagName !== 'OPTION') return;
+        event.preventDefault();
+        option.selected = !option.selected;
+    });
 
     if (grupo === 'confissao') {
         const campoCaracteristicas = div.querySelector('.campo-caracteristicas');
@@ -850,6 +870,40 @@ function mapaAdicionarEvento(evento = null, adicionarNoTopo = true) {
     mapaAdicionarEventoPorGrupo(grupo || 'missa', evento, adicionarNoTopo);
 }
 
+function mapaMascaraTelefone(value) {
+    const digits = String(value || '').replace(/\D+/g, '').slice(0, 13);
+    if (!digits) return '';
+
+    if (digits.length <= 2) return `(${digits}`;
+    if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
+function mapaValidarValorContato(tipo, valor) {
+    const raw = String(valor || '').trim();
+    if (!tipo || !raw) return false;
+
+    if (tipo === 'email') {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw);
+    }
+
+    if (tipo === 'telefone' || tipo === 'whatsapp') {
+        const digits = raw.replace(/\D+/g, '');
+        return digits.length >= 10;
+    }
+
+    if (['instagram', 'facebook', 'youtube'].includes(tipo)) {
+        return /^@[a-z0-9._]+$/i.test(raw) || /^https?:\/\//i.test(raw);
+    }
+
+    if (tipo === 'site') {
+        return /^https?:\/\//i.test(raw) || /^[a-z0-9.-]+\.[a-z]{2,}(\/.*)?$/i.test(raw);
+    }
+
+    return true;
+}
+
 const TIPOS_CONTATO = [
   "telefone", "whatsapp", "instagram", "facebook", "youtube", "site", "email"
 ];
@@ -892,8 +946,37 @@ function mapaAdicionarContato(tipoInicial = '', valorInicial = '', adicionarNoTo
         container.appendChild(div);
     }
 
-    div.querySelector('.contato-tipo').value = tipoInicial;
-    div.querySelector('.contato-valor').value = valorInicial;
+    const tipoEl = div.querySelector('.contato-tipo');
+    const valorEl = div.querySelector('.contato-valor');
+
+    const placeholders = {
+        telefone: '(85) 99999-9999',
+        whatsapp: '(85) 99999-9999',
+        instagram: '@usuario ou https://instagram.com/usuario',
+        facebook: '@usuario ou https://facebook.com/pagina',
+        youtube: '@canal ou https://youtube.com/@canal',
+        site: 'https://seusite.com.br',
+        email: 'contato@exemplo.com',
+    };
+
+    const atualizarInputContato = () => {
+        const tipo = tipoEl.value;
+        valorEl.placeholder = placeholders[tipo] || 'Valor';
+        if (tipo === 'telefone' || tipo === 'whatsapp') {
+            valorEl.value = mapaMascaraTelefone(valorEl.value);
+        }
+    };
+
+    tipoEl.addEventListener('change', atualizarInputContato);
+    valorEl.addEventListener('input', () => {
+        if (tipoEl.value === 'telefone' || tipoEl.value === 'whatsapp') {
+            valorEl.value = mapaMascaraTelefone(valorEl.value);
+        }
+    });
+
+    tipoEl.value = tipoInicial;
+    valorEl.value = valorInicial;
+    atualizarInputContato();
 
     div.querySelector('.contato-remover').addEventListener('click', () => div.remove());
 }
@@ -1044,14 +1127,28 @@ function mapaEnviar() {
     if (!mapaValidarRegraCapela()) return;
 
     const contatos = [];
+    let contatoInvalido = null;
+
     document.querySelectorAll('#contatos-container > div').forEach(div => {
         const tipo = div.querySelector('.contato-tipo').value;
         const valor = div.querySelector('.contato-valor').value;
+
+        if (!tipo && !String(valor || '').trim()) return;
+
+        if (!mapaValidarValorContato(tipo, valor)) {
+            contatoInvalido = tipo || 'contato';
+            return;
+        }
 
         if (tipo && valor) {
             contatos.push({ tipo, valor });
         }
     });
+
+    if (contatoInvalido) {
+        mapaMostrarFeedback(`Valor inválido para ${contatoInvalido}. Confira o formato informado.`, 'erro');
+        return;
+    }
 
     const eventos = [];
 

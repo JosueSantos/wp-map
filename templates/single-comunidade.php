@@ -109,6 +109,18 @@ function cc_contato_link($tipo, $valor) {
         return $valor;
     }
 
+    if ($tipo === 'instagram' && preg_match('/^@[a-z0-9._]+$/i', $valor)) {
+        return 'https://instagram.com/' . ltrim($valor, '@');
+    }
+
+    if ($tipo === 'facebook' && preg_match('/^@[a-z0-9._-]+$/i', $valor)) {
+        return 'https://facebook.com/' . ltrim($valor, '@');
+    }
+
+    if ($tipo === 'youtube' && preg_match('/^@[a-z0-9._-]+$/i', $valor)) {
+        return 'https://youtube.com/' . $valor;
+    }
+
     if (in_array($tipo, ['instagram', 'facebook', 'youtube', 'site'], true)) {
         return 'https://' . ltrim($valor, '/');
     }
