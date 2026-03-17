@@ -449,6 +449,11 @@ const EVENTO_GRUPOS = {
         label: 'Confissão',
         slugsPreferidos: ['confissao', 'confissões', 'confissaoes']
     },
+    adoracao_santissimo: {
+        containerId: 'eventos-adoracao-santissimo',
+        label: 'Adoração ao Santíssimo',
+        slugsPreferidos: ['adoracao-ao-santissimo', 'adoracao_santissimo', 'adoracao', 'santissimo']
+    },
     acao_caritativa: {
         containerId: 'eventos-acao-caritativa',
         label: 'Ação caritativa',
@@ -479,6 +484,7 @@ function mapaResolverGrupoPorTipoEvento(tipoEventoId) {
 
     if (slug.includes('missa') || nome.includes('missa')) return 'missa';
     if (slug.includes('conf') || nome.includes('conf')) return 'confissao';
+    if (slug.includes('ador') || slug.includes('sant') || nome.includes('adora') || nome.includes('sant')) return 'adoracao_santissimo';
     if (slug.includes('carit') || slug.includes('social') || nome.includes('carit') || nome.includes('social')) return 'acao_caritativa';
 
     return '';
@@ -701,7 +707,7 @@ function mapaAdicionarEventoPorGrupo(grupo, evento = null, adicionarNoTopo = fal
     if (!container) return;
 
     if (!evento) {
-        container.querySelectorAll(':scope > div').forEach((eventoExistente) => {
+        document.querySelectorAll('.eventos-lista > div').forEach((eventoExistente) => {
             const conteudo = eventoExistente.querySelector('.evento-conteudo');
             const iconeToggle = eventoExistente.querySelector('.evento-toggle-icon i');
             if (conteudo) conteudo.classList.add('hidden');
@@ -737,6 +743,7 @@ function mapaAdicionarEventoPorGrupo(grupo, evento = null, adicionarNoTopo = fal
                 <div class="campo-caracteristicas md:col-span-2">
                     <div class="flex items-center justify-between gap-2 mb-1">
                         <label class="block text-sm font-semibold text-gray-700">Características</label>
+                        <span class="evento-carregando-caracteristicas text-xs text-gray-500 hidden">carregando informações aguarde</span>
                         <button type="button" class="evento-limpar-caracteristicas text-xs text-indigo-700 hover:underline">Limpar seleção</button>
                     </div>
                     <p class="text-xs text-gray-500 mb-1">Dica: para desmarcar uma característica, clique nela novamente.</p>
@@ -821,12 +828,17 @@ function mapaAdicionarEventoPorGrupo(grupo, evento = null, adicionarNoTopo = fal
             selectTags.innerHTML = '';
             return;
         }
+        const avisoCarregando = div.querySelector('.evento-carregando-caracteristicas');
+        if (avisoCarregando) avisoCarregando.classList.remove('hidden');
+
         mapaCarregarTagsEvento(selectTags).then(() => {
             if (Array.isArray(evento?.tags_evento_ids)) {
                 Array.from(selectTags.options).forEach((option) => {
                     option.selected = evento.tags_evento_ids.includes(parseInt(option.value, 10));
                 });
             }
+        }).finally(() => {
+            if (avisoCarregando) avisoCarregando.classList.add('hidden');
         });
     });
 
@@ -916,7 +928,7 @@ const LABELS_TIPOS_CONTATO = {
     email: "Email",
 };
 
-function mapaAdicionarContato(tipoInicial = '', valorInicial = '', adicionarNoTopo = true) {
+function mapaAdicionarContato(tipoInicial = '', valorInicial = '', adicionarNoTopo = false) {
     const container = document.getElementById('contatos-container');
 
     const div = document.createElement('div');
@@ -948,13 +960,13 @@ function mapaAdicionarContato(tipoInicial = '', valorInicial = '', adicionarNoTo
     const valorEl = div.querySelector('.contato-valor');
 
     const placeholders = {
-        telefone: '(85) 99999-9999',
-        whatsapp: '(85) 99999-9999',
-        instagram: '@usuario ou https://instagram.com/usuario',
-        facebook: '@usuario ou https://facebook.com/pagina',
-        youtube: '@canal ou https://youtube.com/@canal',
-        site: 'https://seusite.com.br',
-        email: 'contato@exemplo.com',
+        telefone: 'Formato: (DDD) 99999-9999 | mínimo 10 números',
+        whatsapp: 'Formato: (DDD) 99999-9999 | mínimo 10 números',
+        instagram: 'Use @usuario ou URL completa do perfil',
+        facebook: 'Use @pagina ou URL completa da página',
+        youtube: 'Use @canal ou URL completa do canal',
+        site: 'Informe URL (https://...) ou domínio válido',
+        email: 'Informe um e-mail válido (ex.: contato@dominio.com)',
     };
 
     const atualizarInputContato = () => {
@@ -1099,7 +1111,7 @@ function mapaExibirModalSucesso(resp) {
 
     if (texto) {
         texto.textContent = modoEdicao
-            ? 'O local foi atualizada com sucesso.'
+            ? 'O local foi atualizado com sucesso.'
             : `Local cadastrado com sucesso! Código: ${resp?.comunidade_id || '-'}.`;
     }
 

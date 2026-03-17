@@ -37,7 +37,7 @@
 
                                 <form id="mapa-filtros" class="cc-filtros-form">
                                     <label>
-                                        <span>Filtro rápido de missas e confissões</span>
+                                        <span>Filtro rápido de missas, confissões e adoração ao Santíssimo</span>
                                         <select id="filtro-evento-periodo"></select>
                                     </label>
 

@@ -638,6 +638,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         const slug = sanitizeKey(valor);
         if (slug.includes('confiss')) return 'confissao';
         if (slug.includes('acao') || slug.includes('carit')) return 'acao_caritativa';
+        if (slug.includes('ador') || slug.includes('sant')) return 'adoracao_santissimo';
         if (slug.includes('missa')) return 'missa';
         return slug.replace(/[^a-z0-9_\-]/g, '');
     }
@@ -689,6 +690,14 @@ document.addEventListener("DOMContentLoaded", async function () {
             opcoes.push({ value: `hoje|${confissao.slug}`, label: 'Confissão hoje' });
             opcoes.push({ value: `semana|${confissao.slug}`, label: 'Confissão esta semana' });
             opcoes.push({ value: `data|${confissao.slug}`, label: 'Confissão data específica' });
+        }
+
+        const adoracao = Object.values(mapTipos).find((tipo) => {
+            const slug = String(tipo?.slug || '').toLowerCase();
+            return slug.includes('ador') || slug.includes('sant');
+        });
+        if (adoracao) {
+            opcoes.push({ value: `semana|${adoracao.slug}`, label: 'Adoração ao Santíssimo esta semana' });
         }
 
         filtroEventoPeriodoEl.innerHTML = opcoes
