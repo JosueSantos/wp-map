@@ -122,8 +122,9 @@ function mapaAplicarDadosDaComunidade(dados) {
         mapaAdicionarContato(contato.tipo || '', contato.valor || '', false);
     });
 
-    const eventosContainer = document.getElementById('eventos');
-    eventosContainer.innerHTML = '';
+    document.querySelectorAll('.eventos-lista').forEach((lista) => {
+        lista.innerHTML = '';
+    });
     (dados.eventos || []).forEach((evento) => {
         mapaAdicionarEvento(evento, false);
     });
@@ -435,21 +436,95 @@ function mapaIniciarEtapasDoFormulario() {
 }
 
 
-async function mapaCarregarTiposEvento(select) {
+const EVENTO_GRUPOS = {
+    missa: {
+        containerId: 'eventos-missas',
+        label: 'Missa',
+        slugsPreferidos: ['missa', 'missas']
+    },
+    confissao: {
+        containerId: 'eventos-confissoes',
+        label: 'Confissão',
+        slugsPreferidos: ['confissao', 'confissões', 'confissaoes']
+    },
+    acao_caritativa: {
+        containerId: 'eventos-acao-caritativa',
+        label: 'Ação caritativa',
+        slugsPreferidos: ['acao-caritativa', 'acao_caritativa', 'caridade', 'acao-social']
+    }
+};
 
-    const response = await fetch('/wp-json/wp/v2/tipo_evento?per_page=100');
-    const termos = await response.json();
+let tiposEventoCache = [];
+let tipoEventoPorGrupo = {};
 
+function mapaNormalizarTexto(texto = '') {
+    return String(texto)
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .toLowerCase()
+        .trim();
+}
+
+function mapaResolverGrupoPorTipoEvento(tipoEventoId) {
+    const id = parseInt(tipoEventoId, 10);
+    if (!Number.isInteger(id) || id <= 0) return '';
+
+    const tipo = tiposEventoCache.find((item) => parseInt(item.id, 10) === id);
+    if (!tipo) return '';
+
+    const slug = mapaNormalizarTexto(tipo.slug || '');
+    const nome = mapaNormalizarTexto(tipo.name || '');
+
+    if (slug.includes('missa') || nome.includes('missa')) return 'missa';
+    if (slug.includes('conf') || nome.includes('conf')) return 'confissao';
+    if (slug.includes('carit') || slug.includes('social') || nome.includes('carit') || nome.includes('social')) return 'acao_caritativa';
+
+    return '';
+}
+
+async function mapaCarregarTiposEvento(select, grupo = '') {
+    if (!Array.isArray(tiposEventoCache) || !tiposEventoCache.length) {
+        const response = await fetch('/wp-json/wp/v2/tipo_evento?per_page=100');
+        tiposEventoCache = await response.json();
+    }
+
+    if (!Object.keys(tipoEventoPorGrupo).length) {
+        Object.entries(EVENTO_GRUPOS).forEach(([chave, config]) => {
+            const encontrado = tiposEventoCache.find((termo) => {
+                const slug = mapaNormalizarTexto(termo.slug || '');
+                return config.slugsPreferidos.some((s) => slug === mapaNormalizarTexto(s));
+            });
+
+            if (encontrado) {
+                tipoEventoPorGrupo[chave] = parseInt(encontrado.id, 10);
+            }
+        });
+    }
+
+    if (grupo && Number.isInteger(tipoEventoPorGrupo[grupo])) {
+        const tipo = tiposEventoCache.find((termo) => parseInt(termo.id, 10) === tipoEventoPorGrupo[grupo]);
+        select.innerHTML = '';
+
+        if (tipo) {
+            const option = document.createElement('option');
+            option.value = tipo.id;
+            option.textContent = tipo.name;
+            select.appendChild(option);
+            select.value = String(tipo.id);
+        }
+
+        select.disabled = true;
+        return;
+    }
+
+    select.disabled = false;
     select.innerHTML = '<option value="">Selecione</option>';
 
-    termos.forEach(termo => {
-
+    tiposEventoCache.forEach((termo) => {
         const option = document.createElement('option');
         option.value = termo.id;
         option.textContent = termo.name;
-
         select.appendChild(option);
-
     });
 }
 
@@ -485,214 +560,88 @@ async function mapaCarregarTagsEvento(select) {
     });
 }
 
-function mapaAdicionarEvento(evento = null, adicionarNoTopo = true) {
-    const container = document.getElementById('eventos');
-
-    if (!evento) {
-        container.querySelectorAll(':scope > div').forEach((eventoExistente) => {
-            const conteudo = eventoExistente.querySelector('.evento-conteudo');
-            const iconeToggle = eventoExistente.querySelector('.evento-toggle-icon');
-            const icone = iconeToggle?.querySelector('i');
-
-            if (conteudo) conteudo.classList.add('hidden');
-            if (icone) icone.classList.toggle('bi-chevron-down', true);
-        });
+function mapaCriarOcorrencia(ocorrencia = null) {
+    const item = document.createElement('div');
+    item.className = 'evento-ocorrencia rounded-xl border border-gray-200 bg-white p-4 space-y-3';
+    if (ocorrencia?.id) {
+        item.dataset.eventoId = String(ocorrencia.id);
     }
 
-    const div = document.createElement('div');
-    div.className = "bg-gray-50 rounded-2xl shadow-sm border border-gray-200 overflow-hidden";
+    item.innerHTML = `
+        <div>
+            <label class="block text-base font-semibold text-gray-700 mb-1">Frequência</label>
+            <select class="evento-frequencia rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
+                <option value="semanal">Semanal</option>
+                <option value="mensal">Mensal</option>
+                <option value="numero_semana">Por número da semana</option>
+                <option value="anual">Anual</option>
+            </select>
+        </div>
 
-    div.innerHTML = `
-        <button type="button" class="evento-toggle w-full px-4 py-3 text-left bg-white hover:bg-gray-100 transition flex items-center justify-between gap-3">
-            <span class="evento-resumo font-semibold text-gray-800 truncate">Nova atividade</span>
-            <span class="evento-toggle-icon text-gray-500 text-sm"><i class="bi bi-chevron-down"></i></span>
-        </button>
-
-        <div class="evento-conteudo p-6 space-y-4 border-t border-gray-200">
-            <div>
-                <label class="block text-base font-semibold text-gray-700 mb-1">Nome da atividade</label>
-                <input type="text" placeholder="Ex.: Missa da comunidade" class="evento-titulo w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="evento-campo-dia-semana">
+                <label class="block text-base font-semibold text-gray-700 mb-2">Dia(s) da semana</label>
+                <div class="evento-dias-semana grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-xl border-2 border-gray-200 bg-white p-3">
+                    <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="0"> Domingo</label>
+                    <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="1"> Segunda-feira</label>
+                    <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="2"> Terça-feira</label>
+                    <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="3"> Quarta-feira</label>
+                    <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="4"> Quinta-feira</label>
+                    <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="5"> Sexta-feira</label>
+                    <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="6"> Sábado</label>
+                </div>
             </div>
-        
-            <div>
-                <label class="block text-base font-semibold text-gray-700 mb-1">Tipo de atividade</label>
-                <select class="tipo-evento rounded-xl border-2 border-gray-200 bg-white px-3 py-2 w-full focus:ring-2 focus:ring-indigo-500">
-                    <option>Carregando tipos...</option>
+
+            <div class="evento-campo-dia-mes hidden">
+                <label class="block text-base font-semibold text-gray-700 mb-1">Dia do mês</label>
+                <input type="number" min="1" max="31" class="evento-dia-mes rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full" placeholder="1 a 31">
+            </div>
+
+            <div class="evento-campo-numero-semana hidden">
+                <label class="block text-base font-semibold text-gray-700 mb-1">Número da semana</label>
+                <select class="evento-numero-semana rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
+                    <option value="">Selecione</option>
+                    <option value="1">Semana 1</option>
+                    <option value="2">Semana 2</option>
+                    <option value="3">Semana 3</option>
+                    <option value="4">Semana 4</option>
+                    <option value="5">Semana 5</option>
+                </select>
+            </div>
+
+            <div class="evento-campo-mes hidden">
+                <label class="block text-base font-semibold text-gray-700 mb-1">Mês</label>
+                <select class="evento-mes rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
+                    <option value="">Selecione o mês</option>
+                    <option value="1">Janeiro</option>
+                    <option value="2">Fevereiro</option>
+                    <option value="3">Março</option>
+                    <option value="4">Abril</option>
+                    <option value="5">Maio</option>
+                    <option value="6">Junho</option>
+                    <option value="7">Julho</option>
+                    <option value="8">Agosto</option>
+                    <option value="9">Setembro</option>
+                    <option value="10">Outubro</option>
+                    <option value="11">Novembro</option>
+                    <option value="12">Dezembro</option>
                 </select>
             </div>
 
             <div>
-                <label class="block text-base font-semibold text-gray-700 mb-1">Frequência</label>
-                <select class="evento-frequencia rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
-                    <option value="semanal">Semanal</option>
-                    <option value="mensal">Mensal</option>
-                    <option value="numero_semana">Por número da semana</option>
-                    <option value="anual">Anual</option>
-                </select>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div class="evento-campo-dia-semana">
-                    <label class="block text-base font-semibold text-gray-700 mb-2">Dia(s) da semana</label>
-                    <div class="evento-dias-semana grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-xl border-2 border-gray-200 bg-white p-3">
-                        <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="0"> Domingo</label>
-                        <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="1"> Segunda-feira</label>
-                        <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="2"> Terça-feira</label>
-                        <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="3"> Quarta-feira</label>
-                        <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="4"> Quinta-feira</label>
-                        <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="5"> Sexta-feira</label>
-                        <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="6"> Sábado</label>
-                    </div>
-                </div>
-
-                <div class="evento-campo-dia-mes hidden">
-                    <label class="block text-base font-semibold text-gray-700 mb-1">Dia do mês</label>
-                    <input type="number" min="1" max="31" class="evento-dia-mes rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full" placeholder="1 a 31">
-                </div>
-
-                <div class="evento-campo-numero-semana hidden">
-                    <label class="block text-base font-semibold text-gray-700 mb-1">Número da semana</label>
-                    <select class="evento-numero-semana rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
-                        <option value="">Selecione</option>
-                        <option value="1">Semana 1</option>
-                        <option value="2">Semana 2</option>
-                        <option value="3">Semana 3</option>
-                        <option value="4">Semana 4</option>
-                        <option value="5">Semana 5</option>
-                    </select>
-                </div>
-
-                <div class="evento-campo-mes hidden">
-                    <label class="block text-base font-semibold text-gray-700 mb-1">Mês</label>
-                    <select class="evento-mes rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
-                        <option value="">Selecione o mês</option>
-                        <option value="1">Janeiro</option>
-                        <option value="2">Fevereiro</option>
-                        <option value="3">Março</option>
-                        <option value="4">Abril</option>
-                        <option value="5">Maio</option>
-                        <option value="6">Junho</option>
-                        <option value="7">Julho</option>
-                        <option value="8">Agosto</option>
-                        <option value="9">Setembro</option>
-                        <option value="10">Outubro</option>
-                        <option value="11">Novembro</option>
-                        <option value="12">Dezembro</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-base font-semibold text-gray-700 mb-1">Horário</label>
-                    <input type="time"
-                        class="evento-horario rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-base font-semibold text-gray-700 mb-1">Características</label>
-                <select class="tags-evento rounded-xl border-2 border-gray-200 bg-white px-3 py-2 w-full" multiple style="height: auto;">
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-base font-semibold text-gray-700 mb-1">Descrição</label>
-                <textarea placeholder="Descrição"
-                    class="evento-descricao w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2 min-h-[96px]"></textarea>
-            </div>
-
-            <div>
-                <label class="block text-base font-semibold text-gray-700 mb-1">Observação</label>
-                <textarea placeholder="Observação"
-                    class="evento-observacao w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2 min-h-[96px]"></textarea>
-            </div>
-
-            <div class="pt-2 border-t border-gray-200">
-                <button type="button" class="evento-remover px-4 py-2 rounded-lg bg-red-50 text-red-700 border border-red-200 font-medium">Remover atividade</button>
+                <label class="block text-base font-semibold text-gray-700 mb-1">Horário</label>
+                <input type="time" class="evento-horario rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
             </div>
         </div>
+
+        <button type="button" class="evento-ocorrencia-remover px-4 py-2 rounded-lg bg-red-50 text-red-700 border border-red-200 font-medium">Remover frequência</button>
     `;
 
-    if (adicionarNoTopo) {
-        container.prepend(div);
-    } else {
-        container.appendChild(div);
-    }
-
-    const novoEvento = div;
-
-    const selectTipo = novoEvento.querySelector('.tipo-evento');
-    const selectTags = novoEvento.querySelector('.tags-evento');
-    const campoTitulo = novoEvento.querySelector('.evento-titulo');
-    const eventoResumo = novoEvento.querySelector('.evento-resumo');
-    const botaoToggle = novoEvento.querySelector('.evento-toggle');
-    const iconeToggle = novoEvento.querySelector('.evento-toggle-icon');
-    const icone = iconeToggle.querySelector('i');
-    const conteudoEvento = novoEvento.querySelector('.evento-conteudo');
-
-    function atualizarResumoEvento() {
-        const titulo = campoTitulo.value.trim();
-        eventoResumo.textContent = titulo || 'Nova atividade';
-    }
-
-
-    function definirEstadoSanfona(expandido) {
-        conteudoEvento.classList.toggle('hidden', !expandido);
-
-        icone.classList.toggle('bi-chevron-down', !expandido);
-        icone.classList.toggle('bi-chevron-up', expandido);
-    }
-
-    botaoToggle.addEventListener('click', function () {
-        definirEstadoSanfona(conteudoEvento.classList.contains('hidden'));
-    });
-
-    campoTitulo.addEventListener('input', atualizarResumoEvento);
-
-    mapaCarregarTiposEvento(selectTipo).then(() => {
-        if (evento?.tipo_evento_id) {
-            selectTipo.value = String(evento.tipo_evento_id);
-        }
-
-        selectTags.dataset.tipoEventoId = selectTipo.value || '';
-        mapaCarregarTagsEvento(selectTags).then(() => {
-            if (Array.isArray(evento?.tags_evento_ids)) {
-                Array.from(selectTags.options).forEach((option) => {
-                    option.selected = evento.tags_evento_ids.includes(parseInt(option.value, 10));
-                });
-            }
-        });
-    });
-
-    selectTipo.addEventListener('change', function () {
-        selectTags.dataset.tipoEventoId = this.value || '';
-        mapaCarregarTagsEvento(selectTags);
-    });
-
-    if (evento) {
-        novoEvento.dataset.eventoId = evento.id ? String(evento.id) : '';
-        campoTitulo.value = evento.titulo || '';
-        novoEvento.querySelector('.evento-frequencia').value = evento.frequencia || 'semanal';
-        const diasEvento = Array.isArray(evento.dias) ? evento.dias : (evento.dia !== undefined && evento.dia !== null && evento.dia !== '' ? [evento.dia] : []);
-        novoEvento.querySelectorAll('.evento-dia-check').forEach((checkbox) => {
-            checkbox.checked = diasEvento.map(String).includes(checkbox.value);
-        });
-        novoEvento.querySelector('.evento-dia-mes').value = evento.dia_mes ?? '';
-        novoEvento.querySelector('.evento-numero-semana').value = evento.numero_semana ?? '';
-        novoEvento.querySelector('.evento-mes').value = evento.mes ?? '';
-        novoEvento.querySelector('.evento-horario').value = evento.horario || '';
-        novoEvento.querySelector('.evento-descricao').value = evento.descricao || '';
-        novoEvento.querySelector('.evento-observacao').value = evento.observacao || '';
-    }
-
-    atualizarResumoEvento();
-    definirEstadoSanfona(false);
-
-
-    const frequenciaSelect = novoEvento.querySelector('.evento-frequencia');
-    const campoDiaSemana = novoEvento.querySelector('.evento-campo-dia-semana');
-    const campoDiaMes = novoEvento.querySelector('.evento-campo-dia-mes');
-    const campoNumeroSemana = novoEvento.querySelector('.evento-campo-numero-semana');
-    const campoMes = novoEvento.querySelector('.evento-campo-mes');
+    const frequenciaSelect = item.querySelector('.evento-frequencia');
+    const campoDiaSemana = item.querySelector('.evento-campo-dia-semana');
+    const campoDiaMes = item.querySelector('.evento-campo-dia-mes');
+    const campoNumeroSemana = item.querySelector('.evento-campo-numero-semana');
+    const campoMes = item.querySelector('.evento-campo-mes');
 
     function atualizarCamposFrequencia() {
         const frequencia = frequenciaSelect.value;
@@ -716,26 +665,182 @@ function mapaAdicionarEvento(evento = null, adicionarNoTopo = true) {
     }
 
     frequenciaSelect.addEventListener('change', atualizarCamposFrequencia);
-    atualizarCamposFrequencia();
 
-    if (!evento) {
-        definirEstadoSanfona(true);
-        novoEvento.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        campoTitulo.focus();
+    if (ocorrencia) {
+        frequenciaSelect.value = ocorrencia.frequencia || 'semanal';
+        const diasEvento = Array.isArray(ocorrencia.dias) ? ocorrencia.dias : (ocorrencia.dia !== undefined && ocorrencia.dia !== null && ocorrencia.dia !== '' ? [ocorrencia.dia] : []);
+        item.querySelectorAll('.evento-dia-check').forEach((checkbox) => {
+            checkbox.checked = diasEvento.map(String).includes(checkbox.value);
+        });
+        item.querySelector('.evento-dia-mes').value = ocorrencia.dia_mes ?? '';
+        item.querySelector('.evento-numero-semana').value = ocorrencia.numero_semana ?? '';
+        item.querySelector('.evento-mes').value = ocorrencia.mes ?? '';
+        item.querySelector('.evento-horario').value = ocorrencia.horario || '';
     }
 
-    novoEvento.querySelector('.evento-remover').addEventListener('click', function () {
-        const titulo = novoEvento.querySelector('.evento-titulo').value || 'sem título';
-        const confirmou = window.confirm(`você tem certeza que deseja apagar o evento ${titulo}?`);
-        if (!confirmou) return;
+    atualizarCamposFrequencia();
 
-        const eventoId = parseInt(novoEvento.dataset.eventoId, 10);
+    item.querySelector('.evento-ocorrencia-remover').addEventListener('click', function () {
+        const eventoId = parseInt(item.dataset.eventoId, 10);
         if (Number.isInteger(eventoId) && eventoId > 0) {
             eventosRemovidos.push(eventoId);
         }
-
-        novoEvento.remove();
+        item.remove();
     });
+
+    return item;
+}
+
+function mapaAdicionarEventoPorGrupo(grupo, evento = null, adicionarNoTopo = true) {
+    const grupoConfig = EVENTO_GRUPOS[grupo];
+    if (!grupoConfig) return;
+
+    const container = document.getElementById(grupoConfig.containerId);
+    if (!container) return;
+
+    if (!evento) {
+        container.querySelectorAll(':scope > div').forEach((eventoExistente) => {
+            const conteudo = eventoExistente.querySelector('.evento-conteudo');
+            const iconeToggle = eventoExistente.querySelector('.evento-toggle-icon i');
+            if (conteudo) conteudo.classList.add('hidden');
+            if (iconeToggle) {
+                iconeToggle.classList.toggle('bi-chevron-down', true);
+                iconeToggle.classList.toggle('bi-chevron-up', false);
+            }
+        });
+    }
+
+    const div = document.createElement('div');
+    div.className = 'bg-gray-50 rounded-2xl shadow-sm border border-gray-200 overflow-hidden';
+    div.dataset.eventoGrupo = grupo;
+
+    div.innerHTML = `
+        <button type="button" class="evento-toggle w-full px-4 py-3 text-left bg-white hover:bg-gray-100 transition flex items-center justify-between gap-3">
+            <span class="evento-resumo font-semibold text-gray-800 truncate">Nova atividade</span>
+            <span class="evento-toggle-icon text-gray-500 text-sm"><i class="bi bi-chevron-down"></i></span>
+        </button>
+
+        <div class="evento-conteudo p-6 space-y-4 border-t border-gray-200">
+            <div>
+                <label class="block text-base font-semibold text-gray-700 mb-1">Nome da atividade</label>
+                <input type="text" placeholder="Ex.: ${grupoConfig.label} da comunidade" class="evento-titulo w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2">
+            </div>
+
+            <div>
+                <label class="block text-base font-semibold text-gray-700 mb-1">Tipo de atividade (pré-definido)</label>
+                <select class="tipo-evento rounded-xl border-2 border-gray-200 bg-white px-3 py-2 w-full focus:ring-2 focus:ring-indigo-500"></select>
+            </div>
+
+            <div>
+                <label class="block text-base font-semibold text-gray-700 mb-1">Características</label>
+                <select class="tags-evento rounded-xl border-2 border-gray-200 bg-white px-3 py-2 w-full" multiple style="height: auto;"></select>
+            </div>
+
+            <div>
+                <label class="block text-base font-semibold text-gray-700 mb-1">Descrição</label>
+                <textarea placeholder="Descrição" class="evento-descricao w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2 min-h-[96px]"></textarea>
+            </div>
+
+            <div>
+                <label class="block text-base font-semibold text-gray-700 mb-1">Observação</label>
+                <textarea placeholder="Observação" class="evento-observacao w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2 min-h-[96px]"></textarea>
+            </div>
+
+            <div>
+                <div class="flex items-center justify-between gap-3">
+                    <p class="text-base font-semibold text-gray-700">Frequências e horários</p>
+                    <button type="button" class="evento-ocorrencia-adicionar px-4 py-2 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 font-medium">+ Adicionar frequência</button>
+                </div>
+                <div class="evento-ocorrencias space-y-3 mt-3"></div>
+            </div>
+
+            <div class="pt-2 border-t border-gray-200">
+                <button type="button" class="evento-remover px-4 py-2 rounded-lg bg-red-50 text-red-700 border border-red-200 font-medium">Remover atividade</button>
+            </div>
+        </div>
+    `;
+
+    if (adicionarNoTopo) {
+        container.prepend(div);
+    } else {
+        container.appendChild(div);
+    }
+
+    const selectTipo = div.querySelector('.tipo-evento');
+    const selectTags = div.querySelector('.tags-evento');
+    const campoTitulo = div.querySelector('.evento-titulo');
+    const eventoResumo = div.querySelector('.evento-resumo');
+    const botaoToggle = div.querySelector('.evento-toggle');
+    const icone = div.querySelector('.evento-toggle-icon i');
+    const conteudoEvento = div.querySelector('.evento-conteudo');
+    const ocorrenciasContainer = div.querySelector('.evento-ocorrencias');
+
+    const definirEstadoSanfona = (expandido) => {
+        conteudoEvento.classList.toggle('hidden', !expandido);
+        icone.classList.toggle('bi-chevron-down', !expandido);
+        icone.classList.toggle('bi-chevron-up', expandido);
+    };
+
+    const atualizarResumoEvento = () => {
+        const titulo = campoTitulo.value.trim();
+        eventoResumo.textContent = titulo || 'Nova atividade';
+    };
+
+    botaoToggle.addEventListener('click', () => definirEstadoSanfona(conteudoEvento.classList.contains('hidden')));
+    campoTitulo.addEventListener('input', atualizarResumoEvento);
+
+    mapaCarregarTiposEvento(selectTipo, grupo).then(() => {
+        if (evento?.tipo_evento_id) {
+            selectTipo.value = String(evento.tipo_evento_id);
+        }
+
+        selectTags.dataset.tipoEventoId = selectTipo.value || '';
+        mapaCarregarTagsEvento(selectTags).then(() => {
+            if (Array.isArray(evento?.tags_evento_ids)) {
+                Array.from(selectTags.options).forEach((option) => {
+                    option.selected = evento.tags_evento_ids.includes(parseInt(option.value, 10));
+                });
+            }
+        });
+    });
+
+    div.querySelector('.evento-ocorrencia-adicionar').addEventListener('click', () => {
+        ocorrenciasContainer.appendChild(mapaCriarOcorrencia());
+    });
+
+    const ocorrencias = Array.isArray(evento?.ocorrencias) && evento.ocorrencias.length ? evento.ocorrencias : (evento ? [evento] : [null]);
+    ocorrencias.forEach((ocorrencia) => {
+        ocorrenciasContainer.appendChild(mapaCriarOcorrencia(ocorrencia));
+    });
+
+    if (evento) {
+        campoTitulo.value = evento.titulo || '';
+        div.querySelector('.evento-descricao').value = evento.descricao || '';
+        div.querySelector('.evento-observacao').value = evento.observacao || '';
+    }
+
+    atualizarResumoEvento();
+    definirEstadoSanfona(!!(!evento));
+
+    div.querySelector('.evento-remover').addEventListener('click', function () {
+        const titulo = div.querySelector('.evento-titulo').value || 'sem título';
+        const confirmou = window.confirm(`você tem certeza que deseja apagar o evento ${titulo}?`);
+        if (!confirmou) return;
+
+        div.querySelectorAll('.evento-ocorrencia').forEach((item) => {
+            const eventoId = parseInt(item.dataset.eventoId, 10);
+            if (Number.isInteger(eventoId) && eventoId > 0) {
+                eventosRemovidos.push(eventoId);
+            }
+        });
+
+        div.remove();
+    });
+}
+
+function mapaAdicionarEvento(evento = null, adicionarNoTopo = true) {
+    const grupo = evento ? mapaResolverGrupoPorTipoEvento(evento.tipo_evento_id) : 'missa';
+    mapaAdicionarEventoPorGrupo(grupo || 'missa', evento, adicionarNoTopo);
 }
 
 const TIPOS_CONTATO = [
@@ -756,7 +861,7 @@ function mapaAdicionarContato(tipoInicial = '', valorInicial = '', adicionarNoTo
     const container = document.getElementById('contatos-container');
 
     const div = document.createElement('div');
-    div.className = "grid grid-cols-1 sm:grid-cols-2 gap-3 bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm";
+    div.className = "grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm items-start";
 
     const options = TIPOS_CONTATO.map(tipo =>
         `<option value="${tipo}">${LABELS_TIPOS_CONTATO[tipo] || tipo}</option>`
@@ -770,6 +875,8 @@ function mapaAdicionarContato(tipoInicial = '', valorInicial = '', adicionarNoTo
 
         <input type="text" placeholder="Valor"
             class="contato-valor rounded-lg border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 text-base">
+
+        <button type="button" class="contato-remover px-4 py-2 rounded-lg bg-red-50 text-red-700 border border-red-200 font-medium">Remover</button>
     `;
 
     if (adicionarNoTopo) {
@@ -780,6 +887,8 @@ function mapaAdicionarContato(tipoInicial = '', valorInicial = '', adicionarNoTo
 
     div.querySelector('.contato-tipo').value = tipoInicial;
     div.querySelector('.contato-valor').value = valorInicial;
+
+    div.querySelector('.contato-remover').addEventListener('click', () => div.remove());
 }
 
 
@@ -939,29 +1048,34 @@ function mapaEnviar() {
 
     const eventos = [];
 
-    document.querySelectorAll('#eventos > div').forEach(div => {
+    document.querySelectorAll('.eventos-lista > div').forEach((div) => {
+        const tagsSelecionadas = Array.from(div.querySelector('.tags-evento').selectedOptions)
+            .map((option) => parseInt(option.value, 10))
+            .filter(Number.isInteger);
 
-        const tagsSelecionadas = Array.from(
-            div.querySelector('.tags-evento').selectedOptions
-        ).map(option => parseInt(option.value));
+        const tipoEvento = parseInt(div.querySelector('.tipo-evento').value, 10);
+        const titulo = div.querySelector('.evento-titulo').value;
+        const descricao = div.querySelector('.evento-descricao').value;
+        const observacao = div.querySelector('.evento-observacao').value;
 
-        const eventoId = parseInt(div.dataset.eventoId, 10);
+        div.querySelectorAll('.evento-ocorrencia').forEach((ocorrencia) => {
+            const eventoId = parseInt(ocorrencia.dataset.eventoId, 10);
 
-        eventos.push({
-            id: Number.isInteger(eventoId) ? eventoId : null,
-            titulo: div.querySelector('.evento-titulo').value,
-            frequencia: div.querySelector('.evento-frequencia').value,
-            dias: Array.from(div.querySelectorAll('.evento-dia-check:checked')).map((checkbox) => checkbox.value),
-            dia_mes: div.querySelector('.evento-dia-mes').value,
-            numero_semana: div.querySelector('.evento-numero-semana').value,
-            mes: div.querySelector('.evento-mes').value,
-            horario: div.querySelector('.evento-horario').value,
-            descricao: div.querySelector('.evento-descricao').value,
-            observacao: div.querySelector('.evento-observacao').value,
-            tipo_evento: parseInt(div.querySelector('.tipo-evento').value),
-            tags_evento: tagsSelecionadas
+            eventos.push({
+                id: Number.isInteger(eventoId) ? eventoId : null,
+                titulo,
+                frequencia: ocorrencia.querySelector('.evento-frequencia').value,
+                dias: Array.from(ocorrencia.querySelectorAll('.evento-dia-check:checked')).map((checkbox) => checkbox.value),
+                dia_mes: ocorrencia.querySelector('.evento-dia-mes').value,
+                numero_semana: ocorrencia.querySelector('.evento-numero-semana').value,
+                mes: ocorrencia.querySelector('.evento-mes').value,
+                horario: ocorrencia.querySelector('.evento-horario').value,
+                descricao,
+                observacao,
+                tipo_evento: Number.isInteger(tipoEvento) ? tipoEvento : null,
+                tags_evento: tagsSelecionadas
+            });
         });
-
     });
 
     const formData = new FormData();

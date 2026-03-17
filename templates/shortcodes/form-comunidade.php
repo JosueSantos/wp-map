@@ -119,26 +119,37 @@
 
     <section id="secao-etapa-3" data-step="3" class="rounded-2xl border border-gray-200 p-4 sm:p-6">
         <h3 class="text-lg font-semibold text-gray-800 mb-4">3. Contatos</h3>
+        <div id="contatos-container" class="space-y-3 mt-3"></div>
 
         <button type="button"
             onclick="mapaAdicionarContato()"
             class="mt-3 w-full sm:w-auto px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-base font-medium transition">
             + Adicionar contato
         </button>
-
-        <div id="contatos-container" class="space-y-3 mt-3"></div>
     </section>
 
     <section id="secao-etapa-4" data-step="4" class="rounded-2xl border border-gray-200 p-4 sm:p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">4. Atividades [Missa, Confissão, Ação social]</h3>
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">4. Atividades</h3>
 
-        <button type="button"
-            onclick="mapaAdicionarEvento()"
-            class="w-full sm:w-auto mt-3 px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-base font-medium transition">
-            + Adicionar atividade
-        </button>
+        <div class="space-y-6">
+            <div class="rounded-xl border border-gray-200 p-4">
+                <h4 class="font-semibold text-gray-800">Missas</h4>
+                <div id="eventos-missas" data-evento-grupo="missa" class="eventos-lista space-y-3 mt-3"></div>
+                <button type="button" onclick="mapaAdicionarEventoPorGrupo('missa')" class="w-full sm:w-auto mt-3 px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-base font-medium transition">+ Adicionar missa</button>
+            </div>
 
-        <div id="eventos" class="space-y-3 mt-3"></div>
+            <div class="rounded-xl border border-gray-200 p-4">
+                <h4 class="font-semibold text-gray-800">Confissões</h4>
+                <div id="eventos-confissoes" data-evento-grupo="confissao" class="eventos-lista space-y-3 mt-3"></div>
+                <button type="button" onclick="mapaAdicionarEventoPorGrupo('confissao')" class="w-full sm:w-auto mt-3 px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-base font-medium transition">+ Adicionar confissão</button>
+            </div>
+
+            <div class="rounded-xl border border-gray-200 p-4">
+                <h4 class="font-semibold text-gray-800">Ação caritativa</h4>
+                <div id="eventos-acao-caritativa" data-evento-grupo="acao_caritativa" class="eventos-lista space-y-3 mt-3"></div>
+                <button type="button" onclick="mapaAdicionarEventoPorGrupo('acao_caritativa')" class="w-full sm:w-auto mt-3 px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-base font-medium transition">+ Adicionar ação caritativa</button>
+            </div>
+        </div>
     </section>
 
     <section id="secao-imagem" class="rounded-2xl border border-gray-200 p-4 sm:p-6 space-y-3">
