@@ -107,18 +107,19 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
 
             <ul class="space-y-2">
                 <?php foreach ($comunidades_observadas as $comunidade): ?>
-                    <li class="flex items-center justify-between gap-3 rounded-xl border border-gray-200 p-3">
-                        <span class="text-gray-800"><?php echo esc_html($comunidade->post_title); ?></span>
-                        <div class="flex items-center gap-2">
-                            <a href="<?php echo esc_url(get_permalink($comunidade->ID)); ?>" target="_blank" rel="noopener noreferrer" class="<?php echo esc_attr(cc_auth_button_class('secondary')); ?>"><?php esc_html_e('Ver detalhes', 'cadastro-comunidades'); ?></a>
-                            <a href="<?php echo esc_url(cc_get_editar_comunidade_url_custom($comunidade->ID, $url_editar_comunidade)); ?>" class="<?php echo esc_attr(cc_auth_button_class('secondary')); ?>"><?php esc_html_e('Editar', 'cadastro-comunidades'); ?></a>
-                        </div>
-                            <form method="post">
-                                <input type="hidden" name="comunidade_id" value="<?php echo (int) $comunidade->ID; ?>">
-                                <?php wp_nonce_field('cc_observe', 'cc_observe_nonce'); ?>
-                                <input type="hidden" name="cc_auth_action" value="observe_remove">
-                                <button type="submit" class="<?php echo esc_attr(cc_auth_button_class('danger')); ?>"><?php esc_html_e('Remover', 'cadastro-comunidades'); ?></button>
-                            </form>
+                    <li class="rounded-xl border border-gray-200 p-3">
+                        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                            <span class="text-gray-800 font-medium"><?php echo esc_html($comunidade->post_title); ?></span>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <a href="<?php echo esc_url(get_permalink($comunidade->ID)); ?>" target="_blank" rel="noopener noreferrer" class="<?php echo esc_attr(cc_auth_button_class('secondary')); ?>"><?php esc_html_e('Ver detalhes', 'cadastro-comunidades'); ?></a>
+                                <a href="<?php echo esc_url(cc_get_editar_comunidade_url_custom($comunidade->ID, $url_editar_comunidade)); ?>" class="<?php echo esc_attr(cc_auth_button_class('secondary')); ?>"><?php esc_html_e('Editar', 'cadastro-comunidades'); ?></a>
+                                <form method="post" class="inline">
+                                    <input type="hidden" name="comunidade_id" value="<?php echo (int) $comunidade->ID; ?>">
+                                    <?php wp_nonce_field('cc_observe', 'cc_observe_nonce'); ?>
+                                    <input type="hidden" name="cc_auth_action" value="observe_remove">
+                                    <button type="submit" class="<?php echo esc_attr(cc_auth_button_class('danger')); ?>"><?php esc_html_e('Remover', 'cadastro-comunidades'); ?></button>
+                                </form>
+                            </div>
                         </div>
                     </li>
                 <?php endforeach; ?>
@@ -154,13 +155,15 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
             <ul class="space-y-2">
                 <?php foreach ($alteracoes as $alteracao): ?>
                     <li class="rounded-xl border border-gray-200 p-3 text-gray-800 space-y-2">
-                        <div>
-                            <strong><?php echo esc_html($alteracao->comunidade_nome ?: 'Local removida'); ?></strong>
-                            <span class="text-gray-500"> — <?php echo esc_html($alteracao->usuario_nome ?: 'Usuário removido'); ?> — <?php echo esc_html(mysql2date('d/m/Y H:i', $alteracao->created_at)); ?></span>
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <p class="min-w-0">
+                                <strong><?php echo esc_html($alteracao->comunidade_nome ?: 'Local removida'); ?></strong>
+                                <span class="text-gray-500 break-words"> — <?php echo esc_html($alteracao->usuario_nome ?: 'Usuário removido'); ?> — <?php echo esc_html(mysql2date('d/m/Y H:i', $alteracao->created_at)); ?></span>
+                            </p>
+                            <?php if (!empty($alteracao->comunidade_id)): ?>
+                                <a href="<?php echo esc_url(get_permalink((int) $alteracao->comunidade_id)); ?>" target="_blank" rel="noopener noreferrer" class="<?php echo esc_attr(cc_auth_button_class('secondary')); ?>"><?php esc_html_e('Ver detalhes', 'cadastro-comunidades'); ?></a>
+                            <?php endif; ?>
                         </div>
-                        <?php if (!empty($alteracao->comunidade_id)): ?>
-                            <a href="<?php echo esc_url(get_permalink((int) $alteracao->comunidade_id)); ?>" target="_blank" rel="noopener noreferrer" class="<?php echo esc_attr(cc_auth_button_class('secondary')); ?>"><?php esc_html_e('Ver detalhes', 'cadastro-comunidades'); ?></a>
-                        <?php endif; ?>
                     </li>
                 <?php endforeach; ?>
                 <?php if (empty($alteracoes)): ?><li class="text-gray-600"><?php esc_html_e('Sem alterações para os filtros selecionados.', 'cadastro-comunidades'); ?></li><?php endif; ?>

@@ -12,6 +12,9 @@ document.addEventListener("DOMContentLoaded", async function () {
     const buscaListEl = document.getElementById("mapa-comunidades-list");
     const buscaBtn = document.getElementById("mapa-buscar-comunidade");
     const filtroEventoPeriodoEl = document.getElementById("filtro-evento-periodo");
+    const filtroTagMissaEl = document.getElementById("filtro-tag-missa");
+    const filtroTagAcaoEl = document.getElementById("filtro-tag-acao-caritativa");
+    const filtroTagHiddenEl = document.getElementById("filtro-tag");
     const urlCadastro = containerEl.dataset.urlCadastro || "";
 
     const fallbackCenter = [-3.7319, -38.5267]; // Fortaleza
@@ -49,6 +52,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         userMarker: null,
         markers: [],
         comunidades: [],
+        requestId: 0,
         autocompleteBase: [],
         termoBusca: "",
     };
@@ -577,23 +581,60 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     async function carregarComunidades() {
+        const requestId = ++state.requestId;
         clearMarkers();
         renderDetalhes(null);
 
         try {
             const lista = await fetchComunidades();
+            if (requestId !== state.requestId) return;
 
-            state.autocompleteBase = lista;
+            const unicos = [];
+            const vistos = new Set();
+            (lista || []).forEach((item) => {
+                const id = Number(item?.id);
+                if (Number.isFinite(id) && id > 0) {
+                    if (vistos.has(id)) return;
+                    vistos.add(id);
+                }
+                unicos.push(item);
+            });
+
+            state.autocompleteBase = unicos;
             updateAutocomplete(state.autocompleteBase);
 
-            state.comunidades = filtrarPorBusca(lista);
+            state.comunidades = filtrarPorBusca(unicos);
             state.comunidades.forEach(addMarker);
 
             ajustarVisaoMapa();
             map.invalidateSize();
         } catch (err) {
+            if (requestId !== state.requestId) return;
             console.error("Erro ao carregar mapa:", err);
         }
+    }
+
+
+    function normalizarSlugTipo(valor) {
+        const slug = sanitizeKey(valor);
+        if (slug.includes('confiss')) return 'confissao';
+        if (slug.includes('acao') || slug.includes('carit')) return 'acao_caritativa';
+        if (slug.includes('missa')) return 'missa';
+        return slug.replace(/[^a-z0-9_\-]/g, '');
+    }
+
+    function sincronizarFiltroTag() {
+        if (!filtroTagHiddenEl) return;
+
+        const tagMissa = String(filtroTagMissaEl?.value || '').trim();
+        const tagAcao = String(filtroTagAcaoEl?.value || '').trim();
+
+        if (tagMissa && tagAcao) {
+            filtroTagHiddenEl.value = '';
+            return;
+        }
+
+        filtroTagHiddenEl.value = tagMissa || tagAcao || '';
     }
 
     function selectToOption(selectId, options, defaultLabel) {
@@ -652,8 +693,18 @@ document.addEventListener("DOMContentLoaded", async function () {
             const filtros = await res.json();
 
             preencherFiltroEventoPeriodo(filtros.tipos_evento || []);
-            selectToOption("filtro-tipo-comunidade", filtros.tipos_comunidade || [], "Todas os locais");
-            selectToOption("filtro-tag", filtros.tags || [], "Todas as categorias das atividades");
+            selectToOption("filtro-tipo-comunidade", filtros.tipos_comunidade || [], "Todos os locais");
+
+            const tagsPorTipo = {};
+            (filtros.tags || []).forEach((tag) => {
+                const tipo = normalizarSlugTipo(tag?.tipo_evento_slug || tag?.tipo_evento || '');
+                if (!tagsPorTipo[tipo]) tagsPorTipo[tipo] = [];
+                tagsPorTipo[tipo].push(tag);
+            });
+
+            selectToOption("filtro-tag-missa", tagsPorTipo.missa || [], "Todas as características de missa");
+            selectToOption("filtro-tag-acao-caritativa", tagsPorTipo.acao_caritativa || [], "Todos os tipos de ações caritativas");
+            sincronizarFiltroTag();
             sincronizarFiltrosEventoPeriodo();
         } catch (err) {
             console.error("Erro ao carregar filtros:", err);
@@ -722,8 +773,19 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     buscaBtn?.addEventListener("click", aplicarBusca);
 
+    filtroTagMissaEl?.addEventListener("change", () => {
+        if (filtroTagMissaEl.value && filtroTagAcaoEl) filtroTagAcaoEl.value = "";
+        sincronizarFiltroTag();
+    });
+
+    filtroTagAcaoEl?.addEventListener("change", () => {
+        if (filtroTagAcaoEl.value && filtroTagMissaEl) filtroTagMissaEl.value = "";
+        sincronizarFiltroTag();
+    });
+
     filtrosForm?.addEventListener("change", () => {
         sincronizarFiltrosEventoPeriodo();
+        sincronizarFiltroTag();
         atualizarCampoDataFiltro();
         if (!isMobile()) carregarComunidades();
     });
@@ -735,7 +797,10 @@ document.addEventListener("DOMContentLoaded", async function () {
     limparBtn?.addEventListener("click", () => {
         filtrosForm?.reset();
         if (filtroEventoPeriodoEl) filtroEventoPeriodoEl.value = '|';
+        if (filtroTagMissaEl) filtroTagMissaEl.value = '';
+        if (filtroTagAcaoEl) filtroTagAcaoEl.value = '';
         sincronizarFiltrosEventoPeriodo();
+        sincronizarFiltroTag();
         atualizarCampoDataFiltro();
         if (buscaEl) buscaEl.value = "";
         state.termoBusca = "";

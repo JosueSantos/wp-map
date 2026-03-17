@@ -138,9 +138,23 @@ function cc_api_mapa_filtros() {
 
     $lista_tags = [];
     foreach ($tags_taxonomia as $termo) {
+        $tipo_evento_slug = '';
+        $tipo_evento_ids = get_term_meta($termo->term_id, 'exclusive_tipo_evento_ids', true);
+        if (!is_array($tipo_evento_ids)) {
+            $tipo_evento_ids = array_filter(array_map('intval', explode(',', (string) $tipo_evento_ids)));
+        }
+
+        if (!empty($tipo_evento_ids)) {
+            $tipo_evento = get_term((int) $tipo_evento_ids[0], 'tipo_evento');
+            if ($tipo_evento && !is_wp_error($tipo_evento)) {
+                $tipo_evento_slug = $tipo_evento->slug;
+            }
+        }
+
         $lista_tags[$termo->slug] = [
             'slug' => $termo->slug,
             'nome' => $termo->name,
+            'tipo_evento_slug' => $tipo_evento_slug,
         ];
     }
 
@@ -150,6 +164,7 @@ function cc_api_mapa_filtros() {
             $lista_tags[$slug] = [
                 'slug' => $slug,
                 'nome' => $tag,
+                'tipo_evento_slug' => '',
             ];
         }
     }

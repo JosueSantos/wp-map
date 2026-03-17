@@ -421,7 +421,9 @@ function mapaIniciarEtapasDoFormulario() {
     secoes.forEach(secao => observador.observe(secao));
 
     function mapaAtualizarEtapaVisual(stepAtual) {
-        const progresso = Math.max(1, Math.min(4, stepAtual)) * 25;
+        const totalEtapas = botoesEtapa.length || 1;
+        const etapaNormalizada = Math.max(1, Math.min(totalEtapas, stepAtual));
+        const progresso = (etapaNormalizada / totalEtapas) * 100;
         barra.style.width = `${progresso}%`;
 
         botoesEtapa.forEach(botao => {
@@ -720,30 +722,27 @@ function mapaAdicionarEventoPorGrupo(grupo, evento = null, adicionarNoTopo = tru
             <span class="evento-toggle-icon text-gray-500 text-sm"><i class="bi bi-chevron-down"></i></span>
         </button>
 
-        <div class="evento-conteudo p-6 space-y-4 border-t border-gray-200">
-            <div>
-                <label class="block text-base font-semibold text-gray-700 mb-1">Nome da atividade</label>
-                <input type="text" placeholder="Ex.: ${grupoConfig.label} da comunidade" class="evento-titulo w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2">
-            </div>
+        <div class="evento-conteudo p-4 space-y-3 border-t border-gray-200">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Nome da atividade</label>
+                    <input type="text" placeholder="Ex.: ${grupoConfig.label} da comunidade" class="evento-titulo w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2">
+                </div>
 
-            <div>
-                <label class="block text-base font-semibold text-gray-700 mb-1">Tipo de atividade (pré-definido)</label>
-                <select class="tipo-evento rounded-xl border-2 border-gray-200 bg-white px-3 py-2 w-full focus:ring-2 focus:ring-indigo-500"></select>
-            </div>
+                <div class="hidden">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Tipo de atividade (pré-definido)</label>
+                    <select class="tipo-evento rounded-xl border-2 border-gray-200 bg-white px-3 py-2 w-full focus:ring-2 focus:ring-indigo-500"></select>
+                </div>
 
-            <div>
-                <label class="block text-base font-semibold text-gray-700 mb-1">Características</label>
-                <select class="tags-evento rounded-xl border-2 border-gray-200 bg-white px-3 py-2 w-full" multiple style="height: auto;"></select>
-            </div>
+                <div class="campo-caracteristicas md:col-span-2">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Características</label>
+                    <select class="tags-evento rounded-xl border-2 border-gray-200 bg-white px-3 py-2 w-full" multiple style="height: auto;"></select>
+                </div>
 
-            <div>
-                <label class="block text-base font-semibold text-gray-700 mb-1">Descrição</label>
-                <textarea placeholder="Descrição" class="evento-descricao w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2 min-h-[96px]"></textarea>
-            </div>
-
-            <div>
-                <label class="block text-base font-semibold text-gray-700 mb-1">Observação</label>
-                <textarea placeholder="Observação" class="evento-observacao w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2 min-h-[96px]"></textarea>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Observação</label>
+                    <textarea placeholder="Observação" class="evento-observacao w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2 min-h-[78px]"></textarea>
+                </div>
             </div>
 
             <div>
@@ -789,12 +788,21 @@ function mapaAdicionarEventoPorGrupo(grupo, evento = null, adicionarNoTopo = tru
     botaoToggle.addEventListener('click', () => definirEstadoSanfona(conteudoEvento.classList.contains('hidden')));
     campoTitulo.addEventListener('input', atualizarResumoEvento);
 
+    if (grupo === 'confissao') {
+        const campoCaracteristicas = div.querySelector('.campo-caracteristicas');
+        if (campoCaracteristicas) campoCaracteristicas.classList.add('hidden');
+    }
+
     mapaCarregarTiposEvento(selectTipo, grupo).then(() => {
         if (evento?.tipo_evento_id) {
             selectTipo.value = String(evento.tipo_evento_id);
         }
 
         selectTags.dataset.tipoEventoId = selectTipo.value || '';
+        if (grupo === 'confissao') {
+            selectTags.innerHTML = '';
+            return;
+        }
         mapaCarregarTagsEvento(selectTags).then(() => {
             if (Array.isArray(evento?.tags_evento_ids)) {
                 Array.from(selectTags.options).forEach((option) => {
@@ -815,7 +823,6 @@ function mapaAdicionarEventoPorGrupo(grupo, evento = null, adicionarNoTopo = tru
 
     if (evento) {
         campoTitulo.value = evento.titulo || '';
-        div.querySelector('.evento-descricao').value = evento.descricao || '';
         div.querySelector('.evento-observacao').value = evento.observacao || '';
     }
 
@@ -1055,7 +1062,6 @@ function mapaEnviar() {
 
         const tipoEvento = parseInt(div.querySelector('.tipo-evento').value, 10);
         const titulo = div.querySelector('.evento-titulo').value;
-        const descricao = div.querySelector('.evento-descricao').value;
         const observacao = div.querySelector('.evento-observacao').value;
 
         div.querySelectorAll('.evento-ocorrencia').forEach((ocorrencia) => {
@@ -1070,7 +1076,6 @@ function mapaEnviar() {
                 numero_semana: ocorrencia.querySelector('.evento-numero-semana').value,
                 mes: ocorrencia.querySelector('.evento-mes').value,
                 horario: ocorrencia.querySelector('.evento-horario').value,
-                descricao,
                 observacao,
                 tipo_evento: Number.isInteger(tipoEvento) ? tipoEvento : null,
                 tags_evento: tagsSelecionadas

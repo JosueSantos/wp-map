@@ -164,11 +164,13 @@
 #mapa-igrejas .cc-filtros-form input[type="search"],
 #mapa-igrejas .cc-filtros-form input[type="date"] {
     width: 100%;
+    max-width: 100%;
     min-height: 2.6rem;
     border: 1px solid #cbd5e1;
     border-radius: .75rem;
     padding: .6rem .75rem;
     background: #fff;
+    box-sizing: border-box;
 }
 
 #mapa-igrejas .cc-filtros-acoes {
@@ -298,15 +300,23 @@
 #mapa-igrejas .cc-social-site { background: linear-gradient(90deg,#0f766e,#14b8a6); }
 #mapa-igrejas .cc-social-rede { background: linear-gradient(90deg,#475569,#64748b); }
 
+
 @media (max-width: 1023px) {
+    html,
+    body {
+        min-height: 100%;
+        overflow-y: auto;
+    }
+
     #mapa-igrejas .cc-mapa-main {
-        grid-template-rows: auto minmax(540px, 74vh);
+        grid-template-rows: auto auto;
     }
 
     #mapa-igrejas .cc-mapa-content {
         grid-template-columns: 1fr;
         gap: .7rem;
         padding: .7rem;
+        overflow: visible;
     }
 
     #mapa-igrejas .cc-mapa-stage {
@@ -327,7 +337,8 @@
     }
 
     #mapa-igrejas .cc-panel-body {
-        max-height: min(52vh, 460px);
+        max-height: none;
+        overflow: visible;
     }
 
     #mapa-igrejas #mapa-canvas {

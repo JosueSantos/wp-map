@@ -50,9 +50,16 @@
                                     <input type="hidden" id="filtro-tipo-evento" name="tipo_evento" value="">
 
                                     <label>
-                                        <span>Categoria da atividade</span>
-                                        <select id="filtro-tag" name="tag"></select>
+                                        <span>Característica de Missa</span>
+                                        <select id="filtro-tag-missa" name="tag_missa"></select>
                                     </label>
+
+                                    <label>
+                                        <span>Tipos de Ações Caritativas</span>
+                                        <select id="filtro-tag-acao-caritativa" name="tag_acao_caritativa"></select>
+                                    </label>
+
+                                    <input type="hidden" id="filtro-tag" name="tag" value="">
 
                                     <label>
                                         <span>Tipo de Local</span>
