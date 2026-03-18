@@ -24,7 +24,15 @@
     </div>
 </div>
 
-<div class="max-w-5xl mx-auto bg-white shadow-xl rounded-2xl p-4 sm:p-6 space-y-5">
+<div id="mapa-form-root" class="relative max-w-5xl mx-auto bg-white shadow-xl rounded-2xl p-4 sm:p-6 space-y-5">
+    <div id="mapa-loading-edicao" class="hidden absolute inset-0 z-30 bg-white/90 backdrop-blur-[1px] rounded-2xl flex items-center justify-center px-6">
+        <div class="flex flex-col items-center gap-3 text-center">
+            <div class="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" aria-hidden="true"></div>
+            <p class="text-sm font-medium text-gray-700">Carregando dados do local...</p>
+        </div>
+    </div>
+
+    <div id="mapa-form-content" class="space-y-5">
     <p id="mapa-user-greeting" class="text-lg text-gray-700 font-medium hidden"></p>
     <div class="sticky top-8 z-20 bg-white/95 backdrop-blur-sm py-3 border-b border-gray-100 rounded-xl px-2 shadow-sm">
         <div class="space-y-2">
@@ -180,6 +188,6 @@
         </div>
     </div>
 
-    <div id="mapa-debug" class="text-base text-gray-600"></div>
-
+        <div id="mapa-debug" class="text-base text-gray-600"></div>
+    </div>
 </div>

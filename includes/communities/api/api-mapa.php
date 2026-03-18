@@ -375,6 +375,10 @@ function cc_evento_proxima_ocorrencia($evento, DateTimeImmutable $base) {
     $frequencia = sanitize_key((string) ($evento['frequencia'] ?? 'semanal')) ?: 'semanal';
     $hora = cc_evento_normalizar_horario($evento['horario'] ?? '00:00');
 
+    if ($frequencia === 'missa_dominical') {
+        return cc_evento_proxima_data_semanal($base, [0], $hora);
+    }
+
     if ($frequencia === 'mensal') {
         return cc_evento_proxima_data_mensal($base, (int) ($evento['dia_mes'] ?? 1), $hora);
     }
@@ -575,6 +579,7 @@ function cc_normalizar_data_filtro($periodo, $data_param) {
 }
 
 function cc_evento_ocorre_em_data($frequencia, $evento_id, DateTimeImmutable $data) {
+    $frequencia = sanitize_key((string) $frequencia) ?: 'semanal';
     $dias_semana = cc_evento_get_dias_semana($evento_id);
     $dia_semana = !empty($dias_semana) ? (int) $dias_semana[0] : -1;
     $dia_mes = (int) get_post_meta($evento_id, 'dia_mes', true);
@@ -597,6 +602,10 @@ function cc_evento_ocorre_em_data($frequencia, $evento_id, DateTimeImmutable $da
         return $dia_mes > 0 && $mes > 0
             && (int) $data->format('j') === $dia_mes
             && (int) $data->format('n') === $mes;
+    }
+
+    if ($frequencia === 'missa_dominical') {
+        return (int) $data->format('w') === 0;
     }
 
     if (empty($dias_semana)) {
