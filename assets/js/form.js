@@ -7,6 +7,7 @@ let comunidadeEditandoId = null;
 let eventosRemovidos = [];
 let mapaDefinirCoordenadas = null;
 let tagsEventoCache = [];
+const FREQUENCIA_MISSA_DOMINICAL = 'missa_dominical';
 
 document.addEventListener('DOMContentLoaded', async function () {
     mapaConfigurarBloqueioDeNaoLogado();
@@ -56,6 +57,7 @@ async function mapaPreencherFormularioEdicao() {
 
     modoEdicao = true;
     comunidadeEditandoId = editarId;
+    mapaDefinirEstadoCarregamentoEdicao(true);
 
     mapaMostrarFeedback('Carregando dados do local para edição...', 'info');
 
@@ -84,6 +86,23 @@ async function mapaPreencherFormularioEdicao() {
         if (heading) heading.textContent = 'Editar Local';
     } catch (error) {
         mapaMostrarFeedback(error.message || 'Falha ao carregar dados de edição.', 'erro');
+    } finally {
+        mapaDefinirEstadoCarregamentoEdicao(false);
+    }
+}
+
+function mapaDefinirEstadoCarregamentoEdicao(ativo) {
+    const overlay = document.getElementById('mapa-loading-edicao');
+    const conteudo = document.getElementById('mapa-form-content');
+
+    if (overlay) {
+        overlay.classList.toggle('hidden', !ativo);
+    }
+
+    if (conteudo) {
+        conteudo.classList.toggle('pointer-events-none', !!ativo);
+        conteudo.classList.toggle('opacity-60', !!ativo);
+        conteudo.setAttribute('aria-busy', ativo ? 'true' : 'false');
     }
 }
 
@@ -568,7 +587,51 @@ async function mapaCarregarTagsEvento(select) {
     });
 }
 
-function mapaCriarOcorrencia(ocorrencia = null) {
+function mapaGerarDescricaoFrequencia(frequencia, dias = [], diaMes = '', numeroSemana = '', mes = '') {
+    const diaMap = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+    const mesMap = {
+        1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho',
+        7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
+    };
+
+    if (frequencia === FREQUENCIA_MISSA_DOMINICAL) return 'Missa Dominical';
+    if (frequencia === 'mensal') return diaMes ? `Mensal • dia ${diaMes}` : 'Mensal';
+    if (frequencia === 'numero_semana') {
+        const diaNumeroSemana = Array.isArray(dias) && dias.length ? diaMap[parseInt(dias[0], 10)] : '';
+        return numeroSemana && diaNumeroSemana ? `${numeroSemana}ª semana • ${diaNumeroSemana}` : 'Por número da semana';
+    }
+    if (frequencia === 'anual') {
+        const nomeMes = mesMap[parseInt(mes, 10)] || '';
+        return (diaMes && nomeMes) ? `Anual • ${diaMes} de ${nomeMes}` : 'Anual';
+    }
+
+    if (Array.isArray(dias) && dias.length) {
+        const nomes = dias
+            .map((dia) => diaMap[parseInt(dia, 10)])
+            .filter(Boolean);
+
+        if (nomes.length) {
+            return `Semanal • ${nomes.join(', ')}`;
+        }
+    }
+
+    return 'Semanal';
+}
+
+function mapaGerarTituloDinamico(nomeBase, frequenciaDescricao, horario = '') {
+    const base = String(nomeBase || '').trim();
+    const freq = String(frequenciaDescricao || '').trim();
+    const hora = String(horario || '').trim();
+
+    if (!base) return '';
+
+    const sufixo = [freq, hora].filter(Boolean).join(' | ');
+    return sufixo ? `${base} | ${sufixo}` : base;
+}
+
+function mapaCriarOcorrencia(ocorrencia = null, opcoes = {}) {
+    const grupo = opcoes.grupo || '';
+    const aoAlterar = typeof opcoes.aoAlterar === 'function' ? opcoes.aoAlterar : () => {};
     const item = document.createElement('div');
     item.className = 'evento-ocorrencia rounded-xl border border-gray-200 bg-white p-4 space-y-3';
     if (ocorrencia?.id) {
@@ -579,6 +642,7 @@ function mapaCriarOcorrencia(ocorrencia = null) {
         <div>
             <label class="block text-base font-semibold text-gray-700 mb-1">Frequência</label>
             <select class="evento-frequencia rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
+                ${grupo === 'missa' ? `<option value="${FREQUENCIA_MISSA_DOMINICAL}">Missa Dominical</option>` : ''}
                 <option value="semanal">Semanal</option>
                 <option value="mensal">Mensal</option>
                 <option value="numero_semana">Por número da semana</option>
@@ -650,6 +714,7 @@ function mapaCriarOcorrencia(ocorrencia = null) {
     const campoDiaMes = item.querySelector('.evento-campo-dia-mes');
     const campoNumeroSemana = item.querySelector('.evento-campo-numero-semana');
     const campoMes = item.querySelector('.evento-campo-mes');
+    const checksDiaSemana = item.querySelectorAll('.evento-dia-check');
 
     function atualizarCamposFrequencia() {
         const frequencia = frequenciaSelect.value;
@@ -658,6 +723,17 @@ function mapaCriarOcorrencia(ocorrencia = null) {
         campoDiaMes.classList.add('hidden');
         campoNumeroSemana.classList.add('hidden');
         campoMes.classList.add('hidden');
+
+        if (frequencia === FREQUENCIA_MISSA_DOMINICAL) {
+            checksDiaSemana.forEach((checkbox) => {
+                checkbox.checked = checkbox.value === '0';
+                checkbox.disabled = true;
+            });
+        } else {
+            checksDiaSemana.forEach((checkbox) => {
+                checkbox.disabled = false;
+            });
+        }
 
         if (frequencia === 'semanal') {
             campoDiaSemana.classList.remove('hidden');
@@ -670,9 +746,15 @@ function mapaCriarOcorrencia(ocorrencia = null) {
             campoDiaMes.classList.remove('hidden');
             campoMes.classList.remove('hidden');
         }
+        aoAlterar();
     }
 
     frequenciaSelect.addEventListener('change', atualizarCamposFrequencia);
+    item.querySelector('.evento-dia-mes').addEventListener('input', aoAlterar);
+    item.querySelector('.evento-numero-semana').addEventListener('change', aoAlterar);
+    item.querySelector('.evento-mes').addEventListener('change', aoAlterar);
+    item.querySelector('.evento-horario').addEventListener('input', aoAlterar);
+    checksDiaSemana.forEach((checkbox) => checkbox.addEventListener('change', aoAlterar));
 
     if (ocorrencia) {
         frequenciaSelect.value = ocorrencia.frequencia || 'semanal';
@@ -694,6 +776,7 @@ function mapaCriarOcorrencia(ocorrencia = null) {
             eventosRemovidos.push(eventoId);
         }
         item.remove();
+        aoAlterar();
     });
 
     return item;
@@ -731,7 +814,7 @@ function mapaAdicionarEventoPorGrupo(grupo, evento = null, adicionarNoTopo = fal
         <div class="evento-conteudo p-4 space-y-3 border-t border-gray-200">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Nome da atividade</label>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Nome base da atividade</label>
                     <input type="text" placeholder="Ex.: ${grupoConfig.label} da comunidade" class="evento-titulo w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2">
                 </div>
 
@@ -759,7 +842,7 @@ function mapaAdicionarEventoPorGrupo(grupo, evento = null, adicionarNoTopo = fal
             <div>
                 <p class="text-base font-semibold text-gray-700">Frequências e horários</p>
                 <div class="evento-ocorrencias space-y-3 mt-3"></div>
-                <button type="button" class="evento-ocorrencia-adicionar mt-3 px-4 py-2 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 font-medium hover:bg-indigo-100 transition">+ Adicionar frequência</button>
+                <button type="button" class="evento-ocorrencia-adicionar mt-3 px-4 py-2 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 font-medium hover:bg-indigo-100 transition">+ Adicionar horário</button>
             </div>
 
             <div class="pt-2 border-t border-gray-200">
@@ -791,8 +874,20 @@ function mapaAdicionarEventoPorGrupo(grupo, evento = null, adicionarNoTopo = fal
     };
 
     const atualizarResumoEvento = () => {
-        const titulo = campoTitulo.value.trim();
-        eventoResumo.textContent = titulo || 'Nova atividade';
+        const tituloBase = campoTitulo.value.trim();
+        const primeiraOcorrencia = ocorrenciasContainer.querySelector('.evento-ocorrencia');
+        const frequencia = primeiraOcorrencia?.querySelector('.evento-frequencia')?.value || 'semanal';
+        const dias = primeiraOcorrencia
+            ? Array.from(primeiraOcorrencia.querySelectorAll('.evento-dia-check:checked')).map((checkbox) => checkbox.value)
+            : [];
+        const diaMes = primeiraOcorrencia?.querySelector('.evento-dia-mes')?.value || '';
+        const numeroSemana = primeiraOcorrencia?.querySelector('.evento-numero-semana')?.value || '';
+        const mes = primeiraOcorrencia?.querySelector('.evento-mes')?.value || '';
+        const horario = primeiraOcorrencia?.querySelector('.evento-horario')?.value || '';
+        const descFrequencia = mapaGerarDescricaoFrequencia(frequencia, dias, diaMes, numeroSemana, mes);
+        const tituloDinamico = mapaGerarTituloDinamico(tituloBase, descFrequencia, horario);
+
+        eventoResumo.textContent = tituloDinamico || 'Nova atividade';
     };
 
     botaoToggle.addEventListener('click', () => definirEstadoSanfona(conteudoEvento.classList.contains('hidden')));
@@ -843,16 +938,17 @@ function mapaAdicionarEventoPorGrupo(grupo, evento = null, adicionarNoTopo = fal
     });
 
     div.querySelector('.evento-ocorrencia-adicionar').addEventListener('click', () => {
-        ocorrenciasContainer.appendChild(mapaCriarOcorrencia());
+        ocorrenciasContainer.appendChild(mapaCriarOcorrencia(null, { grupo, aoAlterar: atualizarResumoEvento }));
+        atualizarResumoEvento();
     });
 
     const ocorrencias = Array.isArray(evento?.ocorrencias) && evento.ocorrencias.length ? evento.ocorrencias : (evento ? [evento] : [null]);
     ocorrencias.forEach((ocorrencia) => {
-        ocorrenciasContainer.appendChild(mapaCriarOcorrencia(ocorrencia));
+        ocorrenciasContainer.appendChild(mapaCriarOcorrencia(ocorrencia, { grupo, aoAlterar: atualizarResumoEvento }));
     });
 
     if (evento) {
-        campoTitulo.value = evento.titulo || '';
+        campoTitulo.value = evento.titulo_base || evento.titulo || '';
         div.querySelector('.evento-observacao').value = evento.observacao || '';
     }
 
@@ -1178,6 +1274,7 @@ function mapaEnviar() {
             eventos.push({
                 id: Number.isInteger(eventoId) ? eventoId : null,
                 titulo,
+                titulo_base: titulo,
                 frequencia: ocorrencia.querySelector('.evento-frequencia').value,
                 dias: Array.from(ocorrencia.querySelectorAll('.evento-dia-check:checked')).map((checkbox) => checkbox.value),
                 dia_mes: ocorrencia.querySelector('.evento-dia-mes').value,

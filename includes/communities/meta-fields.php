@@ -128,6 +128,12 @@ function cc_register_meta() {
         'single' => true,
         'type' => 'string'
     ]);
+
+    register_post_meta('evento', 'titulo_base', [
+        'show_in_rest' => true,
+        'single' => true,
+        'type' => 'string'
+    ]);
 }
 
 add_action('init', 'cc_register_meta');

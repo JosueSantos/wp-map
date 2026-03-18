@@ -26,7 +26,7 @@ $paroquia_link = $paroquia_id ? get_permalink($paroquia_id) : '';
 $paroquia_nome = $paroquia_id ? get_the_title($paroquia_id) : '';
 $comunidades_atreladas = [];
 
-if (has_term('paroquia', 'tipo_comunidade', $comunidade_id)) {
+if (has_term(['paroquia', 'igreja_matriz'], 'tipo_comunidade', $comunidade_id)) {
     $comunidades_atreladas = get_posts([
         'post_type' => 'comunidade',
         'post_status' => 'publish',
@@ -54,6 +54,7 @@ function cc_formatar_recorrencia_single($evento) {
     $numero_semana = (string) ($evento['numero_semana'] ?? '');
     $dias = is_array($evento['dias'] ?? null) ? $evento['dias'] : [];
 
+    if ($frequencia === 'missa_dominical') return 'Missa Dominical';
     if ($frequencia === 'mensal') return $dia_mes ? "Todo dia {$dia_mes}" : 'Mensal';
     if ($frequencia === 'numero_semana') return ($numero_semana && $dia_semana) ? "{$numero_semana}ª {$dia_semana} do mês" : 'Por número da semana';
     if ($frequencia === 'anual') return ($dia_mes && $mes) ? "Todo dia {$dia_mes} de {$mes}" : 'Anual';
@@ -68,6 +69,29 @@ function cc_formatar_recorrencia_single($evento) {
     }
 
     return "Todo {$dia_semana}";
+}
+
+$single_map_markers = [];
+if ($latitude !== '' && $longitude !== '') {
+    $single_map_markers[] = [
+        'nome' => $nome,
+        'lat' => (float) $latitude,
+        'lng' => (float) $longitude,
+    ];
+}
+
+if (!empty($comunidades_atreladas)) {
+    foreach ($comunidades_atreladas as $comunidade_filha) {
+        $lat_filha = get_post_meta($comunidade_filha->ID, 'latitude', true);
+        $lng_filha = get_post_meta($comunidade_filha->ID, 'longitude', true);
+        if ($lat_filha === '' || $lng_filha === '') continue;
+
+        $single_map_markers[] = [
+            'nome' => get_the_title($comunidade_filha->ID),
+            'lat' => (float) $lat_filha,
+            'lng' => (float) $lng_filha,
+        ];
+    }
 }
 
 $share_url = urlencode(get_permalink($comunidade_id));
@@ -190,7 +214,7 @@ get_header();
 
                 <?php if (!empty($comunidades_atreladas)): ?>
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-3">
-                        <h2 class="text-2xl font-semibold text-slate-900">Comunidades vinculadas</h2>
+                        <h2 class="text-2xl font-semibold text-slate-900">Comunidades Paroquiais</h2>
                         <ul class="list-disc pl-5 space-y-1">
                             <?php foreach ($comunidades_atreladas as $comunidade_filha): ?>
                                 <li><a href="<?php echo esc_url(get_permalink($comunidade_filha->ID)); ?>" class="text-sky-700 hover:text-sky-900 hover:underline transition"><?php echo esc_html($comunidade_filha->post_title); ?></a></li>
@@ -255,7 +279,7 @@ get_header();
                 <?php endif; ?>
             </aside>
         </section>
-        <?php if ($latitude !== '' && $longitude !== ''): ?>
+        <?php if (!empty($single_map_markers)): ?>
             <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-3">
                 <h2 class="text-2xl font-semibold text-slate-900">Mapa</h2>
                 <div id="single-comunidade-map" style="height: 360px; border-radius: 0.75rem;"></div>
@@ -263,19 +287,29 @@ get_header();
             <script>
                 document.addEventListener('DOMContentLoaded', function () {
                     if (!window.L) return;
-                    const lat = Number('<?php echo esc_js($latitude); ?>');
-                    const lng = Number('<?php echo esc_js($longitude); ?>');
+                    const markersData = <?php echo wp_json_encode($single_map_markers); ?> || [];
+                    if (!Array.isArray(markersData) || !markersData.length) return;
+
+                    const lat = Number(markersData[0].lat);
+                    const lng = Number(markersData[0].lng);
                     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
-                    const map = L.map('single-comunidade-map', { scrollWheelZoom: false }).setView([lat, lng], 15);
+                    const map = L.map('single-comunidade-map', { scrollWheelZoom: false }).setView([lat, lng], 14);
                     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                         maxZoom: 19,
                         attribution: '&copy; OpenStreetMap contributors'
                     }).addTo(map);
                     const markers = L.markerClusterGroup();
-                    markers.addLayer(L.marker([lat, lng]).bindPopup('<?php echo esc_js($nome); ?>'));
+                    markersData.forEach((item) => {
+                        const markerLat = Number(item.lat);
+                        const markerLng = Number(item.lng);
+                        if (!Number.isFinite(markerLat) || !Number.isFinite(markerLng)) return;
+                        markers.addLayer(L.marker([markerLat, markerLng]).bindPopup(String(item.nome || 'Comunidade')));
+                    });
                     map.addLayer(markers);
-                    markers.eachLayer(function (marker) { marker.openPopup(); });
+                    if (markers.getBounds().isValid()) {
+                        map.fitBounds(markers.getBounds(), { padding: [24, 24], maxZoom: 15 });
+                    }
                 });
             </script>
         <?php endif; ?>
