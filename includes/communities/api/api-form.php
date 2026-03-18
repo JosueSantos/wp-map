@@ -174,15 +174,38 @@ function cc_api_obter_comunidade_para_edicao($request) {
         ]
     ]);
 
-    $eventos = [];
+    $eventos_agrupados = [];
     foreach ($eventos_query as $evento) {
         $tipo_evento_ids = wp_get_post_terms($evento->ID, 'tipo_evento', ['fields' => 'ids']);
         $tags_evento_ids = wp_get_post_terms($evento->ID, 'tags_evento', ['fields' => 'ids']);
 
-        $eventos[] = [
+        $titulo_base = get_post_meta($evento->ID, 'titulo_base', true) ?: $evento->post_title;
+        $tipo_evento_id = isset($tipo_evento_ids[0]) ? (int) $tipo_evento_ids[0] : null;
+        $observacao = get_post_meta($evento->ID, 'observacao', true);
+        $tags_ids = array_map('intval', is_array($tags_evento_ids) ? $tags_evento_ids : []);
+        sort($tags_ids);
+        $chave_grupo = md5(wp_json_encode([
+            'titulo_base' => $titulo_base,
+            'tipo_evento_id' => $tipo_evento_id,
+            'observacao' => $observacao,
+            'tags_evento_ids' => $tags_ids,
+        ]));
+
+        if (!isset($eventos_agrupados[$chave_grupo])) {
+            $eventos_agrupados[$chave_grupo] = [
+                'titulo' => $evento->post_title,
+                'titulo_base' => $titulo_base,
+                'observacao' => $observacao,
+                'tipo_evento_id' => $tipo_evento_id,
+                'tags_evento_ids' => $tags_ids,
+                'ocorrencias' => [],
+            ];
+        }
+
+        $eventos_agrupados[$chave_grupo]['ocorrencias'][] = [
             'id' => $evento->ID,
             'titulo' => $evento->post_title,
-            'titulo_base' => get_post_meta($evento->ID, 'titulo_base', true) ?: $evento->post_title,
+            'titulo_base' => $titulo_base,
             'frequencia' => get_post_meta($evento->ID, 'frequencia', true) ?: 'semanal',
             'dia' => get_post_meta($evento->ID, 'dia_semana', true),
             'dias' => cc_api_get_evento_dias_semana($evento->ID),
@@ -191,11 +214,20 @@ function cc_api_obter_comunidade_para_edicao($request) {
             'mes' => get_post_meta($evento->ID, 'mes', true),
             'horario' => get_post_meta($evento->ID, 'horario', true),
             'descricao' => get_post_meta($evento->ID, 'descricao', true),
-            'observacao' => get_post_meta($evento->ID, 'observacao', true),
-            'tipo_evento_id' => isset($tipo_evento_ids[0]) ? (int) $tipo_evento_ids[0] : null,
-            'tags_evento_ids' => array_map('intval', is_array($tags_evento_ids) ? $tags_evento_ids : []),
+            'observacao' => $observacao,
+            'tipo_evento_id' => $tipo_evento_id,
+            'tags_evento_ids' => $tags_ids,
         ];
     }
+
+    foreach ($eventos_agrupados as &$evento_agrupado) {
+        usort($evento_agrupado['ocorrencias'], function($a, $b) {
+            return strcmp((string) ($a['horario'] ?? ''), (string) ($b['horario'] ?? ''));
+        });
+    }
+    unset($evento_agrupado);
+
+    $eventos = array_values($eventos_agrupados);
 
     $parent_paroquia_id = (int) get_post_meta($comunidade_id, 'parent_paroquia', true);
 
