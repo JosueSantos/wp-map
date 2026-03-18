@@ -28,7 +28,7 @@ add_shortcode('mapa_form_comunidade', function () {
         'register_url' => function_exists('cc_with_redirect_to')
             ? cc_with_redirect_to(cc_get_auth_page_url('cadastro', '/cadastro'), $redirect_to)
             : wp_registration_url(),
-        'map_url' => home_url('/mapa-de-comunidades/'),
+        'map_url' => home_url('/mapa-comunidades/'),
         'form_url' => get_permalink()
     ]);
 
