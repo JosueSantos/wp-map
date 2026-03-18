@@ -182,6 +182,7 @@ function cc_api_obter_comunidade_para_edicao($request) {
         $eventos[] = [
             'id' => $evento->ID,
             'titulo' => $evento->post_title,
+            'titulo_base' => get_post_meta($evento->ID, 'titulo_base', true) ?: $evento->post_title,
             'frequencia' => get_post_meta($evento->ID, 'frequencia', true) ?: 'semanal',
             'dia' => get_post_meta($evento->ID, 'dia_semana', true),
             'dias' => cc_api_get_evento_dias_semana($evento->ID),
@@ -235,14 +236,62 @@ function cc_api_get_evento_dias_semana($evento_id) {
     return ($dia_unico >= 0 && $dia_unico <= 6) ? [$dia_unico] : [];
 }
 
+function cc_api_formatar_frequencia_evento($frequencia, $dias_semana = [], $dia_mes = '', $numero_semana = '', $mes = '') {
+    $dia_map = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+    $mes_map = ['1' => 'Janeiro', '2' => 'Fevereiro', '3' => 'Março', '4' => 'Abril', '5' => 'Maio', '6' => 'Junho', '7' => 'Julho', '8' => 'Agosto', '9' => 'Setembro', '10' => 'Outubro', '11' => 'Novembro', '12' => 'Dezembro'];
+    $freq = sanitize_key((string) $frequencia);
+
+    if ($freq === 'missa_dominical') return 'Missa Dominical';
+    if ($freq === 'mensal') return $dia_mes ? "Mensal (dia {$dia_mes})" : 'Mensal';
+
+    if ($freq === 'numero_semana') {
+        $dia_nome = isset($dias_semana[0]) ? ($dia_map[(int) $dias_semana[0]] ?? '') : '';
+        return ($numero_semana && $dia_nome) ? "{$numero_semana}ª semana ({$dia_nome})" : 'Por número da semana';
+    }
+
+    if ($freq === 'anual') {
+        $mes_nome = $mes_map[(string) $mes] ?? '';
+        return ($dia_mes && $mes_nome) ? "Anual ({$dia_mes} de {$mes_nome})" : 'Anual';
+    }
+
+    if (!empty($dias_semana)) {
+        $nomes = [];
+        foreach ($dias_semana as $dia_item) {
+            $dia_idx = (int) $dia_item;
+            if (isset($dia_map[$dia_idx])) {
+                $nomes[] = $dia_map[$dia_idx];
+            }
+        }
+
+        if (!empty($nomes)) {
+            return 'Semanal (' . implode(', ', $nomes) . ')';
+        }
+    }
+
+    return 'Semanal';
+}
+
+function cc_api_gerar_titulo_evento_dinamico($titulo_base, $frequencia, $dias_semana = [], $dia_mes = '', $numero_semana = '', $mes = '', $horario = '') {
+    $titulo_base_limpo = sanitize_text_field((string) $titulo_base);
+    if ($titulo_base_limpo === '') return '';
+
+    $descricao_frequencia = cc_api_formatar_frequencia_evento($frequencia, $dias_semana, $dia_mes, $numero_semana, $mes);
+    $horario_limpo = sanitize_text_field((string) $horario);
+    $partes = array_filter([$descricao_frequencia, $horario_limpo], function($parte) {
+        return trim((string) $parte) !== '';
+    });
+
+    return $titulo_base_limpo . (!empty($partes) ? ' | ' . implode(' | ', $partes) : '');
+}
+
 function cc_api_salvar_eventos($comunidade_id, $eventos = []) {
     if (empty($eventos) || !is_array($eventos)) {
         return;
     }
 
     foreach ($eventos as $evt) {
-        $titulo_evento = sanitize_text_field($evt['titulo'] ?? '');
-        if (empty($titulo_evento)) continue;
+        $titulo_base = sanitize_text_field($evt['titulo_base'] ?? ($evt['titulo'] ?? ''));
+        if (empty($titulo_base)) continue;
 
         $evento_id = !empty($evt['id']) ? (int) $evt['id'] : 0;
 
@@ -254,19 +303,19 @@ function cc_api_salvar_eventos($comunidade_id, $eventos = []) {
 
             wp_update_post([
                 'ID' => $evento_id,
-                'post_title' => $titulo_evento,
+                'post_title' => $titulo_base,
             ]);
         } else {
             $evento_id = wp_insert_post([
                 'post_type'   => 'evento',
                 'post_status' => 'publish',
-                'post_title'  => $titulo_evento,
+                'post_title'  => $titulo_base,
             ]);
 
             if (is_wp_error($evento_id)) continue;
         }
 
-        $frequencias_validas = ['semanal', 'mensal', 'numero_semana', 'anual'];
+        $frequencias_validas = ['semanal', 'mensal', 'numero_semana', 'anual', 'missa_dominical'];
         $frequencia = sanitize_key($evt['frequencia'] ?? 'semanal');
         if (!in_array($frequencia, $frequencias_validas, true)) {
             $frequencia = 'semanal';
@@ -290,15 +339,20 @@ function cc_api_salvar_eventos($comunidade_id, $eventos = []) {
 
         $dias_semana = array_values(array_unique($dias_semana));
         sort($dias_semana);
+        if ($frequencia === 'missa_dominical') {
+            $dias_semana = [0];
+        }
         $dia_semana = !empty($dias_semana) ? $dias_semana[0] : '';
 
         $dia_mes = isset($evt['dia_mes']) && $evt['dia_mes'] !== '' ? max(1, min(31, (int) $evt['dia_mes'])) : '';
         $numero_semana = isset($evt['numero_semana']) && $evt['numero_semana'] !== '' ? max(1, min(5, (int) $evt['numero_semana'])) : '';
         $mes = isset($evt['mes']) && $evt['mes'] !== '' ? max(1, min(12, (int) $evt['mes'])) : '';
         $horario = sanitize_text_field($evt['horario'] ?? '');
+        $titulo_evento = cc_api_gerar_titulo_evento_dinamico($titulo_base, $frequencia, $dias_semana, $dia_mes, $numero_semana, $mes, $horario);
 
         update_post_meta($evento_id, 'comunidade_id', $comunidade_id);
         update_post_meta($evento_id, 'frequencia', $frequencia);
+        update_post_meta($evento_id, 'titulo_base', $titulo_base);
         if ($dia_semana === '') {
             delete_post_meta($evento_id, 'dia_semana');
             delete_post_meta($evento_id, 'dias_semana');
@@ -327,6 +381,10 @@ function cc_api_salvar_eventos($comunidade_id, $eventos = []) {
         update_post_meta($evento_id, 'horario', $horario);
         update_post_meta($evento_id, 'descricao', sanitize_textarea_field($evt['descricao'] ?? ''));
         update_post_meta($evento_id, 'observacao', sanitize_textarea_field($evt['observacao'] ?? ''));
+        wp_update_post([
+            'ID' => $evento_id,
+            'post_title' => $titulo_evento ?: $titulo_base,
+        ]);
 
         if (!empty($evt['tipo_evento'])) {
             wp_set_object_terms($evento_id, [(int) $evt['tipo_evento']], 'tipo_evento');

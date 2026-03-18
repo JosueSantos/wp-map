@@ -82,6 +82,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         const mes = mesMap[String(evento?.mes)] || '';
         const numeroSemana = evento?.numero_semana ? String(evento.numero_semana) : '';
 
+        if (frequencia === 'missa_dominical') return 'Missa Dominical';
         if (frequencia === 'mensal') return diaMes ? `Todo dia ${diaMes}` : 'Mensal';
         if (frequencia === 'numero_semana') return (numeroSemana && diaSemana) ? `${numeroSemana}ª ${diaSemana} do mês` : 'Por número da semana';
         if (frequencia === 'anual') return (diaMes && mes) ? `Todo dia ${diaMes} de ${mes}` : 'Anual';
