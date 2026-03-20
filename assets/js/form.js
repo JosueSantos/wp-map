@@ -143,7 +143,31 @@ function mapaAplicarDadosDaComunidade(dados) {
     });
 
     wizardState.atividades = [];
+
+    const eventosParaPreencher = [];
     (dados.eventos || []).forEach((evento) => {
+        const ocorrencias = Array.isArray(evento?.ocorrencias) ? evento.ocorrencias : [];
+
+        if (ocorrencias.length) {
+            ocorrencias.forEach((ocorrencia) => {
+                eventosParaPreencher.push({
+                    ...evento,
+                    ...ocorrencia,
+                    titulo_base: ocorrencia?.titulo_base || evento?.titulo_base || evento?.titulo || ocorrencia?.titulo || '',
+                    observacao: ocorrencia?.observacao ?? evento?.observacao ?? '',
+                    tipo_evento_id: ocorrencia?.tipo_evento_id ?? evento?.tipo_evento_id ?? null,
+                    tags_evento_ids: Array.isArray(ocorrencia?.tags_evento_ids)
+                        ? ocorrencia.tags_evento_ids
+                        : (Array.isArray(evento?.tags_evento_ids) ? evento.tags_evento_ids : [])
+                });
+            });
+            return;
+        }
+
+        eventosParaPreencher.push(evento);
+    });
+
+    eventosParaPreencher.forEach((evento) => {
         mapaAdicionarEvento(evento, false);
     });
     renderAtividades();
