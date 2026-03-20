@@ -572,6 +572,12 @@ function cc_api_cadastrar_comunidade($request) {
     cc_api_salvar_eventos($comunidade_id, $data['eventos'] ?? []);
     cc_api_remover_eventos($comunidade_id, $data['eventos_removidos'] ?? []);
 
+    $remover_imagem = !empty($data['remover_imagem']) && in_array((string) $data['remover_imagem'], ['1', 'true', 'on'], true);
+    if ($remover_imagem) {
+        delete_post_thumbnail($comunidade_id);
+        delete_post_meta($comunidade_id, 'imagem_id');
+    }
+
     $dados_alteracao = $data;
     $dados_alteracao['acao'] = $is_edicao ? 'edicao' : 'criacao';
     cc_registrar_alteracao(

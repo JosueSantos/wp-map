@@ -52,7 +52,11 @@ function cc_handle_custom_auth_forms() {
             wp_safe_redirect(add_query_arg('cc_auth_notice', 'register_email_exists', $register_url));
             exit;
         }
-        if (!$senha) $senha = wp_generate_password(12, true);
+        if (strlen((string) $senha) < 6) {
+            $register_url = cc_with_redirect_to(cc_get_auth_page_url('cadastro', '/cadastro'), cc_get_safe_redirect_url_from_request());
+            wp_safe_redirect(add_query_arg('cc_auth_notice', 'register_password_required', $register_url));
+            exit;
+        }
 
         $login_base = sanitize_user(current(explode('@', $email)));
         $login = $login_base;
@@ -321,5 +325,4 @@ function cc_extract_id_from_autocomplete($raw_value) {
 
     return 0;
 }
-
 

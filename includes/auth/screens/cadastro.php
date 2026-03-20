@@ -32,7 +32,7 @@ function cc_shortcode_cadastro_mapa() {
                 <input type="email" name="email" required class="<?php echo esc_attr(cc_auth_input_class()); ?>">
             </div>
 
-            <?php echo cc_render_password_field('senha', __('Senha (opcional)', 'cadastro-comunidades'), false, __('Se não preencher, o sistema gera uma senha segura automaticamente.', 'cadastro-comunidades')); ?>
+            <?php echo cc_render_password_field('senha', __('Senha', 'cadastro-comunidades'), true, __('Campo obrigatório. Use pelo menos 6 caracteres.', 'cadastro-comunidades'), 6); ?>
 
             <div>
                 <label class="block text-sm font-medium text-gray-700"><?php esc_html_e('Paróquia (opcional)', 'cadastro-comunidades'); ?></label>
@@ -61,4 +61,3 @@ function cc_shortcode_cadastro_mapa() {
     return ob_get_clean();
 }
 add_shortcode('cadastro-mapa', 'cc_shortcode_cadastro_mapa');
-

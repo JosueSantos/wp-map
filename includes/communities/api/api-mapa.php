@@ -298,6 +298,7 @@ function cc_api_mapa_comunidades($request) {
             $lista_eventos[] = [
                 'id'        => $e->ID,
                 'titulo'    => $e->post_title,
+                'titulo_base' => get_post_meta($e->ID, 'titulo_base', true) ?: $e->post_title,
                 'tipo'      => $tipo_evt,
                 'frequencia'=> get_post_meta($e->ID, 'frequencia', true) ?: 'semanal',
                 'dia'       => $dia_semana,
