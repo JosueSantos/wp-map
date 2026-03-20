@@ -361,6 +361,10 @@ function mapaIniciarSeletorDeCoordenadas() {
             if (!resultados.length) {
                 erroEl.textContent = 'Endereço não encontrado. Ajuste o texto ou marque no mapa manualmente.';
                 erroEl.classList.remove('hidden');
+                const semCoordenadas = !Number.isFinite(parseFloat(latInput.value)) || !Number.isFinite(parseFloat(lngInput.value));
+                if (semCoordenadas) {
+                    mapaCadastro.setView([-3.7319, -38.5267], 12);
+                }
                 return;
             }
 
@@ -370,6 +374,10 @@ function mapaIniciarSeletorDeCoordenadas() {
         } catch (error) {
             erroEl.textContent = 'Não foi possível buscar o endereço agora. Tente novamente ou marque no mapa.';
             erroEl.classList.remove('hidden');
+            const semCoordenadas = !Number.isFinite(parseFloat(latInput.value)) || !Number.isFinite(parseFloat(lngInput.value));
+            if (semCoordenadas) {
+                mapaCadastro.setView([-3.7319, -38.5267], 12);
+            }
         }
     }
 
@@ -632,8 +640,15 @@ const wizardState = {
 };
 
 function mapaAtividadesPadrao(grupo = 'missa') {
+    const titulosPadrao = {
+        missa: 'Missa da comunidade',
+        confissao: 'Confissão da comunidade',
+        adoracao_santissimo: 'Adoração ao Santíssimo da comunidade',
+        acao_caritativa: 'Ação caritativa da comunidade'
+    };
+
     return {
-        titulo: '',
+        titulo: titulosPadrao[grupo] || '',
         descricao: '',
         observacao: '',
         grupo,
@@ -810,7 +825,11 @@ function mapaSalvarWizardAtividade() {
 
     mapaPersistirAtividadesLocalStorage();
     renderAtividades();
-    mapaMostrarFeedback('Atividade salva com sucesso.', 'sucesso');
+    const feedback = document.getElementById('wizard-feedback');
+    if (feedback) {
+        feedback.className = 'rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700';
+        feedback.textContent = 'Atividade salva com sucesso.';
+    }
     mapaFecharWizardAtividade();
 
     if (btnSalvar) {
@@ -855,7 +874,6 @@ function renderAtividades() {
                 </div>
             </div>
             <ul class="mt-3 space-y-1">${resumo || '<li class="text-sm text-gray-500">Sem frequências cadastradas.</li>'}</ul>
-            <pre class="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-700 whitespace-pre-wrap">${mapaResumoAutomaticoTexto(atividade)}</pre>
         `;
 
         card.querySelector('.atividade-editar')?.addEventListener('click', () => mapaAbrirWizardAtividade(idx));
@@ -937,13 +955,10 @@ function renderStepDadosAtividade() {
             <label class="block text-sm font-semibold text-gray-700 mb-1">Descrição</label>
             <textarea id="wizard-atividade-descricao" class="w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2 min-h-[90px]">${wizardState.draft.descricao || ''}</textarea>
         </div>` : ''}
-        <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Tipo fixo</label>
-            <input type="text" readonly class="w-full rounded-xl border-2 border-gray-200 bg-gray-100 px-3 py-2 text-gray-700" value="${EVENTO_GRUPOS[grupo]?.label || 'Atividade'}">
-        </div>
         ${exibirTags ? `<div>
             <label class="block text-sm font-semibold text-gray-700 mb-1">Características</label>
-            <select id="wizard-atividade-tags" class="w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2" multiple></select>
+            <select id="wizard-atividade-tags" class="w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2 min-h-[140px]" multiple size="6"></select>
+            <p class="mt-1 text-xs text-gray-500">Clique nos itens para selecionar/remover sem precisar usar Ctrl.</p>
         </div>` : ''}
         <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1">Observação</label>
@@ -988,14 +1003,15 @@ function renderFrequencias() {
 
     step.innerHTML = `
         <div class="flex items-center justify-between gap-2">
-            <p class="text-sm text-gray-600">CRUD inline: crie frequências independentes e gerencie horários em cada uma.</p>
             <button type="button" id="wizard-add-frequencia" class="px-3 py-2 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 font-medium">+ Adicionar frequência</button>
         </div>
         <div id="wizard-frequencias-lista" class="space-y-2"></div>
     `;
 
     step.querySelector('#wizard-add-frequencia')?.addEventListener('click', () => {
-        wizardState.draft.frequencias.push(mapaFrequenciaPadrao());
+        const nova = mapaFrequenciaPadrao();
+        nova.__editing = true;
+        wizardState.draft.frequencias.push(nova);
         mapaRenderWizard();
     });
 
@@ -1016,7 +1032,7 @@ function renderFrequencias() {
                 </div>
             </div>
             <div class="text-sm text-gray-600 mt-2">${horarios ? `Horários: ${horarios}` : 'Sem horários cadastrados.'}</div>
-            <div class="freq-inline-wrap hidden mt-3 space-y-3">
+            <div class="freq-inline-wrap ${freq.__editing ? '' : 'hidden'} mt-3 space-y-3">
                 ${campos}
                 <div class="rounded-lg border border-gray-200 bg-gray-50 p-2 space-y-2">
                     <div class="flex items-center justify-between gap-2">
@@ -1024,12 +1040,12 @@ function renderFrequencias() {
                         <button type="button" class="horario-adicionar px-2 py-1 text-xs rounded border border-indigo-200 text-indigo-700 bg-white">+ Horário</button>
                     </div>
                     <div class="freq-horarios-lista space-y-2"></div>
-                    <p class="freq-erro hidden text-xs text-red-700"></p>
                 </div>
                 <div class="flex justify-end gap-2">
                     <button type="button" class="freq-cancelar px-3 py-1.5 text-sm rounded border border-gray-300">Cancelar</button>
-                    <button type="button" class="freq-salvar px-3 py-1.5 text-sm rounded bg-emerald-600 text-white">Salvar frequência</button>
+                    <button type="button" class="freq-salvar px-3 py-1.5 text-sm rounded border border-emerald-300 text-emerald-700 bg-white hover:bg-emerald-50">Salvar frequência</button>
                 </div>
+                <p class="freq-erro hidden text-xs text-red-700"></p>
             </div>
         `;
 
@@ -1044,6 +1060,7 @@ function renderFrequencias() {
         const wrap = row.querySelector('.freq-inline-wrap');
 
         btnEditar?.addEventListener('click', () => {
+            freq.__editing = true;
             wrap.classList.remove('hidden');
             row.querySelector('.freq-frequencia')?.focus();
             mapaBindHorarioEditors(row, freq);
@@ -1059,10 +1076,14 @@ function renderFrequencias() {
                 return;
             }
             erro.classList.add('hidden');
+            freq.__editing = false;
             mapaRenderWizard();
         });
 
         lista.appendChild(row);
+        if (!wrap.classList.contains('hidden')) {
+            mapaBindHorarioEditors(row, freq);
+        }
     });
 }
 
@@ -1119,7 +1140,10 @@ function mapaBindHorarioEditors(row, freq) {
     });
 
     const freqTipo = row.querySelector('.freq-frequencia');
-    freqTipo?.addEventListener('change', () => mapaRenderCamposDinamicos(row, freq, wizardState.draft.grupo || 'missa'));
+    freqTipo?.addEventListener('change', () => {
+        freq.frequencia = freqTipo.value || 'semanal';
+        mapaRenderCamposDinamicos(row, freq, wizardState.draft.grupo || 'missa');
+    });
     mapaRenderCamposDinamicos(row, freq, wizardState.draft.grupo || 'missa');
     render();
 }
@@ -1130,7 +1154,8 @@ function mapaRenderCamposDinamicos(row, freq, grupo) {
     if (!wrap) return;
 
     if (tipo === FREQUENCIA_MISSA_DOMINICAL && grupo === 'missa') {
-        wrap.innerHTML = '<p class="text-xs text-gray-600 sm:col-span-2">Domingo fixo (regra da Missa Dominical).</p>';
+        freq.dias = ['0'];
+        wrap.innerHTML = '';
         return;
     }
 
@@ -1138,23 +1163,29 @@ function mapaRenderCamposDinamicos(row, freq, grupo) {
         wrap.innerHTML = `
             <fieldset class="sm:col-span-2">
                 <legend class="text-xs font-semibold text-gray-700 mb-1">Dias da semana</legend>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-1">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 rounded-md border border-gray-200 p-2">
                     ${DIAS_SEMANA_LABEL.map((dia, dIdx) => `<label class="text-xs flex items-center gap-1"><input class="freq-dia-semanal" type="checkbox" value="${dIdx}" ${(freq.dias || []).map(String).includes(String(dIdx)) ? 'checked' : ''}>${dia}</label>`).join('')}
                 </div>
             </fieldset>
         `;
+        wrap.querySelectorAll('.freq-dia-semanal').forEach((checkbox) => {
+            checkbox.addEventListener('change', () => {
+                freq.dias = Array.from(wrap.querySelectorAll('.freq-dia-semanal:checked')).map((el) => String(el.value));
+            });
+        });
         return;
     }
 
     if (tipo === 'mensal') {
         wrap.innerHTML = `<label class="text-xs font-semibold text-gray-700">Dia do mês <input type="number" min="1" max="31" class="freq-dia-mes mt-1 w-full rounded border border-gray-300 px-2 py-1.5" value="${freq.dia_mes || ''}"></label>`;
+        wrap.querySelector('.freq-dia-mes')?.addEventListener('input', (event) => { freq.dia_mes = event.target.value; });
         return;
     }
 
     if (tipo === 'numero_semana') {
         wrap.innerHTML = `
             <label class="text-xs font-semibold text-gray-700">Número da semana
-                <select class="freq-numero-semana mt-1 w-full rounded border border-gray-300 px-2 py-1.5">${[1, 2, 3, 4, 5].map((n) => `<option value="${n}" ${String(freq.numero_semana) === String(n) ? 'selected' : ''}>${n}</option>`).join('')}</select>
+                <select class="freq-numero-semana mt-1 w-full rounded border border-gray-300 px-2 py-1.5">${[1, 2, 3, 4, 5].map((n) => `<option value="${n}" ${String(freq.numero_semana) === String(n) ? 'selected' : ''}>${n}ª Semana</option>`).join('')}</select>
             </label>
             <label class="text-xs font-semibold text-gray-700">Dia da semana
                 <select class="freq-dia-unico mt-1 w-full rounded border border-gray-300 px-2 py-1.5">
@@ -1163,6 +1194,8 @@ function mapaRenderCamposDinamicos(row, freq, grupo) {
                 </select>
             </label>
         `;
+        wrap.querySelector('.freq-numero-semana')?.addEventListener('change', (event) => { freq.numero_semana = event.target.value; });
+        wrap.querySelector('.freq-dia-unico')?.addEventListener('change', (event) => { freq.dias = event.target.value === '' ? [] : [String(event.target.value)]; });
         return;
     }
 
@@ -1178,6 +1211,8 @@ function mapaRenderCamposDinamicos(row, freq, grupo) {
                 </select>
             </label>
         `;
+        wrap.querySelector('.freq-dia-mes')?.addEventListener('input', (event) => { freq.dia_mes = event.target.value; });
+        wrap.querySelector('.freq-mes')?.addEventListener('change', (event) => { freq.mes = event.target.value; });
     }
 }
 
@@ -1434,6 +1469,19 @@ function mapaIniciarValidadorImagem() {
 
     const tiposAceitos = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     const tamanhoMaximo = 5 * 1024 * 1024;
+    const botaoRemover = document.getElementById('imagem-comunidade-remover');
+
+    botaoRemover?.addEventListener('click', function () {
+        const previewWrap = document.getElementById('imagem-comunidade-preview-wrap');
+        inputImagem.value = '';
+        inputImagem.dataset.removerImagem = '1';
+        mapaAtualizarPreviewImagemExistente('');
+        previewWrap?.classList.add('hidden');
+        mensagem.textContent = 'Imagem atual marcada para exclusão.';
+        mensagem.classList.remove('hidden');
+        mensagem.classList.add('text-emerald-700', 'font-medium');
+        mensagem.classList.remove('text-red-700');
+    });
 
     inputImagem.addEventListener('change', function () {
         mensagem.classList.add('hidden');
@@ -1442,6 +1490,7 @@ function mapaIniciarValidadorImagem() {
         if (!this.files || !this.files.length) return;
 
         const arquivo = this.files[0];
+        this.dataset.removerImagem = '0';
 
         if (!tiposAceitos.includes(arquivo.type)) {
             this.value = '';
@@ -1630,6 +1679,7 @@ function mapaEnviar() {
     if (imagemInput?.files?.length) {
         formData.append('imagem_comunidade', imagemInput.files[0]);
     }
+    formData.append('remover_imagem', imagemInput?.dataset?.removerImagem === '1' ? '1' : '0');
 
     mapaMostrarFeedback('Enviando cadastro... aguarde.', 'info');
     mapaDefinirEstadoBotaoEnvio(true);

@@ -442,7 +442,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 const recorrencia = descricaoRecorrencia(evento);
                 return `
                     <li class="bg-slate-50 border border-slate-200 rounded-lg p-3">
-                        <p class="text-sm font-medium text-slate-900">${escapeHtml(evento.titulo || "Atividade")}</p>
+                        <p class="text-sm font-medium text-slate-900">${escapeHtml(evento.titulo_base || evento.titulo || "Atividade")}</p>
                         <p class="text-xs text-slate-600">${escapeHtml(recorrencia)} • ${escapeHtml(evento.horario || "Horário não informado")}</p>
                         ${evento.observacao ? `<br><small>${escapeHtml(evento.observacao)}</small>` : ""}
                     </li>

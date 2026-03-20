@@ -27,6 +27,7 @@ function cc_render_auth_notice($notice) {
         'login_invalid' => ['type' => 'error', 'message' => __('E-mail/usuário ou senha inválidos. Confira os dados e tente novamente.', 'cadastro-comunidades')],
         'register_nonce' => ['type' => 'error', 'message' => __('Não foi possível validar o cadastro. Atualize a página e tente novamente.', 'cadastro-comunidades')],
         'register_invalid_data' => ['type' => 'error', 'message' => __('Informe nome e um e-mail válido para continuar.', 'cadastro-comunidades')],
+        'register_password_required' => ['type' => 'error', 'message' => __('Informe uma senha com pelo menos 6 caracteres para concluir o cadastro.', 'cadastro-comunidades')],
         'register_email_exists' => ['type' => 'error', 'message' => __('Este e-mail já está cadastrado. Faça login ou use outro e-mail.', 'cadastro-comunidades')],
         'register_error' => ['type' => 'error', 'message' => __('Não foi possível concluir seu cadastro agora. Tente novamente em instantes.', 'cadastro-comunidades')],
         'reset_ok' => ['type' => 'success', 'message' => __('Senha redefinida com sucesso. Agora você já pode entrar.', 'cadastro-comunidades')],
@@ -106,4 +107,3 @@ function cc_render_social_buttons($redirect_to = '') {
     return ob_get_clean();
 }
 add_shortcode('mapa-social-buttons', 'cc_render_social_buttons');
-

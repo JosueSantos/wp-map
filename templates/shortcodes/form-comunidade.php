@@ -140,7 +140,7 @@
     <section id="secao-etapa-4" data-step="4" class="rounded-2xl border border-gray-200 p-4 sm:p-6">
         <h3 class="text-lg font-semibold text-gray-800 mb-4">4. Atividades</h3>
         <div id="atividades-root" class="space-y-4">
-            <p class="text-sm text-gray-600">Cadastre cada tipo de atividade em blocos fixos. Você pode criar, editar e remover frequências e horários sem perder regras de negócio.</p>
+            <p class="text-sm text-gray-600">Cadastre Missas Confissões Adoração ao Santíssimo ou Ações Caritativas.</p>
 
             <div class="atividade-grupo rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3" data-grupo="missa">
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -219,6 +219,9 @@
         <div id="imagem-comunidade-preview-wrap" class="hidden">
             <p class="text-sm text-gray-600">Imagem atual:</p>
             <img id="imagem-comunidade-preview" src="" alt="Imagem atual do local" class="mt-2 w-40 h-40 object-cover rounded-lg border border-gray-200">
+            <button type="button" id="imagem-comunidade-remover" class="mt-3 px-4 py-2 rounded-xl border border-red-200 text-red-700 bg-white hover:bg-red-50 text-sm font-medium transition">
+                Excluir imagem atual
+            </button>
         </div>
     </section>
 

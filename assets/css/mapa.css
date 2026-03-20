@@ -235,9 +235,9 @@
 }
 
 #mapa-igrejas .cc-btn-detalhes--primary {
-    background: #1d4ed8;
+    background: #fff;
     border-color: #1d4ed8;
-    color: #fff;
+    color: #1d4ed8;
 }
 
 #mapa-igrejas .cc-btn-detalhes--secondary {
