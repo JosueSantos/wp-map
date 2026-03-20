@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     mapaIniciarSeletorDeCoordenadas();
     mapaIniciarEtapasDoFormulario();
     mapaIniciarValidadorImagem();
+    mapaInitAtividadesUI();
 
     await mapaPreencherFormularioEdicao();
 });
@@ -141,12 +142,11 @@ function mapaAplicarDadosDaComunidade(dados) {
         mapaAdicionarContato(contato.tipo || '', contato.valor || '', false);
     });
 
-    document.querySelectorAll('.eventos-lista').forEach((lista) => {
-        lista.innerHTML = '';
-    });
+    wizardState.atividades = [];
     (dados.eventos || []).forEach((evento) => {
         mapaAdicionarEvento(evento, false);
     });
+    renderAtividades();
 
     mapaAtualizarPreviewImagemExistente(dados.imagem_url || '');
 }
@@ -618,362 +618,570 @@ function mapaGerarDescricaoFrequencia(frequencia, dias = [], diaMes = '', numero
     return 'Semanal';
 }
 
-function mapaGerarTituloDinamico(nomeBase, frequenciaDescricao, horario = '') {
-    const base = String(nomeBase || '').trim();
-    const freq = String(frequenciaDescricao || '').trim();
-    const hora = String(horario || '').trim();
+const DIAS_SEMANA_LABEL = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+const STORAGE_ATIVIDADES_KEY = 'mapa_form_atividades_v2';
+const wizardState = {
+    atividades: [],
+    currentStep: 1,
+    editingIndex: null,
+    selectedFrequencyIndex: null,
+    modalOpen: false,
+    draft: null
+};
 
-    if (!base) return '';
-
-    const sufixo = [freq, hora].filter(Boolean).join(' | ');
-    return sufixo ? `${base} | ${sufixo}` : base;
+function mapaAtividadesPadrao(grupo = 'missa') {
+    return {
+        titulo: '',
+        descricao: '',
+        observacao: '',
+        grupo,
+        tipo_evento: tipoEventoPorGrupo[grupo] || null,
+        tags_evento: [],
+        frequencias: []
+    };
 }
 
-function mapaCriarOcorrencia(ocorrencia = null, opcoes = {}) {
-    const grupo = opcoes.grupo || '';
-    const aoAlterar = typeof opcoes.aoAlterar === 'function' ? opcoes.aoAlterar : () => {};
-    const item = document.createElement('div');
-    item.className = 'evento-ocorrencia rounded-xl border border-gray-200 bg-white p-4 space-y-3';
-    if (ocorrencia?.id) {
-        item.dataset.eventoId = String(ocorrencia.id);
+function mapaFrequenciaPadrao() {
+    return {
+        id: null,
+        frequencia: 'semanal',
+        dias: [],
+        dia_mes: '',
+        numero_semana: '',
+        mes: '',
+        horarios: []
+    };
+}
+
+function mapaInitAtividadesUI() {
+    const root = document.getElementById('atividades-root');
+    if (!root) return;
+
+    document.getElementById('atividade-add-btn')?.addEventListener('click', () => mapaAbrirWizardAtividade());
+    document.getElementById('wizard-close-btn')?.addEventListener('click', mapaFecharWizardAtividade);
+    document.getElementById('wizard-voltar-btn')?.addEventListener('click', () => mapaTrocarStepWizard(-1));
+    document.getElementById('wizard-avancar-btn')?.addEventListener('click', () => mapaTrocarStepWizard(1));
+    document.getElementById('wizard-salvar-btn')?.addEventListener('click', mapaSalvarWizardAtividade);
+
+    document.addEventListener('keydown', (event) => {
+        if (!wizardState.modalOpen) return;
+        if (event.key === 'Escape') {
+            if (document.activeElement?.classList?.contains('inline-editor')) {
+                return;
+            }
+            mapaFecharWizardAtividade();
+        }
+    });
+
+    mapaPrepararTipoEventoPorGrupo();
+    mapaRestaurarAtividadesLocalStorage();
+    renderAtividades();
+}
+
+async function mapaPrepararTipoEventoPorGrupo() {
+    if (Object.keys(tipoEventoPorGrupo).length) return;
+
+    try {
+        await mapaCarregarTiposEvento(document.createElement('select'));
+    } catch (error) {
+        console.warn('Não foi possível carregar tipo_evento para o wizard de atividades.', error);
+    }
+}
+
+function mapaRestaurarAtividadesLocalStorage() {
+    try {
+        const bruto = localStorage.getItem(STORAGE_ATIVIDADES_KEY);
+        if (!bruto) return;
+        const atividades = JSON.parse(bruto);
+        if (!Array.isArray(atividades)) return;
+        wizardState.atividades = atividades;
+    } catch (error) {
+        console.warn('Não foi possível restaurar atividades do cache local.', error);
+    }
+}
+
+function mapaPersistirAtividadesLocalStorage() {
+    try {
+        localStorage.setItem(STORAGE_ATIVIDADES_KEY, JSON.stringify(wizardState.atividades));
+    } catch (error) {
+        console.warn('Não foi possível persistir atividades no cache local.', error);
+    }
+}
+
+function mapaAbrirWizardAtividade(indice = null) {
+    const modal = document.getElementById('atividade-wizard-modal');
+    if (!modal) return;
+
+    wizardState.modalOpen = true;
+    wizardState.currentStep = 1;
+    wizardState.editingIndex = Number.isInteger(indice) ? indice : null;
+    wizardState.selectedFrequencyIndex = 0;
+
+    const atividadeBase = Number.isInteger(indice)
+        ? JSON.parse(JSON.stringify(wizardState.atividades[indice]))
+        : mapaAtividadesPadrao('missa');
+
+    if (!Array.isArray(atividadeBase.frequencias)) atividadeBase.frequencias = [];
+    wizardState.draft = atividadeBase;
+
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    mapaRenderWizard();
+}
+
+function mapaFecharWizardAtividade() {
+    const modal = document.getElementById('atividade-wizard-modal');
+    if (!modal) return;
+
+    wizardState.modalOpen = false;
+    wizardState.draft = null;
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+function mapaTrocarStepWizard(delta) {
+    const proximo = wizardState.currentStep + delta;
+    if (proximo < 1 || proximo > 3) return;
+
+    if (delta > 0 && !mapaValidarStepAtual()) return;
+
+    wizardState.currentStep = proximo;
+    mapaRenderWizard();
+}
+
+function mapaValidarStepAtual() {
+    if (!wizardState.draft) return false;
+
+    const feedback = document.getElementById('wizard-feedback');
+    const erro = (msg) => {
+        if (!feedback) return;
+        feedback.className = 'rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700';
+        feedback.textContent = msg;
+    };
+
+    if (wizardState.currentStep === 1) {
+        if (!String(wizardState.draft.titulo || '').trim()) {
+            erro('Informe o nome da atividade para continuar.');
+            return false;
+        }
     }
 
-    item.innerHTML = `
+    if (wizardState.currentStep === 2 && !wizardState.draft.frequencias.length) {
+        erro('Adicione ao menos uma frequência para continuar.');
+        return false;
+    }
+
+    if (wizardState.currentStep === 3) {
+        const freq = wizardState.draft.frequencias[wizardState.selectedFrequencyIndex ?? 0];
+        if (!freq || !Array.isArray(freq.horarios) || !freq.horarios.length) {
+            erro('Adicione ao menos um horário para salvar a atividade.');
+            return false;
+        }
+    }
+
+    if (feedback) feedback.className = 'hidden';
+    return true;
+}
+
+function mapaSalvarWizardAtividade() {
+    if (!mapaValidarStepAtual()) return;
+
+    const btnSalvar = document.getElementById('wizard-salvar-btn');
+    if (btnSalvar) {
+        btnSalvar.disabled = true;
+        btnSalvar.textContent = 'Salvando...';
+    }
+
+    const draft = JSON.parse(JSON.stringify(wizardState.draft));
+
+    if (Number.isInteger(wizardState.editingIndex)) {
+        wizardState.atividades[wizardState.editingIndex] = draft;
+    } else {
+        wizardState.atividades.push(draft);
+    }
+
+    mapaPersistirAtividadesLocalStorage();
+    renderAtividades();
+    mapaMostrarFeedback('Atividade salva com sucesso.', 'sucesso');
+    mapaFecharWizardAtividade();
+
+    if (btnSalvar) {
+        btnSalvar.disabled = false;
+        btnSalvar.textContent = 'Salvar atividade';
+    }
+}
+
+function mapaResumoAtividade(atividade) {
+    return (atividade.frequencias || []).map((freq) => {
+        const descricao = mapaGerarDescricaoFrequencia(freq.frequencia, freq.dias, freq.dia_mes, freq.numero_semana, freq.mes);
+        return `${descricao} (${(freq.horarios || []).length} horário(s))`;
+    });
+}
+
+function renderAtividades() {
+    const lista = document.getElementById('atividades-lista');
+    const vazio = document.getElementById('atividades-vazio');
+    if (!lista || !vazio) return;
+
+    lista.innerHTML = '';
+
+    wizardState.atividades.forEach((atividade, idx) => {
+        const card = document.createElement('article');
+        card.className = 'rounded-xl border border-gray-200 bg-white p-4';
+
+        const resumo = mapaResumoAtividade(atividade).map((item) => `<li class="text-sm text-gray-600">↳ ${item}</li>`).join('');
+
+        card.innerHTML = `
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                <div>
+                    <p class="font-semibold text-gray-800">${atividade.titulo || 'Atividade sem nome'}</p>
+                    ${atividade.descricao ? `<p class="text-sm text-gray-600 mt-1">${atividade.descricao}</p>` : ''}
+                </div>
+                <div class="flex gap-2">
+                    <button type="button" class="atividade-editar px-3 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 text-sm font-medium" aria-label="Editar atividade">✏️ Editar</button>
+                    <button type="button" class="atividade-remover px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm font-medium" aria-label="Remover atividade">🗑️ Remover</button>
+                </div>
+            </div>
+            <ul class="mt-3 space-y-1">${resumo || '<li class="text-sm text-gray-500">Sem frequências cadastradas.</li>'}</ul>
+            <pre class="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-700 whitespace-pre-wrap">${mapaResumoAutomaticoTexto(atividade)}</pre>
+        `;
+
+        card.querySelector('.atividade-editar')?.addEventListener('click', () => mapaAbrirWizardAtividade(idx));
+        card.querySelector('.atividade-remover')?.addEventListener('click', () => {
+            if (!window.confirm('Deseja remover esta atividade?')) return;
+            const idsRemovidos = (atividade.frequencias || []).map((f) => f.id).filter((id) => Number.isInteger(id) && id > 0);
+            eventosRemovidos.push(...idsRemovidos);
+            wizardState.atividades.splice(idx, 1);
+            mapaPersistirAtividadesLocalStorage();
+            renderAtividades();
+        });
+
+        lista.appendChild(card);
+    });
+
+    vazio.classList.toggle('hidden', wizardState.atividades.length > 0);
+}
+
+function mapaResumoAutomaticoTexto(atividade) {
+    const linhas = [`${atividade.titulo || 'Atividade'}:`];
+    (atividade.frequencias || []).forEach((freq) => {
+        const desc = mapaGerarDescricaoFrequencia(freq.frequencia, freq.dias, freq.dia_mes, freq.numero_semana, freq.mes);
+        const horarios = (freq.horarios || []).join(', ') || 'sem horário';
+        linhas.push(`${desc} → ${horarios}`);
+    });
+    return linhas.join('\n');
+}
+
+function mapaRenderWizard() {
+    if (!wizardState.modalOpen || !wizardState.draft) return;
+
+    const titulo = document.getElementById('wizard-titulo');
+    if (titulo) titulo.textContent = Number.isInteger(wizardState.editingIndex) ? 'Editar atividade' : 'Nova atividade';
+
+    const stepper = document.getElementById('wizard-stepper');
+    if (stepper) {
+        const labels = ['Dados da atividade', 'Frequências', 'Horários'];
+        stepper.innerHTML = labels.map((label, idx) => {
+            const step = idx + 1;
+            const ativo = step === wizardState.currentStep;
+            const concluido = step < wizardState.currentStep;
+            const cls = ativo ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : (concluido ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-gray-200 bg-white text-gray-500');
+            return `<li class="rounded-lg border px-2 py-2 font-medium ${cls}">${step}. ${label}</li>`;
+        }).join('');
+    }
+
+    document.querySelectorAll('.wizard-step').forEach((section) => {
+        const step = parseInt(section.dataset.wizardStep, 10);
+        section.classList.toggle('hidden', step !== wizardState.currentStep);
+    });
+
+    renderStepDadosAtividade();
+    renderFrequencias();
+    renderHorarios();
+
+    document.getElementById('wizard-voltar-btn')?.classList.toggle('invisible', wizardState.currentStep === 1);
+    document.getElementById('wizard-avancar-btn')?.classList.toggle('hidden', wizardState.currentStep === 3);
+    document.getElementById('wizard-salvar-btn')?.classList.toggle('hidden', wizardState.currentStep !== 3);
+}
+
+function renderStepDadosAtividade() {
+    const step = document.querySelector('[data-wizard-step="1"]');
+    if (!step || !wizardState.draft) return;
+
+    step.innerHTML = `
         <div>
-            <label class="block text-base font-semibold text-gray-700 mb-1">Frequência</label>
-            <select class="evento-frequencia rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
-                ${grupo === 'missa' ? `<option value="${FREQUENCIA_MISSA_DOMINICAL}">Missa Dominical</option>` : ''}
-                <option value="semanal">Semanal</option>
-                <option value="mensal">Mensal</option>
-                <option value="numero_semana">Por número da semana</option>
-                <option value="anual">Anual</option>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Nome *</label>
+            <input type="text" id="wizard-atividade-nome" class="w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2" value="${wizardState.draft.titulo || ''}">
+        </div>
+        <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Descrição</label>
+            <textarea id="wizard-atividade-descricao" class="w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2 min-h-[90px]">${wizardState.draft.descricao || ''}</textarea>
+        </div>
+        <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Grupo</label>
+            <select id="wizard-atividade-grupo" class="w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2">
+                ${Object.entries(EVENTO_GRUPOS).map(([k, v]) => `<option value="${k}" ${wizardState.draft.grupo === k ? 'selected' : ''}>${v.label}</option>`).join('')}
             </select>
         </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div class="evento-campo-dia-semana">
-                <label class="block text-base font-semibold text-gray-700 mb-2">Dia(s) da semana</label>
-                <div class="evento-dias-semana grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-xl border-2 border-gray-200 bg-white p-3">
-                    <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="0"> Domingo</label>
-                    <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="1"> Segunda-feira</label>
-                    <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="2"> Terça-feira</label>
-                    <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="3"> Quarta-feira</label>
-                    <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="4"> Quinta-feira</label>
-                    <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="5"> Sexta-feira</label>
-                    <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" class="evento-dia-check" value="6"> Sábado</label>
-                </div>
-            </div>
-
-            <div class="evento-campo-dia-mes hidden">
-                <label class="block text-base font-semibold text-gray-700 mb-1">Dia do mês</label>
-                <input type="number" min="1" max="31" class="evento-dia-mes rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full" placeholder="1 a 31">
-            </div>
-
-            <div class="evento-campo-numero-semana hidden">
-                <label class="block text-base font-semibold text-gray-700 mb-1">Número da semana</label>
-                <select class="evento-numero-semana rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
-                    <option value="">Selecione</option>
-                    <option value="1">Semana 1</option>
-                    <option value="2">Semana 2</option>
-                    <option value="3">Semana 3</option>
-                    <option value="4">Semana 4</option>
-                    <option value="5">Semana 5</option>
-                </select>
-            </div>
-
-            <div class="evento-campo-mes hidden">
-                <label class="block text-base font-semibold text-gray-700 mb-1">Mês</label>
-                <select class="evento-mes rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
-                    <option value="">Selecione o mês</option>
-                    <option value="1">Janeiro</option>
-                    <option value="2">Fevereiro</option>
-                    <option value="3">Março</option>
-                    <option value="4">Abril</option>
-                    <option value="5">Maio</option>
-                    <option value="6">Junho</option>
-                    <option value="7">Julho</option>
-                    <option value="8">Agosto</option>
-                    <option value="9">Setembro</option>
-                    <option value="10">Outubro</option>
-                    <option value="11">Novembro</option>
-                    <option value="12">Dezembro</option>
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-base font-semibold text-gray-700 mb-1">Horário</label>
-                <input type="time" class="evento-horario rounded-xl border-2 border-gray-200 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-full">
-            </div>
+        <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Características</label>
+            <select id="wizard-atividade-tags" class="w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2" multiple></select>
         </div>
-
-        <button type="button" class="evento-ocorrencia-remover px-4 py-2 rounded-lg bg-red-50 text-red-700 border border-red-200 font-medium">Remover frequência</button>
+        <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Observação</label>
+            <textarea id="wizard-atividade-observacao" class="w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2 min-h-[80px]">${wizardState.draft.observacao || ''}</textarea>
+        </div>
     `;
 
-    const frequenciaSelect = item.querySelector('.evento-frequencia');
-    const campoDiaSemana = item.querySelector('.evento-campo-dia-semana');
-    const campoDiaMes = item.querySelector('.evento-campo-dia-mes');
-    const campoNumeroSemana = item.querySelector('.evento-campo-numero-semana');
-    const campoMes = item.querySelector('.evento-campo-mes');
-    const checksDiaSemana = item.querySelectorAll('.evento-dia-check');
+    const nome = step.querySelector('#wizard-atividade-nome');
+    const descricao = step.querySelector('#wizard-atividade-descricao');
+    const grupo = step.querySelector('#wizard-atividade-grupo');
+    const observacao = step.querySelector('#wizard-atividade-observacao');
+    const tags = step.querySelector('#wizard-atividade-tags');
 
-    function atualizarCamposFrequencia() {
-        const frequencia = frequenciaSelect.value;
-
-        campoDiaSemana.classList.add('hidden');
-        campoDiaMes.classList.add('hidden');
-        campoNumeroSemana.classList.add('hidden');
-        campoMes.classList.add('hidden');
-
-        if (frequencia === FREQUENCIA_MISSA_DOMINICAL) {
-            checksDiaSemana.forEach((checkbox) => {
-                checkbox.checked = checkbox.value === '0';
-                checkbox.disabled = true;
-            });
-        } else {
-            checksDiaSemana.forEach((checkbox) => {
-                checkbox.disabled = false;
-            });
-        }
-
-        if (frequencia === 'semanal') {
-            campoDiaSemana.classList.remove('hidden');
-        } else if (frequencia === 'mensal') {
-            campoDiaMes.classList.remove('hidden');
-        } else if (frequencia === 'numero_semana') {
-            campoNumeroSemana.classList.remove('hidden');
-            campoDiaSemana.classList.remove('hidden');
-        } else if (frequencia === 'anual') {
-            campoDiaMes.classList.remove('hidden');
-            campoMes.classList.remove('hidden');
-        }
-        aoAlterar();
-    }
-
-    frequenciaSelect.addEventListener('change', atualizarCamposFrequencia);
-    item.querySelector('.evento-dia-mes').addEventListener('input', aoAlterar);
-    item.querySelector('.evento-numero-semana').addEventListener('change', aoAlterar);
-    item.querySelector('.evento-mes').addEventListener('change', aoAlterar);
-    item.querySelector('.evento-horario').addEventListener('input', aoAlterar);
-    checksDiaSemana.forEach((checkbox) => checkbox.addEventListener('change', aoAlterar));
-
-    if (ocorrencia) {
-        frequenciaSelect.value = ocorrencia.frequencia || 'semanal';
-        const diasEvento = Array.isArray(ocorrencia.dias) ? ocorrencia.dias : (ocorrencia.dia !== undefined && ocorrencia.dia !== null && ocorrencia.dia !== '' ? [ocorrencia.dia] : []);
-        item.querySelectorAll('.evento-dia-check').forEach((checkbox) => {
-            checkbox.checked = diasEvento.map(String).includes(checkbox.value);
-        });
-        item.querySelector('.evento-dia-mes').value = ocorrencia.dia_mes ?? '';
-        item.querySelector('.evento-numero-semana').value = ocorrencia.numero_semana ?? '';
-        item.querySelector('.evento-mes').value = ocorrencia.mes ?? '';
-        item.querySelector('.evento-horario').value = ocorrencia.horario || '';
-    }
-
-    atualizarCamposFrequencia();
-
-    item.querySelector('.evento-ocorrencia-remover').addEventListener('click', function () {
-        const eventoId = parseInt(item.dataset.eventoId, 10);
-        if (Number.isInteger(eventoId) && eventoId > 0) {
-            eventosRemovidos.push(eventoId);
-        }
-        item.remove();
-        aoAlterar();
+    nome?.addEventListener('input', (e) => { wizardState.draft.titulo = e.target.value; });
+    descricao?.addEventListener('input', (e) => { wizardState.draft.descricao = e.target.value; });
+    observacao?.addEventListener('input', (e) => { wizardState.draft.observacao = e.target.value; });
+    grupo?.addEventListener('change', (e) => {
+        wizardState.draft.grupo = e.target.value;
+        wizardState.draft.tipo_evento = tipoEventoPorGrupo[e.target.value] || wizardState.draft.tipo_evento;
+        mapaRenderWizard();
     });
 
-    return item;
+    if (tags) {
+        tags.dataset.tipoEventoId = String(wizardState.draft.tipo_evento || '');
+        mapaCarregarTagsEvento(tags).then(() => {
+            Array.from(tags.options).forEach((option) => {
+                option.selected = (wizardState.draft.tags_evento || []).includes(parseInt(option.value, 10));
+            });
+        });
+        tags.addEventListener('change', () => {
+            wizardState.draft.tags_evento = Array.from(tags.selectedOptions).map((opt) => parseInt(opt.value, 10)).filter(Number.isInteger);
+        });
+        tags.addEventListener('mousedown', (event) => {
+            const option = event.target;
+            if (!option || option.tagName !== 'OPTION') return;
+            event.preventDefault();
+            option.selected = !option.selected;
+        });
+    }
 }
 
-function mapaAdicionarEventoPorGrupo(grupo, evento = null, adicionarNoTopo = false) {
-    const grupoConfig = EVENTO_GRUPOS[grupo];
-    if (!grupoConfig) return;
+function renderFrequencias() {
+    const step = document.querySelector('[data-wizard-step="2"]');
+    if (!step || !wizardState.draft) return;
 
-    const container = document.getElementById(grupoConfig.containerId);
-    if (!container) return;
-
-    if (!evento) {
-        document.querySelectorAll('.eventos-lista > div').forEach((eventoExistente) => {
-            const conteudo = eventoExistente.querySelector('.evento-conteudo');
-            const iconeToggle = eventoExistente.querySelector('.evento-toggle-icon i');
-            if (conteudo) conteudo.classList.add('hidden');
-            if (iconeToggle) {
-                iconeToggle.classList.toggle('bi-chevron-down', true);
-                iconeToggle.classList.toggle('bi-chevron-up', false);
-            }
-        });
-    }
-
-    const div = document.createElement('div');
-    div.className = 'bg-gray-50 rounded-2xl shadow-sm border border-gray-200 overflow-hidden';
-    div.dataset.eventoGrupo = grupo;
-
-    div.innerHTML = `
-        <button type="button" class="evento-toggle w-full px-4 py-3 text-left bg-white hover:bg-gray-100 transition flex items-center justify-between gap-3">
-            <span class="evento-resumo font-semibold text-gray-800 truncate">Nova atividade</span>
-            <span class="evento-toggle-icon text-gray-500 text-sm"><i class="bi bi-chevron-down"></i></span>
-        </button>
-
-        <div class="evento-conteudo p-4 space-y-3 border-t border-gray-200">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Nome base da atividade</label>
-                    <input type="text" placeholder="Ex.: ${grupoConfig.label} da comunidade" class="evento-titulo w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2">
-                </div>
-
-                <div class="hidden">
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Tipo de atividade (pré-definido)</label>
-                    <select class="tipo-evento rounded-xl border-2 border-gray-200 bg-white px-3 py-2 w-full focus:ring-2 focus:ring-indigo-500"></select>
-                </div>
-
-                <div class="campo-caracteristicas md:col-span-2">
-                    <div class="flex items-center justify-between gap-2 mb-1">
-                        <label class="block text-sm font-semibold text-gray-700">Características</label>
-                        <span class="evento-carregando-caracteristicas text-xs text-gray-500 hidden">carregando informações aguarde</span>
-                        <button type="button" class="evento-limpar-caracteristicas text-xs text-indigo-700 hover:underline">Limpar seleção</button>
-                    </div>
-                    <p class="text-xs text-gray-500 mb-1">Dica: para desmarcar uma característica, clique nela novamente.</p>
-                    <select class="tags-evento rounded-xl border-2 border-gray-200 bg-white px-3 py-2 w-full" multiple style="height: auto;"></select>
-                </div>
-
-                <div class="md:col-span-2">
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Observação</label>
-                    <textarea placeholder="Observação" class="evento-observacao w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2 min-h-[78px]"></textarea>
-                </div>
-            </div>
-
-            <div>
-                <p class="text-base font-semibold text-gray-700">Frequências e horários</p>
-                <div class="evento-ocorrencias space-y-3 mt-3"></div>
-                <button type="button" class="evento-ocorrencia-adicionar mt-3 px-4 py-2 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 font-medium hover:bg-indigo-100 transition">+ Adicionar horário</button>
-            </div>
-
-            <div class="pt-2 border-t border-gray-200">
-                <button type="button" class="evento-remover px-4 py-2 rounded-lg bg-red-50 text-red-700 border border-red-200 font-medium">Remover atividade</button>
-            </div>
+    step.innerHTML = `
+        <div class="flex items-center justify-between gap-2">
+            <p class="text-sm text-gray-600">Edite frequência inline usando Enter (salvar) ou ESC (cancelar).</p>
+            <button type="button" id="wizard-add-frequencia" class="px-3 py-2 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 font-medium">+ Adicionar frequência</button>
         </div>
+        <div id="wizard-frequencias-lista" class="space-y-2"></div>
     `;
 
-    if (adicionarNoTopo) {
-        container.prepend(div);
-    } else {
-        container.appendChild(div);
-    }
-
-    const selectTipo = div.querySelector('.tipo-evento');
-    const selectTags = div.querySelector('.tags-evento');
-    const btnLimparCaracteristicas = div.querySelector('.evento-limpar-caracteristicas');
-    const campoTitulo = div.querySelector('.evento-titulo');
-    const eventoResumo = div.querySelector('.evento-resumo');
-    const botaoToggle = div.querySelector('.evento-toggle');
-    const icone = div.querySelector('.evento-toggle-icon i');
-    const conteudoEvento = div.querySelector('.evento-conteudo');
-    const ocorrenciasContainer = div.querySelector('.evento-ocorrencias');
-
-    const definirEstadoSanfona = (expandido) => {
-        conteudoEvento.classList.toggle('hidden', !expandido);
-        icone.classList.toggle('bi-chevron-down', !expandido);
-        icone.classList.toggle('bi-chevron-up', expandido);
-    };
-
-    const atualizarResumoEvento = () => {
-        const tituloBase = campoTitulo.value.trim();
-        const primeiraOcorrencia = ocorrenciasContainer.querySelector('.evento-ocorrencia');
-        const frequencia = primeiraOcorrencia?.querySelector('.evento-frequencia')?.value || 'semanal';
-        const dias = primeiraOcorrencia
-            ? Array.from(primeiraOcorrencia.querySelectorAll('.evento-dia-check:checked')).map((checkbox) => checkbox.value)
-            : [];
-        const diaMes = primeiraOcorrencia?.querySelector('.evento-dia-mes')?.value || '';
-        const numeroSemana = primeiraOcorrencia?.querySelector('.evento-numero-semana')?.value || '';
-        const mes = primeiraOcorrencia?.querySelector('.evento-mes')?.value || '';
-        const horario = primeiraOcorrencia?.querySelector('.evento-horario')?.value || '';
-        const descFrequencia = mapaGerarDescricaoFrequencia(frequencia, dias, diaMes, numeroSemana, mes);
-        const tituloDinamico = mapaGerarTituloDinamico(tituloBase, descFrequencia, horario);
-
-        eventoResumo.textContent = tituloDinamico || 'Nova atividade';
-    };
-
-    botaoToggle.addEventListener('click', () => definirEstadoSanfona(conteudoEvento.classList.contains('hidden')));
-    campoTitulo.addEventListener('input', atualizarResumoEvento);
-
-    if (btnLimparCaracteristicas) {
-        btnLimparCaracteristicas.addEventListener('click', () => {
-            Array.from(selectTags.options).forEach((option) => {
-                option.selected = false;
-            });
-        });
-    }
-
-    selectTags.addEventListener('mousedown', (event) => {
-        const option = event.target;
-        if (!option || option.tagName !== 'OPTION') return;
-        event.preventDefault();
-        option.selected = !option.selected;
+    step.querySelector('#wizard-add-frequencia')?.addEventListener('click', () => {
+        wizardState.draft.frequencias.push(mapaFrequenciaPadrao());
+        wizardState.selectedFrequencyIndex = wizardState.draft.frequencias.length - 1;
+        mapaRenderWizard();
     });
 
-    if (grupo === 'confissao') {
-        const campoCaracteristicas = div.querySelector('.campo-caracteristicas');
-        if (campoCaracteristicas) campoCaracteristicas.classList.add('hidden');
-    }
+    const lista = step.querySelector('#wizard-frequencias-lista');
+    wizardState.draft.frequencias.forEach((freq, idx) => {
+        const row = document.createElement('div');
+        row.className = 'rounded-lg border border-gray-200 bg-white px-3 py-2';
+        row.innerHTML = `
+            <div class="flex items-center justify-between gap-2">
+                <button type="button" class="freq-select text-left flex-1">
+                    <span class="font-medium text-gray-800">${mapaGerarDescricaoFrequencia(freq.frequencia, freq.dias, freq.dia_mes, freq.numero_semana, freq.mes)}</span>
+                </button>
+                <div class="flex gap-1">
+                    <button type="button" class="freq-inline-editar px-2 py-1 text-sm rounded border border-gray-200" aria-label="Editar frequência">✏️</button>
+                    <button type="button" class="freq-remover px-2 py-1 text-sm rounded border border-red-200 text-red-700" aria-label="Remover frequência">🗑️</button>
+                </div>
+            </div>
+            <div class="freq-inline-wrap hidden mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <select class="inline-editor freq-frequencia rounded-lg border border-gray-300 px-2 py-1.5">
+                    ${wizardState.draft.grupo === 'missa' ? `<option value="${FREQUENCIA_MISSA_DOMINICAL}" ${freq.frequencia === FREQUENCIA_MISSA_DOMINICAL ? 'selected' : ''}>Missa Dominical</option>` : ''}
+                    <option value="semanal" ${freq.frequencia === 'semanal' ? 'selected' : ''}>Semanal</option>
+                    <option value="mensal" ${freq.frequencia === 'mensal' ? 'selected' : ''}>Mensal</option>
+                    <option value="numero_semana" ${freq.frequencia === 'numero_semana' ? 'selected' : ''}>Por número da semana</option>
+                    <option value="anual" ${freq.frequencia === 'anual' ? 'selected' : ''}>Anual</option>
+                </select>
+                <select class="inline-editor freq-dia rounded-lg border border-gray-300 px-2 py-1.5">
+                    <option value="">Dia da semana</option>
+                    ${DIAS_SEMANA_LABEL.map((d, dIdx) => `<option value="${dIdx}" ${freq.dias?.includes(String(dIdx)) || freq.dias?.includes(dIdx) ? 'selected' : ''}>${d}</option>`).join('')}
+                </select>
+            </div>
+        `;
 
-    mapaCarregarTiposEvento(selectTipo, grupo).then(() => {
-        if (evento?.tipo_evento_id) {
-            selectTipo.value = String(evento.tipo_evento_id);
-        }
+        row.querySelector('.freq-select')?.addEventListener('click', () => {
+            wizardState.selectedFrequencyIndex = idx;
+            mapaRenderWizard();
+        });
 
-        selectTags.dataset.tipoEventoId = selectTipo.value || '';
-        if (grupo === 'confissao') {
-            selectTags.innerHTML = '';
-            return;
-        }
-        const avisoCarregando = div.querySelector('.evento-carregando-caracteristicas');
-        if (avisoCarregando) avisoCarregando.classList.remove('hidden');
+        row.querySelector('.freq-remover')?.addEventListener('click', () => {
+            if (!window.confirm('Remover esta frequência?')) return;
+            if (Number.isInteger(freq.id) && freq.id > 0) eventosRemovidos.push(freq.id);
+            wizardState.draft.frequencias.splice(idx, 1);
+            wizardState.selectedFrequencyIndex = Math.max(0, Math.min(wizardState.selectedFrequencyIndex || 0, wizardState.draft.frequencias.length - 1));
+            mapaRenderWizard();
+        });
 
-        mapaCarregarTagsEvento(selectTags).then(() => {
-            if (Array.isArray(evento?.tags_evento_ids)) {
-                Array.from(selectTags.options).forEach((option) => {
-                    option.selected = evento.tags_evento_ids.includes(parseInt(option.value, 10));
-                });
+        const btnEditar = row.querySelector('.freq-inline-editar');
+        const wrap = row.querySelector('.freq-inline-wrap');
+        const freqInput = row.querySelector('.freq-frequencia');
+        const diaInput = row.querySelector('.freq-dia');
+
+        const salvarInline = () => {
+            freq.frequencia = freqInput.value;
+            freq.dias = diaInput.value === '' ? [] : [diaInput.value];
+            wrap.classList.add('hidden');
+            mapaRenderWizard();
+        };
+
+        const cancelarInline = () => {
+            wrap.classList.add('hidden');
+            mapaRenderWizard();
+        };
+
+        btnEditar?.addEventListener('click', () => {
+            wrap.classList.remove('hidden');
+            freqInput?.focus();
+        });
+
+        [freqInput, diaInput].forEach((inp) => inp?.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                salvarInline();
             }
-        }).finally(() => {
-            if (avisoCarregando) avisoCarregando.classList.add('hidden');
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                cancelarInline();
+            }
+        }));
+
+        [freqInput, diaInput].forEach((inp) => inp?.addEventListener('change', salvarInline));
+
+        if (idx === wizardState.selectedFrequencyIndex) {
+            row.classList.add('ring-2', 'ring-indigo-200');
+        }
+
+        lista.appendChild(row);
+    });
+}
+
+function renderHorarios() {
+    const step = document.querySelector('[data-wizard-step="3"]');
+    if (!step || !wizardState.draft) return;
+
+    const freq = wizardState.draft.frequencias[wizardState.selectedFrequencyIndex ?? 0];
+
+    if (!freq) {
+        step.innerHTML = '<p class="text-sm text-gray-600">Selecione uma frequência na etapa anterior.</p>';
+        return;
+    }
+
+    step.innerHTML = `
+        <div class="flex items-center justify-between gap-2">
+            <p class="text-sm text-gray-600">Frequência ativa: <strong>${mapaGerarDescricaoFrequencia(freq.frequencia, freq.dias, freq.dia_mes, freq.numero_semana, freq.mes)}</strong></p>
+            <button type="button" id="wizard-add-horario" class="px-3 py-2 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 font-medium">+ Adicionar horário</button>
+        </div>
+        <div id="wizard-horarios-lista" class="space-y-2"></div>
+    `;
+
+    step.querySelector('#wizard-add-horario')?.addEventListener('click', () => {
+        freq.horarios = Array.isArray(freq.horarios) ? freq.horarios : [];
+        freq.horarios.push('');
+        mapaRenderWizard();
+        const ultimo = step.querySelector('#wizard-horarios-lista input:last-of-type');
+        ultimo?.focus();
+    });
+
+    const lista = step.querySelector('#wizard-horarios-lista');
+    (freq.horarios || []).forEach((horario, idx) => {
+        const row = document.createElement('div');
+        row.className = 'rounded-lg border border-gray-200 bg-white px-3 py-2 flex items-center gap-2';
+        row.innerHTML = `
+            <input type="time" class="horario-input flex-1 rounded-lg border border-gray-300 px-2 py-1.5" value="${horario || ''}" aria-label="Horário">
+            <button type="button" class="horario-save px-2 py-1 text-sm rounded border border-gray-300">Salvar</button>
+            <button type="button" class="horario-remove px-2 py-1 text-sm rounded border border-red-200 text-red-700" aria-label="Remover horário">🗑️</button>
+        `;
+
+        const input = row.querySelector('.horario-input');
+        const salvar = () => {
+            const valor = input.value;
+            if (!valor) {
+                mapaMostrarFeedback('Informe um horário válido.', 'erro');
+                return;
+            }
+            const duplicado = (freq.horarios || []).some((h, hIdx) => h === valor && hIdx !== idx);
+            if (duplicado) {
+                mapaMostrarFeedback('Não é permitido cadastrar horários duplicados.', 'erro');
+                return;
+            }
+            freq.horarios[idx] = valor;
+            mapaRenderWizard();
+        };
+
+        row.querySelector('.horario-save')?.addEventListener('click', salvar);
+        row.querySelector('.horario-remove')?.addEventListener('click', () => {
+            freq.horarios.splice(idx, 1);
+            mapaRenderWizard();
         });
-    });
+        input?.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                salvar();
+            }
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                mapaRenderWizard();
+            }
+        });
 
-    div.querySelector('.evento-ocorrencia-adicionar').addEventListener('click', () => {
-        ocorrenciasContainer.appendChild(mapaCriarOcorrencia(null, { grupo, aoAlterar: atualizarResumoEvento }));
-        atualizarResumoEvento();
+        lista.appendChild(row);
     });
+}
 
-    const ocorrencias = Array.isArray(evento?.ocorrencias) && evento.ocorrencias.length ? evento.ocorrencias : (evento ? [evento] : [null]);
-    ocorrencias.forEach((ocorrencia) => {
-        ocorrenciasContainer.appendChild(mapaCriarOcorrencia(ocorrencia, { grupo, aoAlterar: atualizarResumoEvento }));
-    });
+function mapaAdicionarEventoPorGrupo(grupo, evento = null) {
+    if (!wizardState.atividades) wizardState.atividades = [];
+    const base = mapaAtividadesPadrao(grupo || 'missa');
 
     if (evento) {
-        campoTitulo.value = evento.titulo_base || evento.titulo || '';
-        div.querySelector('.evento-observacao').value = evento.observacao || '';
+        const freq = {
+            id: evento.id || null,
+            frequencia: evento.frequencia || 'semanal',
+            dias: Array.isArray(evento.dias) ? evento.dias : (evento.dia !== undefined && evento.dia !== null && evento.dia !== '' ? [String(evento.dia)] : []),
+            dia_mes: evento.dia_mes || '',
+            numero_semana: evento.numero_semana || '',
+            mes: evento.mes || '',
+            horarios: evento.horario ? [evento.horario] : []
+        };
+
+        let atividadeExistente = wizardState.atividades.find((a) => a.titulo === (evento.titulo_base || evento.titulo || '') && a.grupo === (grupo || 'missa'));
+        if (!atividadeExistente) {
+            atividadeExistente = {
+                ...base,
+                titulo: evento.titulo_base || evento.titulo || '',
+                observacao: evento.observacao || '',
+                tipo_evento: evento.tipo_evento_id || tipoEventoPorGrupo[grupo] || null,
+                tags_evento: Array.isArray(evento.tags_evento_ids) ? evento.tags_evento_ids : [],
+                frequencias: []
+            };
+            wizardState.atividades.push(atividadeExistente);
+        }
+        atividadeExistente.frequencias.push(freq);
+        mapaPersistirAtividadesLocalStorage();
+        renderAtividades();
+        return;
     }
 
-    atualizarResumoEvento();
-    definirEstadoSanfona(!!(!evento));
-
-    div.querySelector('.evento-remover').addEventListener('click', function () {
-        const titulo = div.querySelector('.evento-titulo').value || 'sem título';
-        const confirmou = window.confirm(`você tem certeza que deseja apagar o evento ${titulo}?`);
-        if (!confirmou) return;
-
-        div.querySelectorAll('.evento-ocorrencia').forEach((item) => {
-            const eventoId = parseInt(item.dataset.eventoId, 10);
-            if (Number.isInteger(eventoId) && eventoId > 0) {
-                eventosRemovidos.push(eventoId);
-            }
-        });
-
-        div.remove();
-    });
+    mapaAbrirWizardAtividade(null);
 }
 
-function mapaAdicionarEvento(evento = null, adicionarNoTopo = false) {
+function mapaAdicionarEvento(evento = null) {
     const grupo = evento ? mapaResolverGrupoPorTipoEvento(evento.tipo_evento_id) : 'missa';
-    mapaAdicionarEventoPorGrupo(grupo || 'missa', evento, adicionarNoTopo);
+    mapaAdicionarEventoPorGrupo(grupo || 'missa', evento);
 }
 
 function mapaMascaraTelefone(value) {
@@ -1258,32 +1466,31 @@ function mapaEnviar() {
     }
 
     const eventos = [];
+    (wizardState.atividades || []).forEach((atividade) => {
+        const titulo = atividade.titulo || '';
+        const observacao = atividade.observacao || '';
+        const tipoEvento = parseInt(atividade.tipo_evento, 10);
+        const tagsSelecionadas = Array.isArray(atividade.tags_evento) ? atividade.tags_evento : [];
 
-    document.querySelectorAll('.eventos-lista > div').forEach((div) => {
-        const tagsSelecionadas = Array.from(div.querySelector('.tags-evento').selectedOptions)
-            .map((option) => parseInt(option.value, 10))
-            .filter(Number.isInteger);
+        (atividade.frequencias || []).forEach((ocorrencia) => {
+            const eventoId = parseInt(ocorrencia.id, 10);
+            const horarios = Array.isArray(ocorrencia.horarios) ? ocorrencia.horarios.filter(Boolean) : [];
 
-        const tipoEvento = parseInt(div.querySelector('.tipo-evento').value, 10);
-        const titulo = div.querySelector('.evento-titulo').value;
-        const observacao = div.querySelector('.evento-observacao').value;
-
-        div.querySelectorAll('.evento-ocorrencia').forEach((ocorrencia) => {
-            const eventoId = parseInt(ocorrencia.dataset.eventoId, 10);
-
-            eventos.push({
-                id: Number.isInteger(eventoId) ? eventoId : null,
-                titulo,
-                titulo_base: titulo,
-                frequencia: ocorrencia.querySelector('.evento-frequencia').value,
-                dias: Array.from(ocorrencia.querySelectorAll('.evento-dia-check:checked')).map((checkbox) => checkbox.value),
-                dia_mes: ocorrencia.querySelector('.evento-dia-mes').value,
-                numero_semana: ocorrencia.querySelector('.evento-numero-semana').value,
-                mes: ocorrencia.querySelector('.evento-mes').value,
-                horario: ocorrencia.querySelector('.evento-horario').value,
-                observacao,
-                tipo_evento: Number.isInteger(tipoEvento) ? tipoEvento : null,
-                tags_evento: tagsSelecionadas
+            horarios.forEach((horario) => {
+                eventos.push({
+                    id: Number.isInteger(eventoId) ? eventoId : null,
+                    titulo,
+                    titulo_base: titulo,
+                    frequencia: ocorrencia.frequencia || 'semanal',
+                    dias: Array.isArray(ocorrencia.dias) ? ocorrencia.dias : [],
+                    dia_mes: ocorrencia.dia_mes || '',
+                    numero_semana: ocorrencia.numero_semana || '',
+                    mes: ocorrencia.mes || '',
+                    horario: horario || '',
+                    observacao,
+                    tipo_evento: Number.isInteger(tipoEvento) ? tipoEvento : null,
+                    tags_evento: tagsSelecionadas
+                });
             });
         });
     });

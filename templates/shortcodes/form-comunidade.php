@@ -139,33 +139,51 @@
 
     <section id="secao-etapa-4" data-step="4" class="rounded-2xl border border-gray-200 p-4 sm:p-6">
         <h3 class="text-lg font-semibold text-gray-800 mb-4">4. Atividades</h3>
-
-        <div class="space-y-6">
-            <div class="rounded-xl border border-gray-200 p-4">
-                <h4 class="font-semibold text-gray-800">Missas</h4>
-                <div id="eventos-missas" data-evento-grupo="missa" class="eventos-lista space-y-3 mt-3"></div>
-                <button type="button" onclick="mapaAdicionarEventoPorGrupo('missa')" class="w-full sm:w-auto mt-3 px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-base font-medium transition">+ Adicionar missa</button>
+        <div id="atividades-root" class="space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <p class="text-sm text-gray-600">Cadastre atividades com frequências e horários em um fluxo guiado.</p>
+                <button type="button" id="atividade-add-btn" class="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-base font-semibold transition">
+                    + Adicionar atividade
+                </button>
             </div>
 
-            <div class="rounded-xl border border-gray-200 p-4">
-                <h4 class="font-semibold text-gray-800">Confissões</h4>
-                <div id="eventos-confissoes" data-evento-grupo="confissao" class="eventos-lista space-y-3 mt-3"></div>
-                <button type="button" onclick="mapaAdicionarEventoPorGrupo('confissao')" class="w-full sm:w-auto mt-3 px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-base font-medium transition">+ Adicionar confissão</button>
-            </div>
-
-            <div class="rounded-xl border border-gray-200 p-4">
-                <h4 class="font-semibold text-gray-800">Adoração ao Santíssimo</h4>
-                <div id="eventos-adoracao-santissimo" data-evento-grupo="adoracao_santissimo" class="eventos-lista space-y-3 mt-3"></div>
-                <button type="button" onclick="mapaAdicionarEventoPorGrupo('adoracao_santissimo')" class="w-full sm:w-auto mt-3 px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-base font-medium transition">+ Adicionar adoração ao Santíssimo</button>
-            </div>
-
-            <div class="rounded-xl border border-gray-200 p-4">
-                <h4 class="font-semibold text-gray-800">Ação caritativa</h4>
-                <div id="eventos-acao-caritativa" data-evento-grupo="acao_caritativa" class="eventos-lista space-y-3 mt-3"></div>
-                <button type="button" onclick="mapaAdicionarEventoPorGrupo('acao_caritativa')" class="w-full sm:w-auto mt-3 px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-base font-medium transition">+ Adicionar ação caritativa</button>
-            </div>
+            <div id="atividades-lista" class="space-y-3"></div>
+            <p id="atividades-vazio" class="text-sm text-gray-500 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-3">
+                Nenhuma atividade cadastrada ainda.
+            </p>
         </div>
     </section>
+
+    <div id="atividade-wizard-modal" class="hidden fixed inset-0 z-[10000] bg-black/70 px-4 py-6 sm:py-10">
+        <div class="mx-auto h-full w-full max-w-3xl flex items-center justify-center">
+            <div class="wizard-shell w-full max-h-full overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col">
+                <div class="border-b border-gray-200 px-4 sm:px-6 py-4">
+                    <div class="flex items-center justify-between gap-2">
+                        <h4 id="wizard-titulo" class="text-lg sm:text-xl font-semibold text-gray-800">Nova atividade</h4>
+                        <button type="button" id="wizard-close-btn" aria-label="Fechar modal de atividade" class="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100">
+                            Fechar
+                        </button>
+                    </div>
+                    <ol id="wizard-stepper" class="mt-4 grid grid-cols-3 gap-2 text-xs sm:text-sm"></ol>
+                </div>
+
+                <div class="flex-1 overflow-auto p-4 sm:p-6 space-y-4">
+                    <div id="wizard-feedback" class="hidden rounded-lg border px-3 py-2 text-sm"></div>
+                    <section data-wizard-step="1" class="wizard-step space-y-4"></section>
+                    <section data-wizard-step="2" class="wizard-step hidden space-y-3"></section>
+                    <section data-wizard-step="3" class="wizard-step hidden space-y-3"></section>
+                </div>
+
+                <div class="border-t border-gray-200 p-4 sm:px-6 sm:py-4 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <button type="button" id="wizard-voltar-btn" class="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-medium hover:bg-gray-50">Voltar</button>
+                    <div class="flex w-full sm:w-auto gap-2">
+                        <button type="button" id="wizard-avancar-btn" class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700">Próximo</button>
+                        <button type="button" id="wizard-salvar-btn" class="hidden flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700">Salvar atividade</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <section id="secao-imagem" data-step="5" class="rounded-2xl border border-gray-200 p-4 sm:p-6 space-y-3">
         <h3 class="text-lg font-semibold text-gray-800">Imagem do local (opcional)</h3>
