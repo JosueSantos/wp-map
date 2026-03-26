@@ -33,6 +33,56 @@ add_action('wp_enqueue_scripts', function () {
     );
 });
 
+add_filter('document_title_parts', function ($title_parts) {
+    if (!is_singular('comunidade')) {
+        return $title_parts;
+    }
+
+    $comunidade_id = get_queried_object_id();
+    if (!$comunidade_id) {
+        return $title_parts;
+    }
+
+    $nome_local = get_the_title($comunidade_id);
+    if ($nome_local) {
+        $title_parts['title'] = $nome_local;
+    }
+
+    return $title_parts;
+});
+
+add_action('wp_head', function () {
+    if (!is_singular('comunidade')) {
+        return;
+    }
+
+    $comunidade_id = get_queried_object_id();
+    if (!$comunidade_id) {
+        return;
+    }
+
+    $nome_local = get_the_title($comunidade_id);
+    $endereco = trim((string) get_post_meta($comunidade_id, 'endereco', true));
+    $descricao = $endereco !== '' ? $endereco : 'Confira os detalhes deste local.';
+    $url_local = get_permalink($comunidade_id);
+    $imagem_local = get_the_post_thumbnail_url($comunidade_id, 'large');
+    $twitter_card = $imagem_local ? 'summary_large_image' : 'summary';
+
+    echo "\n" . '<meta name="description" content="' . esc_attr($descricao) . '">' . "\n";
+    echo '<meta property="og:type" content="article">' . "\n";
+    echo '<meta property="og:title" content="' . esc_attr($nome_local) . '">' . "\n";
+    echo '<meta property="og:description" content="' . esc_attr($descricao) . '">' . "\n";
+    echo '<meta property="og:url" content="' . esc_url($url_local) . '">' . "\n";
+    echo '<meta name="twitter:card" content="' . esc_attr($twitter_card) . '">' . "\n";
+    echo '<meta name="twitter:title" content="' . esc_attr($nome_local) . '">' . "\n";
+    echo '<meta name="twitter:description" content="' . esc_attr($descricao) . '">' . "\n";
+
+    if ($imagem_local) {
+        echo '<meta property="og:image" content="' . esc_url($imagem_local) . '">' . "\n";
+        echo '<meta name="twitter:image" content="' . esc_url($imagem_local) . '">' . "\n";
+    }
+}, 5);
+
 function cc_obter_eventos_comunidade_ordenados($comunidade_id) {
     $eventos = get_posts([
         'post_type' => 'evento',
