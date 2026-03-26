@@ -4,6 +4,12 @@ add_shortcode('mapa_form_comunidade', function () {
 
     $redirect_to = get_permalink();
 
+    if (!empty($_SERVER['REQUEST_URI'])) {
+        $request_uri = wp_unslash($_SERVER['REQUEST_URI']);
+        $request_url = home_url($request_uri);
+        $redirect_to = esc_url_raw($request_url) ?: $redirect_to;
+    }
+
     wp_enqueue_style('leaflet-css', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
 
     wp_enqueue_script('leaflet-js', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', [], null, true);
