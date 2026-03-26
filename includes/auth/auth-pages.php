@@ -26,7 +26,18 @@ function cc_get_auth_page_url($slug, $fallback = '/') {
 
 function cc_get_safe_redirect_url_from_request() {
     $redirect_to = isset($_REQUEST['redirect_to']) ? wp_unslash($_REQUEST['redirect_to']) : '';
-    $redirect_to = esc_url_raw($redirect_to);
+
+    if (!$redirect_to) {
+        return '';
+    }
+
+    $decoded_redirect_to = base64_decode(strtr((string) $redirect_to, '-_', '+/'), true);
+
+    if (is_string($decoded_redirect_to) && $decoded_redirect_to !== '') {
+        $redirect_to = $decoded_redirect_to;
+    }
+
+    $redirect_to = esc_url_raw((string) $redirect_to);
 
     if (!$redirect_to) {
         return '';
@@ -40,7 +51,9 @@ function cc_with_redirect_to($url, $redirect_to) {
         return $url;
     }
 
-    return add_query_arg('redirect_to', $redirect_to, $url);
+    $encoded_redirect_to = rtrim(strtr(base64_encode($redirect_to), '+/', '-_'), '=');
+
+    return add_query_arg('redirect_to', $encoded_redirect_to, $url);
 }
 
 function cc_get_auth_success_redirect_url() {
@@ -110,4 +123,3 @@ function cc_filter_auth_menu_items($items) {
     return $items;
 }
 add_filter('wp_nav_menu_objects', 'cc_filter_auth_menu_items');
-
