@@ -25,7 +25,7 @@ function cc_get_comunidades_observadas($user_id) {
     ]);
 }
 
-function cc_get_alteracoes_do_usuario($user_id, $filtros = []) {
+function cc_get_alteracoes_do_usuario($user_id, $filtros = [], $paginacao = []) {
     global $wpdb;
 
     $table = $wpdb->prefix . 'mapa_alteracoes';
@@ -82,8 +82,26 @@ function cc_get_alteracoes_do_usuario($user_id, $filtros = []) {
         $params[] = $data_fim;
     }
 
-    $query .= ' ORDER BY a.created_at DESC LIMIT 200';
+    $page = max(1, (int) ($paginacao['page'] ?? 1));
+    $per_page = max(1, min(100, (int) ($paginacao['per_page'] ?? 10)));
+    $offset = ($page - 1) * $per_page;
 
-    return empty($params) ? $wpdb->get_results($query) : $wpdb->get_results($wpdb->prepare($query, ...$params));
+    $count_query = "SELECT COUNT(*) FROM ($query) AS totais";
+    $total = (int) (empty($params)
+        ? $wpdb->get_var($count_query)
+        : $wpdb->get_var($wpdb->prepare($count_query, ...$params)));
+
+    $query .= ' ORDER BY a.created_at DESC LIMIT %d OFFSET %d';
+    $params_data = array_merge($params, [$per_page, $offset]);
+    $itens = empty($params_data)
+        ? $wpdb->get_results($query)
+        : $wpdb->get_results($wpdb->prepare($query, ...$params_data));
+
+    return [
+        'items' => is_array($itens) ? $itens : [],
+        'total' => $total,
+        'per_page' => $per_page,
+        'page' => $page,
+        'total_pages' => max(1, (int) ceil($total / $per_page)),
+    ];
 }
-

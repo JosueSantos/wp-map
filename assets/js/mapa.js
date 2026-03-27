@@ -647,12 +647,17 @@ document.addEventListener("DOMContentLoaded", async function () {
     function sincronizarFiltroTag() {
         if (!filtroTagHiddenEl) return;
 
-        const tagMissa = String(filtroTagMissaEl?.value || '').trim();
-        const tagAcao = String(filtroTagAcaoEl?.value || '').trim();
+        let tagMissa = String(filtroTagMissaEl?.value || '').trim();
+        let tagAcao = String(filtroTagAcaoEl?.value || '').trim();
 
         if (tagMissa && tagAcao) {
-            filtroTagHiddenEl.value = '';
-            return;
+            if (document.activeElement === filtroTagMissaEl) {
+                tagAcao = '';
+                if (filtroTagAcaoEl) filtroTagAcaoEl.value = '';
+            } else {
+                tagMissa = '';
+                if (filtroTagMissaEl) filtroTagMissaEl.value = '';
+            }
         }
 
         filtroTagHiddenEl.value = tagMissa || tagAcao || '';
