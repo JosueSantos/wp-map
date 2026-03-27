@@ -22,9 +22,86 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
         'data_fim' => sanitize_text_field($_GET['f_data_fim'] ?? ''),
     ];
 
+    $pagina_criadas = max(1, absint($_GET['pg_criadas'] ?? 1));
+    $pagina_observadas = max(1, absint($_GET['pg_observadas'] ?? 1));
+    $pagina_alteracoes = max(1, absint($_GET['pg_alteracoes'] ?? 1));
+    $por_pagina_padrao = 10;
+
+    $build_page_url = static function ($overrides = [], $anchor = '') {
+        $base = strtok($_SERVER['REQUEST_URI'] ?? '', '?');
+        $query = $_GET;
+
+        foreach ($overrides as $key => $value) {
+            if ($value === null || $value === '' || $value === false) {
+                unset($query[$key]);
+                continue;
+            }
+            $query[$key] = $value;
+        }
+
+        $url = $base ?: '';
+        if (!empty($query)) {
+            $url .= '?' . http_build_query($query);
+        }
+
+        if ($anchor) {
+            $url .= '#' . ltrim($anchor, '#');
+        }
+
+        return $url;
+    };
+
+    $render_pagination = static function ($current_page, $total_pages, $base_key, $anchor, $build_url) {
+        if ($total_pages <= 1) {
+            return;
+        }
+
+        echo '<nav class="mt-4 flex flex-wrap items-center gap-2" aria-label="' . esc_attr__('Paginação', 'cadastro-comunidades') . '">';
+
+        $prev_disabled = $current_page <= 1;
+        $next_disabled = $current_page >= $total_pages;
+        $prev_url = $build_url([$base_key => max(1, $current_page - 1)], $anchor);
+        $next_url = $build_url([$base_key => min($total_pages, $current_page + 1)], $anchor);
+
+        echo $prev_disabled
+            ? '<span class="inline-flex items-center justify-center px-3 py-2 rounded-lg border border-gray-200 text-gray-400">' . esc_html__('Anterior', 'cadastro-comunidades') . '</span>'
+            : '<a href="' . esc_url($prev_url) . '" class="inline-flex items-center justify-center px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">' . esc_html__('Anterior', 'cadastro-comunidades') . '</a>';
+
+        for ($i = 1; $i <= $total_pages; $i++) {
+            $active = (int) $i === (int) $current_page;
+            $classes = $active
+                ? 'inline-flex items-center justify-center px-3 py-2 rounded-lg border border-indigo-600 bg-indigo-600 text-white'
+                : 'inline-flex items-center justify-center px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50';
+            echo '<a href="' . esc_url($build_url([$base_key => $i], $anchor)) . '" class="' . esc_attr($classes) . '">' . (int) $i . '</a>';
+        }
+
+        echo $next_disabled
+            ? '<span class="inline-flex items-center justify-center px-3 py-2 rounded-lg border border-gray-200 text-gray-400">' . esc_html__('Próxima', 'cadastro-comunidades') . '</span>'
+            : '<a href="' . esc_url($next_url) . '" class="inline-flex items-center justify-center px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">' . esc_html__('Próxima', 'cadastro-comunidades') . '</a>';
+
+        echo '</nav>';
+    };
+
     $comunidades_criadas = cc_get_comunidades_do_usuario($user->ID);
+    $total_criadas = count($comunidades_criadas);
+    $total_paginas_criadas = max(1, (int) ceil($total_criadas / $por_pagina_padrao));
+    $pagina_criadas = min($pagina_criadas, $total_paginas_criadas);
+    $comunidades_criadas_paginadas = array_slice($comunidades_criadas, ($pagina_criadas - 1) * $por_pagina_padrao, $por_pagina_padrao);
+
     $comunidades_observadas = cc_get_comunidades_observadas($user->ID);
-    $alteracoes = cc_get_alteracoes_do_usuario($user->ID, $filtros);
+    $total_observadas = count($comunidades_observadas);
+    $total_paginas_observadas = max(1, (int) ceil($total_observadas / $por_pagina_padrao));
+    $pagina_observadas = min($pagina_observadas, $total_paginas_observadas);
+    $comunidades_observadas_paginadas = array_slice($comunidades_observadas, ($pagina_observadas - 1) * $por_pagina_padrao, $por_pagina_padrao);
+
+    $alteracoes_paginadas = cc_get_alteracoes_do_usuario($user->ID, $filtros, [
+        'page' => $pagina_alteracoes,
+        'per_page' => $por_pagina_padrao,
+    ]);
+    $alteracoes = $alteracoes_paginadas['items'] ?? [];
+    $pagina_alteracoes = (int) ($alteracoes_paginadas['page'] ?? 1);
+    $total_paginas_alteracoes = (int) ($alteracoes_paginadas['total_pages'] ?? 1);
+
     $all_comunidades = get_posts([
         'post_type' => 'comunidade',
         'post_status' => 'publish',
@@ -36,7 +113,7 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
     ob_start();
     ?>
     <div class="max-w-5xl mx-auto space-y-6">
-        <section class="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8">
+        <section id="sec-locais-cadastrados" class="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8">
             <h3 class="text-2xl font-bold text-gray-800"><?php esc_html_e('Minha Conta', 'cadastro-comunidades'); ?></h3>
             <p class="text-gray-600 mt-1"><?php esc_html_e('Aqui você atualiza seus dados e acompanha seus locais registrados.', 'cadastro-comunidades'); ?></p>
 
@@ -75,7 +152,7 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
         <section class="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8">
             <h4 class="text-xl font-semibold text-gray-800"><?php esc_html_e('Locais cadastrados por você', 'cadastro-comunidades'); ?></h4>
             <ul class="mt-3 space-y-2">
-                <?php foreach ($comunidades_criadas as $comunidade): ?>
+                <?php foreach ($comunidades_criadas_paginadas as $comunidade): ?>
                     <li class="flex items-center justify-between gap-3 rounded-xl border border-gray-200 p-3 text-gray-800">
                         <span><?php echo esc_html($comunidade->post_title); ?> (#<?php echo (int) $comunidade->ID; ?>)</span>
                         <div class="flex items-center gap-2">
@@ -84,11 +161,12 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
                         </div>
                     </li>
                 <?php endforeach; ?>
-                <?php if (empty($comunidades_criadas)): ?><li><?php esc_html_e('Nenhum local cadastrado ainda.', 'cadastro-comunidades'); ?></li><?php endif; ?>
+                <?php if (empty($comunidades_criadas_paginadas)): ?><li><?php esc_html_e('Nenhum local cadastrado ainda.', 'cadastro-comunidades'); ?></li><?php endif; ?>
             </ul>
+            <?php $render_pagination($pagina_criadas, $total_paginas_criadas, 'pg_criadas', 'sec-locais-cadastrados', $build_page_url); ?>
         </section>
 
-        <section class="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 space-y-4">
+        <section id="sec-observacao-locais" class="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 space-y-4">
             <h4 class="text-xl font-semibold text-gray-800"><?php esc_html_e('Observação de Locais', 'cadastro-comunidades'); ?></h4>
             <p class="text-gray-600"><?php esc_html_e('Você pode acompanhar alterações em locais mesmo sem ser o criador.', 'cadastro-comunidades'); ?></p>
 
@@ -106,7 +184,7 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
             </form>
 
             <ul class="space-y-2">
-                <?php foreach ($comunidades_observadas as $comunidade): ?>
+                <?php foreach ($comunidades_observadas_paginadas as $comunidade): ?>
                     <li class="rounded-xl border border-gray-200 p-3">
                         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                             <span class="text-gray-800 font-medium"><?php echo esc_html($comunidade->post_title); ?></span>
@@ -123,15 +201,17 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
                         </div>
                     </li>
                 <?php endforeach; ?>
-                <?php if (empty($comunidades_observadas)): ?><li class="text-gray-600"><?php esc_html_e('Nenhum local observado.', 'cadastro-comunidades'); ?></li><?php endif; ?>
+                <?php if (empty($comunidades_observadas_paginadas)): ?><li class="text-gray-600"><?php esc_html_e('Nenhum local observado.', 'cadastro-comunidades'); ?></li><?php endif; ?>
             </ul>
+            <?php $render_pagination($pagina_observadas, $total_paginas_observadas, 'pg_observadas', 'sec-observacao-locais', $build_page_url); ?>
         </section>
 
-        <section class="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 space-y-4">
+        <section id="sec-observacao-alteracoes" class="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 space-y-4">
             <h4 class="text-xl font-semibold text-gray-800"><?php esc_html_e('Observação de alterações', 'cadastro-comunidades'); ?></h4>
             <p class="text-gray-600"><?php esc_html_e('Filtre por local e período para encontrar atualizações com facilidade.', 'cadastro-comunidades'); ?></p>
 
             <form method="get" class="grid md:grid-cols-4 gap-3 items-end">
+                <input type="hidden" name="pg_alteracoes" value="1">
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700"><?php esc_html_e('Local', 'cadastro-comunidades'); ?></label>
                     <?php $filtro_label = ''; ?>
@@ -149,6 +229,13 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
                 </div>
                 <div class="md:col-span-4">
                     <button type="submit" class="<?php echo esc_attr(cc_auth_button_class()); ?>"><?php esc_html_e('Aplicar filtros', 'cadastro-comunidades'); ?></button>
+                    <a href="<?php echo esc_url($build_page_url([
+                        'f_comunidade_nome' => null,
+                        'f_comunidade' => null,
+                        'f_data_inicio' => null,
+                        'f_data_fim' => null,
+                        'pg_alteracoes' => 1,
+                    ], 'sec-observacao-alteracoes')); ?>" class="inline-flex items-center justify-center px-5 py-3 rounded-xl border border-gray-300 bg-white text-gray-700 font-semibold ml-2"><?php esc_html_e('Limpar filtros', 'cadastro-comunidades'); ?></a>
                 </div>
             </form>
 
@@ -168,6 +255,7 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
                 <?php endforeach; ?>
                 <?php if (empty($alteracoes)): ?><li class="text-gray-600"><?php esc_html_e('Sem alterações para os filtros selecionados.', 'cadastro-comunidades'); ?></li><?php endif; ?>
             </ul>
+            <?php $render_pagination($pagina_alteracoes, $total_paginas_alteracoes, 'pg_alteracoes', 'sec-observacao-alteracoes', $build_page_url); ?>
         </section>
 
 
@@ -186,6 +274,13 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
 
         <script>
             document.addEventListener('DOMContentLoaded', function () {
+                if (window.location.hash) {
+                    const anchor = document.querySelector(window.location.hash);
+                    if (anchor) {
+                        anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }
+
                 function extractComunidadeId(value) {
                     const match = String(value || '').match(/#(\d+)\)/);
                     return match ? match[1] : '';

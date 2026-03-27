@@ -10,6 +10,7 @@ let tagsEventoCache = [];
 const FREQUENCIA_MISSA_DOMINICAL = 'missa_dominical';
 
 document.addEventListener('DOMContentLoaded', async function () {
+    mapaPrepararNovoCadastro();
     mapaConfigurarBloqueioDeNaoLogado();
     mapaExibirSaudacaoUsuario();
 
@@ -25,6 +26,35 @@ document.addEventListener('DOMContentLoaded', async function () {
 
 function mapaObterParametroUrl(nome) {
     return new URLSearchParams(window.location.search).get(nome);
+}
+
+function mapaEhEdicao() {
+    const editarId = parseInt(mapaObterParametroUrl('editar_comunidade'), 10);
+    return Number.isInteger(editarId) && editarId > 0;
+}
+
+function mapaPrepararNovoCadastro() {
+    if (mapaEhEdicao()) return;
+
+    eventos = [];
+    contatos = [];
+    eventosRemovidos = [];
+    modoEdicao = false;
+    comunidadeEditandoId = null;
+
+    wizardState.atividades = [];
+    wizardState.currentStep = 1;
+    wizardState.editingIndex = null;
+    wizardState.modalOpen = false;
+    wizardState.draft = null;
+    wizardState.requestedGroup = 'missa';
+    wizardState.previousFocusEl = null;
+
+    try {
+        localStorage.removeItem(STORAGE_ATIVIDADES_KEY);
+    } catch (error) {
+        console.warn('Não foi possível limpar o cache local do formulário.', error);
+    }
 }
 
 function mapaConfigurarBloqueioDeNaoLogado() {
@@ -1723,7 +1753,11 @@ function mapaEnviar() {
         return resp;
     })
     .then(resp => {
-        mapaMostrarFeedback(modoEdicao ? 'Local atualizado com sucesso!' : `Cadastro realizado com sucesso! ID da comunidade: ${resp.comunidade_id}.`, 'sucesso');
+        const estavaEmEdicao = modoEdicao;
+        if (!estavaEmEdicao) {
+            mapaPrepararNovoCadastro();
+        }
+        mapaMostrarFeedback(estavaEmEdicao ? 'Local atualizado com sucesso!' : `Cadastro realizado com sucesso! ID da comunidade: ${resp.comunidade_id}.`, 'sucesso');
         mapaExibirModalSucesso(resp);
     })
     .catch(error => {
