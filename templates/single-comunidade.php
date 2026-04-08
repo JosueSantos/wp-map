@@ -223,6 +223,21 @@ foreach ($eventos as $evento) {
     $eventos_por_secao['demais'][] = $evento;
 }
 
+$secoes_eventos = [
+    'missa' => 'Missa',
+    'confissao' => 'Confissão',
+    'adoracao-ao-santissimo' => 'Adoração ao Santíssimo',
+    'acao-caritativa' => 'Ação Caritativa',
+    'demais' => 'Demais atividades',
+];
+
+$secoes_eventos_disponiveis = [];
+foreach ($secoes_eventos as $slug_secao => $titulo_secao) {
+    if (!empty($eventos_por_secao[$slug_secao])) {
+        $secoes_eventos_disponiveis[$slug_secao] = $titulo_secao;
+    }
+}
+
 get_header();
 ?>
 <main class="bg-slate-50 min-h-screen py-10">
@@ -237,6 +252,14 @@ get_header();
 
             <?php if ($endereco): ?>
                 <p class="text-slate-700"><i class="bi bi-geo-alt"></i> <a class="text-sky-700 hover:text-sky-900 hover:underline transition" href="https://www.google.com/maps/search/?api=1&query=<?php echo rawurlencode($endereco); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html($endereco); ?></a></p>
+            <?php endif; ?>
+
+            <?php if (!empty($secoes_eventos_disponiveis)): ?>
+                <nav class="flex flex-wrap gap-2" aria-label="Atalhos das atividades">
+                    <?php foreach ($secoes_eventos_disponiveis as $slug_secao => $titulo_secao): ?>
+                        <a href="#secao-<?php echo esc_attr($slug_secao); ?>" class="inline-flex items-center px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 transition text-sm"><?php echo esc_html($titulo_secao); ?></a>
+                    <?php endforeach; ?>
+                </nav>
             <?php endif; ?>
 
             <div class="flex flex-wrap gap-3 pt-2">
@@ -284,52 +307,29 @@ get_header();
                     <?php if (empty($eventos)): ?>
                         <p class="text-slate-600">Nenhuma atividade cadastrada.</p>
                     <?php else: ?>
-                        <nav class="flex flex-wrap gap-2">
-                            <a href="#secao-missa" class="inline-flex items-center px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 transition text-sm">Missa</a>
-                            <a href="#secao-confissao" class="inline-flex items-center px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 transition text-sm">Confissão</a>
-                            <a href="#secao-adoracao-ao-santissimo" class="inline-flex items-center px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 transition text-sm">Adoração ao Santíssimo</a>
-                            <a href="#secao-acao-caritativa" class="inline-flex items-center px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 transition text-sm">Ação Caritativa</a>
-                        </nav>
-
-                        <?php
-                        $secoes_eventos = [
-                            'missa' => 'Missa',
-                            'confissao' => 'Confissão',
-                            'adoracao-ao-santissimo' => 'Adoração ao Santíssimo',
-                            'acao-caritativa' => 'Ação Caritativa',
-                            'demais' => 'Demais atividades',
-                        ];
-                        ?>
-
-                        <?php foreach ($secoes_eventos as $slug_secao => $titulo_secao): ?>
-                            <?php if ($slug_secao === 'demais' && empty($eventos_por_secao['demais'])) continue; ?>
+                        <?php foreach ($secoes_eventos_disponiveis as $slug_secao => $titulo_secao): ?>
                             <section id="secao-<?php echo esc_attr($slug_secao); ?>" class="pt-2 space-y-3">
                                 <h3 class="text-xl font-semibold text-slate-900"><?php echo esc_html($titulo_secao); ?></h3>
-
-                                <?php if (empty($eventos_por_secao[$slug_secao])): ?>
-                                    <p class="text-slate-600 text-sm">Nenhuma atividade cadastrada nesta seção.</p>
-                                <?php else: ?>
-                                    <ol class="space-y-3 list-decimal pl-5">
-                                        <?php foreach ($eventos_por_secao[$slug_secao] as $evento): ?>
-                                            <li class="border border-slate-200 bg-slate-50 rounded-xl p-4 space-y-2">
-                                                <h4 class="text-lg font-semibold text-slate-900"><?php echo esc_html($evento['titulo'] ?: 'Evento'); ?></h4>
-                                                <p class="text-sm text-slate-600"><?php echo esc_html(cc_formatar_recorrencia_single($evento)); ?> • <?php echo esc_html($evento['horario'] ?: 'Horário não informado'); ?></p>
-                                                <?php if (!empty($evento['tipos_evento'])): ?>
-                                                    <p class="text-xs font-medium text-sky-700"><?php echo esc_html(implode(' • ', $evento['tipos_evento'])); ?></p>
-                                                <?php endif; ?>
-                                                <?php if (!empty($evento['descricao'])): ?>
-                                                    <p class="text-slate-700"><?php echo esc_html($evento['descricao']); ?></p>
-                                                <?php endif; ?>
-                                                <?php if (!empty($evento['observacao'])): ?>
-                                                    <p class="text-sm text-slate-500"><?php echo esc_html($evento['observacao']); ?></p>
-                                                <?php endif; ?>
-                                                <?php if (!empty($evento['tags_evento'])): ?>
-                                                    <p class="text-xs text-slate-500">Tags: <?php echo esc_html(implode(', ', $evento['tags_evento'])); ?></p>
-                                                <?php endif; ?>
-                                            </li>
-                                        <?php endforeach; ?>
-                                    </ol>
-                                <?php endif; ?>
+                                <ul class="space-y-3">
+                                    <?php foreach ($eventos_por_secao[$slug_secao] as $evento): ?>
+                                        <li class="border border-slate-200 bg-slate-50 rounded-xl p-4 space-y-2">
+                                            <h4 class="text-lg font-semibold text-slate-900"><?php echo esc_html($evento['titulo'] ?: 'Evento'); ?></h4>
+                                            <p class="text-sm text-slate-600"><?php echo esc_html(cc_formatar_recorrencia_single($evento)); ?> • <?php echo esc_html($evento['horario'] ?: 'Horário não informado'); ?></p>
+                                            <?php if (!empty($evento['tipos_evento'])): ?>
+                                                <p class="text-xs font-medium text-sky-700"><?php echo esc_html(implode(' • ', $evento['tipos_evento'])); ?></p>
+                                            <?php endif; ?>
+                                            <?php if (!empty($evento['descricao'])): ?>
+                                                <p class="text-slate-700"><?php echo esc_html($evento['descricao']); ?></p>
+                                            <?php endif; ?>
+                                            <?php if (!empty($evento['observacao'])): ?>
+                                                <p class="text-sm text-slate-500"><?php echo esc_html($evento['observacao']); ?></p>
+                                            <?php endif; ?>
+                                            <?php if (!empty($evento['tags_evento'])): ?>
+                                                <p class="text-xs text-slate-500">Tags: <?php echo esc_html(implode(', ', $evento['tags_evento'])); ?></p>
+                                            <?php endif; ?>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
                             </section>
                         <?php endforeach; ?>
                     <?php endif; ?>
