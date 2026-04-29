@@ -2,6 +2,11 @@
     <div class="cc-mapa-layout">
         <div class="cc-mapa-main">
             <div class="cc-mapa-topbar">
+                <div class="cc-filtros-rapidos" role="group" aria-label="Filtros rápidos">
+                    <button type="button" class="cc-btn-rapido" data-quick-filter="missa_hoje"><i class="bi bi-plus-circle"></i><span>Missa Hoje</span></button>
+                    <button type="button" class="cc-btn-rapido" data-quick-filter="confissao_hoje"><i class="bi bi-people-fill"></i><span>Confissão Hoje</span></button>
+                    <button type="button" class="cc-btn-rapido cc-btn-rapido--filtros" data-toggle-filtros><i class="bi bi-funnel-fill"></i><span>Outros Filtros</span></button>
+                </div>
                 <label class="cc-busca-wrap" for="filtro-busca">
                     <span>Pesquisar</span>
                     <div class="cc-busca-acoes">
@@ -77,7 +82,12 @@
                 </div>
 
                 <div class="cc-mapa-stage">
+                    <div class="cc-view-toggle" role="group" aria-label="Visualização">
+                        <button type="button" class="cc-view-btn is-active" data-view-mode="mapa"><i class="bi bi-geo-alt-fill"></i><span>Mapa</span></button>
+                        <button type="button" class="cc-view-btn" data-view-mode="lista"><i class="bi bi-list-ul"></i><span>Lista</span></button>
+                    </div>
                     <div id="mapa-canvas" class="mt-2"></div>
+                    <div id="mapa-lista-locais" class="cc-lista-locais" hidden></div>
                 </div>
             </div>
         </div>

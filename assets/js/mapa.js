@@ -16,6 +16,10 @@ document.addEventListener("DOMContentLoaded", async function () {
     const filtroTagAcaoEl = document.getElementById("filtro-tag-acao-caritativa");
     const filtroTagHiddenEl = document.getElementById("filtro-tag");
     const urlCadastro = containerEl.dataset.urlCadastro || "";
+    const quickFilterBtns = Array.from(containerEl.querySelectorAll("[data-quick-filter]"));
+    const toggleFiltrosBtn = containerEl.querySelector("[data-toggle-filtros]");
+    const viewModeBtns = Array.from(containerEl.querySelectorAll("[data-view-mode]"));
+    const listaLocaisEl = document.getElementById("mapa-lista-locais");
 
     const fallbackCenter = [-3.7319, -38.5267]; // Fortaleza
     const fallbackZoom = 13;
@@ -55,6 +59,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         requestId: 0,
         autocompleteBase: [],
         termoBusca: "",
+        viewMode: "mapa",
+        quickFilterAtivo: "",
     };
 
     const diaMap = {
@@ -600,6 +606,41 @@ document.addEventListener("DOMContentLoaded", async function () {
         map.setView(fallbackCenter, fallbackZoom);
     }
 
+
+    function renderListaLocais() {
+        if (!listaLocaisEl) return;
+        if (!state.comunidades.length) {
+            listaLocaisEl.innerHTML = '<p class="cc-filtro-texto">Nenhum local encontrado para os filtros selecionados.</p>';
+            return;
+        }
+
+        listaLocaisEl.innerHTML = state.comunidades.map((c) => `
+            <article class="cc-local-item">
+                <h4>${escapeHtml(c.nome || 'Local')}</h4>
+                ${c.endereco ? `<p>${escapeHtml(c.endereco)}</p>` : ''}
+            </article>
+        `).join('');
+    }
+
+    function atualizarModoVisualizacao() {
+        const mostrarMapa = state.viewMode === 'mapa';
+        if (mapaEl) mapaEl.hidden = !mostrarMapa;
+        if (listaLocaisEl) listaLocaisEl.hidden = mostrarMapa;
+        viewModeBtns.forEach((btn) => btn.classList.toggle('is-active', btn.dataset.viewMode === state.viewMode));
+        if (mostrarMapa) map.invalidateSize();
+    }
+
+    function aplicarFiltroRapido(tipo) {
+        if (!filtroEventoPeriodoEl) return;
+        state.quickFilterAtivo = tipo;
+        if (tipo === 'missa_hoje') filtroEventoPeriodoEl.value = 'hoje|missa';
+        if (tipo === 'confissao_hoje') filtroEventoPeriodoEl.value = 'hoje|confissao';
+        quickFilterBtns.forEach((btn) => btn.classList.toggle('is-active', btn.dataset.quickFilter === tipo));
+        sincronizarFiltrosEventoPeriodo();
+        atualizarCampoDataFiltro();
+        carregarComunidades();
+    }
+
     async function carregarComunidades() {
         const requestId = ++state.requestId;
         clearMarkers();
@@ -625,6 +666,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
             state.comunidades = filtrarPorBusca(unicos);
             state.comunidades.forEach(addMarker);
+            renderListaLocais();
 
             ajustarVisaoMapa();
             map.invalidateSize();
@@ -818,6 +860,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     });
 
     filtrosForm?.addEventListener("change", () => {
+        state.quickFilterAtivo = "";
+        quickFilterBtns.forEach((btn) => btn.classList.remove("is-active"));
         sincronizarFiltrosEventoPeriodo();
         sincronizarFiltroTag();
         atualizarCampoDataFiltro();
@@ -837,9 +881,30 @@ document.addEventListener("DOMContentLoaded", async function () {
         sincronizarFiltroTag();
         atualizarCampoDataFiltro();
         if (buscaEl) buscaEl.value = "";
+        state.quickFilterAtivo = "";
+        quickFilterBtns.forEach((btn) => btn.classList.remove("is-active"));
         state.termoBusca = "";
         updateAutocomplete(state.autocompleteBase);
         carregarComunidades();
+    });
+
+
+    quickFilterBtns.forEach((btn) => {
+        btn.addEventListener('click', () => aplicarFiltroRapido(btn.dataset.quickFilter || ''));
+    });
+
+    toggleFiltrosBtn?.addEventListener('click', () => {
+        const filtrosPanel = containerEl.querySelector('[data-panel="filtros"]');
+        if (!filtrosPanel) return;
+        const aberto = filtrosPanel.classList.contains('is-open');
+        setPanelOpen(filtrosPanel, !aberto);
+    });
+
+    viewModeBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            state.viewMode = btn.dataset.viewMode === 'lista' ? 'lista' : 'mapa';
+            atualizarModoVisualizacao();
+        });
     });
 
     window.addEventListener("resize", () => {
@@ -847,6 +912,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     });
 
     setupAccordionPanels();
+    atualizarModoVisualizacao();
 
     await carregarFiltros();
     atualizarCampoDataFiltro();
