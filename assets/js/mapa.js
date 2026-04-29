@@ -62,7 +62,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         viewMode: "mapa",
         quickFilterAtivo: "",
         paginaAtual: 1,
-        itensPorPagina: 10,
+        itensPorPagina: 5,
         comunidadeSelecionadaId: null,
     };
 
@@ -429,6 +429,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         if (!detalhesEl) return;
 
         if (!comunidade) {
+            containerEl.classList.remove("cc-mobile-comunidade-selecionada");
             state.comunidadeSelecionadaId = null;
             const detalhesPanel = detalhesEl.closest(".cc-overlay-panel");
             if (detalhesPanel) detalhesPanel.hidden = true;
@@ -445,6 +446,12 @@ document.addEventListener("DOMContentLoaded", async function () {
             setPanelOpen(detalhesPanelAtual, false);
             bindDetalhesToggle();
             return;
+        }
+
+        if (isMobile()) {
+            containerEl.classList.add("cc-mobile-comunidade-selecionada");
+        } else {
+            containerEl.classList.remove("cc-mobile-comunidade-selecionada");
         }
 
         state.comunidadeSelecionadaId = Number(comunidade.id) || null;
@@ -674,6 +681,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         const mostrarMapa = state.viewMode === 'mapa';
         if (mapaEl) mapaEl.hidden = !mostrarMapa;
         if (listaLocaisEl) listaLocaisEl.hidden = mostrarMapa;
+        if (listaLocaisEl) listaLocaisEl.style.display = mostrarMapa ? 'none' : 'grid';
         viewModeBtns.forEach((btn) => btn.classList.toggle('is-active', btn.dataset.viewMode === state.viewMode));
         if (mostrarMapa) map.invalidateSize();
     }
@@ -939,7 +947,11 @@ document.addEventListener("DOMContentLoaded", async function () {
 
 
     quickFilterBtns.forEach((btn) => {
-        btn.addEventListener('click', () => aplicarFiltroRapido(btn.dataset.quickFilter || ''));
+        btn.addEventListener('click', () => {
+            aplicarFiltroRapido(btn.dataset.quickFilter || '');
+            const filtrosPanel = containerEl.querySelector('[data-panel="filtros"]');
+            if (filtrosPanel) setPanelOpen(filtrosPanel, true);
+        });
     });
 
     toggleFiltrosBtn?.addEventListener('click', () => {
