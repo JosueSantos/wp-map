@@ -424,6 +424,16 @@
     gap: .6rem;
     flex-wrap: wrap;
 }
+#mapa-igrejas .cc-filtros-mapa-fixo {
+    position: sticky;
+    top: .75rem;
+    z-index: 350;
+    width: 100%;
+    margin-top: .65rem;
+}
+#mapa-igrejas .cc-filtros-mapa-fixo--oculto {
+    display: none;
+}
 #mapa-igrejas .cc-btn-rapido {
     border: 1px solid #1e3a8a;
     background: #fff;
@@ -484,4 +494,3 @@
 
 #mapa-igrejas .cc-local-item { cursor:pointer; }
 #mapa-igrejas .cc-local-item.is-selected { border-color:#1d4ed8; box-shadow:0 0 0 2px rgba(29,78,216,.15); }
-

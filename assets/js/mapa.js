@@ -20,6 +20,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const toggleFiltrosBtn = containerEl.querySelector("[data-toggle-filtros]");
     const viewModeBtns = Array.from(containerEl.querySelectorAll("[data-view-mode]"));
     const listaLocaisEl = document.getElementById("mapa-lista-locais");
+    const filtrosFixosEl = containerEl.querySelector("[data-filtros-fixo]");
 
     const fallbackCenter = [-3.7319, -38.5267]; // Fortaleza
     const fallbackZoom = 13;
@@ -114,6 +115,11 @@ document.addEventListener("DOMContentLoaded", async function () {
             .replace(/>/g, "&gt;")
             .replace(/\"/g, "&quot;")
             .replace(/'/g, "&#039;");
+    }
+
+    function revelarFiltrosFixos() {
+        if (!filtrosFixosEl) return;
+        filtrosFixosEl.classList.remove("cc-filtros-mapa-fixo--oculto");
     }
 
     function parseJsonString(raw) {
@@ -948,6 +954,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     quickFilterBtns.forEach((btn) => {
         btn.addEventListener('click', () => {
+            revelarFiltrosFixos();
             aplicarFiltroRapido(btn.dataset.quickFilter || '');
             const filtrosPanel = containerEl.querySelector('[data-panel="filtros"]');
             if (filtrosPanel) setPanelOpen(filtrosPanel, true);
@@ -955,6 +962,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     });
 
     toggleFiltrosBtn?.addEventListener('click', () => {
+        revelarFiltrosFixos();
         const filtrosPanel = containerEl.querySelector('[data-panel="filtros"]');
         if (!filtrosPanel) return;
         const aberto = filtrosPanel.classList.contains('is-open');
