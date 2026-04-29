@@ -41,13 +41,13 @@
 
                 <div class="cc-mapa-sidebar">
                     <div class="cc-overlay-panels">
-                        <aside class="cc-overlay-panel cc-overlay-panel--filtros is-open" data-panel="filtros">
-                            <button type="button" class="cc-panel-toggle" aria-expanded="true" aria-controls="cc-panel-filtros-body">
+                        <aside class="cc-overlay-panel cc-overlay-panel--filtros" data-panel="filtros">
+                            <button type="button" class="cc-panel-toggle" aria-expanded="false" aria-controls="cc-panel-filtros-body">
                                 <span>Filtros do mapa</span>
                                 <span class="cc-panel-toggle-icon" aria-hidden="true"><i class="bi bi-chevron-down"></i></span>
                             </button>
 
-                            <div class="cc-panel-body" id="cc-panel-filtros-body">
+                            <div class="cc-panel-body" id="cc-panel-filtros-body" hidden>
                                 <p class="cc-filtro-texto font-bold">Selecione os filtros para refinar os locais e as atividades.</p>
 
                                 <form id="mapa-filtros" class="cc-filtros-form">
@@ -75,6 +75,11 @@
                                     </label>
 
                                     <input type="hidden" id="filtro-tag" name="tag" value="">
+
+                                    <label>
+                                        <span>Nome do Local</span>
+                                        <input type="search" id="filtro-nome-local" name="nome" placeholder="Digite o nome do local">
+                                    </label>
 
                                     <label>
                                         <span>Tipo de Local</span>

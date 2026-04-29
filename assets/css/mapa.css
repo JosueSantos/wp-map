@@ -38,12 +38,14 @@
 
 #mapa-igrejas .cc-mapa-sidebar {
     align-self: start;
-    position: static;
-    z-index: 450;
+    position: absolute;
+    top: .65rem;
+    right: .65rem;
+    z-index: 530;
     max-height: none;
     overflow: visible;
-    padding-right: .15rem;
     min-width: 0;
+    width: min(400px, calc(100% - 1.3rem));
 }
 
 #mapa-igrejas .cc-busca-wrap span {
@@ -346,8 +348,10 @@
         order: 2;
         max-height: none;
         overflow: visible;
-        padding-right: 0;
-        position: static;
+        position: absolute;
+        top: .65rem;
+        right: .65rem;
+        width: calc(100% - 1.3rem);
     }
 
     #mapa-igrejas .cc-overlay-panel {
@@ -362,6 +366,11 @@
 
     #mapa-igrejas #mapa-canvas {
         min-height: 540px;
+    }
+
+    #mapa-igrejas.cc-mobile-comunidade-selecionada #mapa-canvas {
+        min-height: 270px;
+        height: 270px;
     }
 
     #mapa-igrejas .cc-overlay-panels--floating {
@@ -458,12 +467,13 @@
     background:#fff;
     border:1px solid #e2e8f0;
     border-radius:.9rem;
-    padding:1rem;
+    padding:3.6rem 1rem 1rem;
     display:grid;
     gap:.6rem;
     max-height:620px;
     overflow:auto;
 }
+#mapa-igrejas #mapa-lista-locais[hidden] { display:none !important; }
 #mapa-igrejas .cc-local-item { border:1px solid #e2e8f0; border-radius:.75rem; padding:.65rem .75rem; }
 #mapa-igrejas .cc-local-item h4 { margin:0 0 .25rem; font-size:1rem; color:#0f172a; }
 #mapa-igrejas .cc-local-item p { margin:0; color:#475569; font-size:.9rem; }
