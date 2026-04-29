@@ -262,6 +262,7 @@ function cc_api_mapa_comunidades($request) {
 
         $eventos = get_posts($eventos_args);
         $lista_eventos = [];
+        $todas_atividades = [];
 
         foreach ($eventos as $e) {
 
@@ -273,11 +274,6 @@ function cc_api_mapa_comunidades($request) {
 
             $tipo_evt = wp_get_post_terms($e->ID, 'tipo_evento', ['fields'=>'slugs']);
             $tipo_evt = $tipo_evt[0] ?? '';
-
-            // FILTROS
-            if ($periodo !== '' && !cc_evento_ocorre_no_periodo($e->ID, $periodo, $data_param)) continue;
-
-            if ($tipo_evento && $tipo_evt !== $tipo_evento) continue;
 
             $tags_evento_meta = get_post_meta($e->ID, 'tags', true);
             $tags_evento_meta = is_array($tags_evento_meta) ? $tags_evento_meta : array_filter(array_map('trim', explode(',', (string)$tags_evento_meta)));
@@ -293,9 +289,7 @@ function cc_api_mapa_comunidades($request) {
                 }
             }
 
-            if ($tag && !in_array(sanitize_title($tag), $tags_evento, true)) continue;
-
-            $lista_eventos[] = [
+            $evento_item = [
                 'id'        => $e->ID,
                 'titulo'    => $e->post_title,
                 'titulo_base' => get_post_meta($e->ID, 'titulo_base', true) ?: $e->post_title,
@@ -310,10 +304,22 @@ function cc_api_mapa_comunidades($request) {
                 'descricao' => $descricao,
                 'observacao'=> $observacao
             ];
+
+            $todas_atividades[] = $evento_item;
+
+            // FILTROS
+            if ($periodo !== '' && !cc_evento_ocorre_no_periodo($e->ID, $periodo, $data_param)) continue;
+            if ($tipo_evento && $tipo_evt !== $tipo_evento) continue;
+            if ($tag && !in_array(sanitize_title($tag), $tags_evento, true)) continue;
+
+            $lista_eventos[] = $evento_item;
         }
 
         if (!empty($lista_eventos)) {
             usort($lista_eventos, 'cc_comparar_eventos_por_data');
+        }
+        if (!empty($todas_atividades)) {
+            usort($todas_atividades, 'cc_comparar_eventos_por_data');
         }
 
         if ((($periodo !== '') || $tipo_evento || $tag) && empty($lista_eventos)) {
@@ -344,6 +350,7 @@ function cc_api_mapa_comunidades($request) {
             'contatos'  => get_post_meta($c->ID, 'contatos', true),
             'parent_paroquia' => (int) get_post_meta($c->ID, 'parent_paroquia', true),
             'eventos'   => $lista_eventos,
+            'todas_atividades' => $todas_atividades,
             'distancia_km' => $distancia,
             'permalink' => get_permalink($c->ID),
         ];

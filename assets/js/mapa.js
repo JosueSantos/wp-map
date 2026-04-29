@@ -122,6 +122,11 @@ document.addEventListener("DOMContentLoaded", async function () {
         filtrosFixosEl.classList.remove("cc-filtros-mapa-fixo--oculto");
     }
 
+    function ocultarFiltrosFixos() {
+        if (!filtrosFixosEl) return;
+        filtrosFixosEl.classList.add("cc-filtros-mapa-fixo--oculto");
+    }
+
     function parseJsonString(raw) {
         if (typeof raw !== "string") return null;
         const trimmed = raw.trim();
@@ -954,10 +959,10 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     quickFilterBtns.forEach((btn) => {
         btn.addEventListener('click', () => {
-            revelarFiltrosFixos();
             aplicarFiltroRapido(btn.dataset.quickFilter || '');
             const filtrosPanel = containerEl.querySelector('[data-panel="filtros"]');
-            if (filtrosPanel) setPanelOpen(filtrosPanel, true);
+            if (filtrosPanel) setPanelOpen(filtrosPanel, false);
+            ocultarFiltrosFixos();
         });
     });
 

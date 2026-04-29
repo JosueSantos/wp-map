@@ -74,6 +74,7 @@
                     <div class="cc-overlay-panels cc-overlay-panels--floating">
                     </div>
                     <div id="mapa-canvas" class="mt-2"></div>
+                    <div id="mapa-lista-locais" class="cc-lista-locais" hidden></div>
                     <div class="cc-overlay-panels cc-overlay-panels--floating">
                         <aside id="mapa-detalhes" class="cc-overlay-panel cc-overlay-panel--detalhes" data-panel="detalhes" hidden>
                             <button type="button" class="cc-panel-toggle" aria-expanded="false" aria-controls="cc-panel-detalhes-body">
@@ -86,7 +87,6 @@
                             </div>
                         </aside>
                     </div>
-                    <div id="mapa-lista-locais" class="cc-lista-locais" hidden></div>
                 </div>
             </div>
         </div>
