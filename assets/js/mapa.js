@@ -535,6 +535,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     function aplicarBusca() {
+        limparFiltrosExceto({ manterBusca: true });
         state.termoBusca = buscaEl?.value || "";
         carregarComunidades();
     }
@@ -697,8 +698,41 @@ document.addEventListener("DOMContentLoaded", async function () {
         if (mostrarMapa) map.invalidateSize();
     }
 
+
+    function limparFiltrosExceto(opcoes = {}) {
+        const {
+            manterBusca = false,
+            manterTipoComunidade = false,
+            manterEventoPeriodo = false,
+        } = opcoes;
+
+        const tipoComunidadeEl = document.getElementById('filtro-tipo-comunidade');
+        const valorBusca = manterBusca ? String(buscaEl?.value || '') : '';
+        const valorTipoComunidade = manterTipoComunidade ? String(tipoComunidadeEl?.value || '') : '';
+        const valorEventoPeriodo = manterEventoPeriodo ? String(filtroEventoPeriodoEl?.value || '|') : '|';
+
+        filtrosForm?.reset();
+
+        if (filtroEventoPeriodoEl) filtroEventoPeriodoEl.value = valorEventoPeriodo;
+        if (tipoComunidadeEl) tipoComunidadeEl.value = valorTipoComunidade;
+        if (filtroTagMissaEl) filtroTagMissaEl.value = '';
+        if (filtroTagAcaoEl) filtroTagAcaoEl.value = '';
+        if (buscaEl) buscaEl.value = valorBusca;
+
+        sincronizarFiltrosEventoPeriodo();
+        sincronizarFiltroTag();
+        atualizarCampoDataFiltro();
+
+        state.quickFilterAtivo = '';
+        quickFilterBtns.forEach((btn) => btn.classList.remove('is-active'));
+
+        state.termoBusca = valorBusca;
+        updateAutocomplete(state.autocompleteBase);
+    }
+
     function aplicarFiltroRapido(tipo) {
         if (!filtroEventoPeriodoEl) return;
+        limparFiltrosExceto({ manterEventoPeriodo: true });
         state.quickFilterAtivo = tipo;
         if (tipo === 'missa_hoje') filtroEventoPeriodoEl.value = 'hoje|missa';
         if (tipo === 'confissao_hoje') filtroEventoPeriodoEl.value = 'hoje|confissao';
@@ -927,6 +961,13 @@ document.addEventListener("DOMContentLoaded", async function () {
         sincronizarFiltroTag();
     });
 
+    const filtroTipoComunidadeEl = document.getElementById('filtro-tipo-comunidade');
+    filtroTipoComunidadeEl?.addEventListener('change', () => {
+        if (!filtroTipoComunidadeEl.value) return;
+        limparFiltrosExceto({ manterTipoComunidade: true });
+        if (!isMobile()) carregarComunidades();
+    });
+
     filtrosForm?.addEventListener("change", () => {
         state.quickFilterAtivo = "";
         quickFilterBtns.forEach((btn) => btn.classList.remove("is-active"));
@@ -941,18 +982,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     });
 
     limparBtn?.addEventListener("click", () => {
-        filtrosForm?.reset();
-        if (filtroEventoPeriodoEl) filtroEventoPeriodoEl.value = '|';
-        if (filtroTagMissaEl) filtroTagMissaEl.value = '';
-        if (filtroTagAcaoEl) filtroTagAcaoEl.value = '';
-        sincronizarFiltrosEventoPeriodo();
-        sincronizarFiltroTag();
-        atualizarCampoDataFiltro();
-        if (buscaEl) buscaEl.value = "";
-        state.quickFilterAtivo = "";
-        quickFilterBtns.forEach((btn) => btn.classList.remove("is-active"));
-        state.termoBusca = "";
-        updateAutocomplete(state.autocompleteBase);
+        limparFiltrosExceto();
         carregarComunidades();
     });
 
