@@ -61,6 +61,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         termoBusca: "",
         viewMode: "mapa",
         quickFilterAtivo: "",
+        paginaAtual: 1,
+        itensPorPagina: 10,
+        comunidadeSelecionadaId: null,
     };
 
     const diaMap = {
@@ -426,6 +429,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         if (!detalhesEl) return;
 
         if (!comunidade) {
+            state.comunidadeSelecionadaId = null;
+            const detalhesPanel = detalhesEl.closest(".cc-overlay-panel");
+            if (detalhesPanel) detalhesPanel.hidden = true;
             detalhesEl.innerHTML = `
                 <button type="button" class="cc-panel-toggle" aria-expanded="false" aria-controls="cc-panel-detalhes-body">
                     <span>Local selecionado</span>
@@ -435,13 +441,19 @@ document.addEventListener("DOMContentLoaded", async function () {
                     <p class="cc-filtro-texto">Toque em um pino para ver detalhes e atividades.</p>
                 </div>
             `;
-            const detalhesPanel = detalhesEl.closest(".cc-overlay-panel");
-            setPanelOpen(detalhesPanel, false);
+            const detalhesPanelAtual = detalhesEl.closest(".cc-overlay-panel");
+            setPanelOpen(detalhesPanelAtual, false);
             bindDetalhesToggle();
             return;
         }
 
-        const eventosOrdenados = Array.isArray(comunidade.eventos) ? comunidade.eventos : [];
+        state.comunidadeSelecionadaId = Number(comunidade.id) || null;
+        const detalhesPanel = detalhesEl.closest(".cc-overlay-panel");
+        if (detalhesPanel) detalhesPanel.hidden = false;
+
+        const eventosOrdenados = Array.isArray(comunidade.todas_atividades)
+            ? comunidade.todas_atividades
+            : (Array.isArray(comunidade.eventos) ? comunidade.eventos : []);
 
         const eventosHtml = eventosOrdenados.length
             ? eventosOrdenados.map((evento) => {
@@ -491,7 +503,6 @@ document.addEventListener("DOMContentLoaded", async function () {
             </div>
         `;
 
-        const detalhesPanel = detalhesEl.closest(".cc-overlay-panel");
         setPanelOpen(detalhesPanel, true);
         bindDetalhesToggle();
     }
@@ -607,6 +618,15 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
 
+    function atualizarEstadoSelecaoLista() {
+        if (!listaLocaisEl) return;
+        const selected = Number(state.comunidadeSelecionadaId) || null;
+        listaLocaisEl.querySelectorAll(".cc-local-item").forEach((el) => {
+            const id = Number(el.dataset.id) || null;
+            el.classList.toggle("is-selected", !!selected && id === selected);
+        });
+    }
+
     function renderListaLocais() {
         if (!listaLocaisEl) return;
         if (!state.comunidades.length) {
@@ -614,12 +634,40 @@ document.addEventListener("DOMContentLoaded", async function () {
             return;
         }
 
-        listaLocaisEl.innerHTML = state.comunidades.map((c) => `
-            <article class="cc-local-item">
+        const totalPaginas = Math.max(1, Math.ceil(state.comunidades.length / state.itensPorPagina));
+        state.paginaAtual = Math.min(Math.max(1, state.paginaAtual), totalPaginas);
+        const inicio = (state.paginaAtual - 1) * state.itensPorPagina;
+        const paginaItens = state.comunidades.slice(inicio, inicio + state.itensPorPagina);
+
+        const itensHtml = paginaItens.map((c) => `
+            <article class="cc-local-item" data-id="${Number(c.id) || ''}" role="button" tabindex="0">
                 <h4>${escapeHtml(c.nome || 'Local')}</h4>
                 ${c.endereco ? `<p>${escapeHtml(c.endereco)}</p>` : ''}
             </article>
         `).join('');
+
+        listaLocaisEl.innerHTML = `${itensHtml}<div class="cc-lista-pagination"><button type="button" data-page="prev" ${state.paginaAtual <= 1 ? 'disabled' : ''}>Anterior</button><span>Página ${state.paginaAtual} de ${totalPaginas}</span><button type="button" data-page="next" ${state.paginaAtual >= totalPaginas ? 'disabled' : ''}>Próxima</button></div>`;
+
+        listaLocaisEl.querySelectorAll('.cc-local-item').forEach((itemEl) => {
+            const selecionar = () => {
+                const id = Number(itemEl.dataset.id);
+                const comunidade = state.comunidades.find((c) => Number(c.id) === id);
+                if (!comunidade) return;
+                renderDetalhes(comunidade);
+                atualizarEstadoSelecaoLista();
+            };
+            itemEl.addEventListener('click', selecionar);
+            itemEl.addEventListener('keydown', (ev) => {
+                if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); selecionar(); }
+            });
+        });
+
+        const prevBtn = listaLocaisEl.querySelector('[data-page=\"prev\"]');
+        const nextBtn = listaLocaisEl.querySelector('[data-page=\"next\"]');
+        if (prevBtn) prevBtn.addEventListener('click', () => { state.paginaAtual -= 1; renderListaLocais(); });
+        if (nextBtn) nextBtn.addEventListener('click', () => { state.paginaAtual += 1; renderListaLocais(); });
+
+        atualizarEstadoSelecaoLista();
     }
 
     function atualizarModoVisualizacao() {
@@ -665,6 +713,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             updateAutocomplete(state.autocompleteBase);
 
             state.comunidades = filtrarPorBusca(unicos);
+            state.paginaAtual = 1;
             state.comunidades.forEach(addMarker);
             renderListaLocais();
 
