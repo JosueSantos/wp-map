@@ -580,23 +580,23 @@ document.addEventListener("DOMContentLoaded", async function () {
         // filtros de proximidade/raio removidos
         params.delete("proximidade");
         params.delete("raio");
-        if (state.userLocation?.lat && state.userLocation?.lng) {
-            params.set("lat", String(state.userLocation.lat));
-            params.set("lng", String(state.userLocation.lng));
-            params.set("proximidade", "1");
-        } else {
-            params.delete("lat");
-            params.delete("lng");
-            params.delete("proximidade");
-        }
+        params.delete("lat");
+        params.delete("lng");
+        params.delete("proximidade");
 
         const queryString = params.toString();
         return queryString ? `${API_URL}?${queryString}` : API_URL;
     }
 
     async function fetchComunidades() {
-        const res = await fetch(buildUrlWithFilters());
-        const comunidades = await res.json();
+        const res = await fetch(buildUrlWithFilters(), { headers: { Accept: "application/json" } });
+        const raw = await res.text();
+        let comunidades = [];
+        try {
+            comunidades = JSON.parse(raw);
+        } catch (e) {
+            throw new Error(`Resposta inválida da API: ${raw.slice(0, 140)}`);
+        }
         return Array.isArray(comunidades) ? comunidades : [];
     }
 
@@ -632,13 +632,36 @@ document.addEventListener("DOMContentLoaded", async function () {
         map.setView(fallbackCenter, fallbackZoom);
     }
 
+    function normalizarCoordenada(valor) {
+        if (typeof valor === "number") return Number.isFinite(valor) ? valor : NaN;
+        return Number(String(valor ?? "").replace(",", ".").trim());
+    }
+
+    function distanciaKm(lat1, lng1, lat2, lng2) {
+        const toRad = (graus) => (graus * Math.PI) / 180;
+        const raioTerraKm = 6371;
+        const dLat = toRad(lat2 - lat1);
+        const dLng = toRad(lng2 - lng1);
+        const a = Math.sin(dLat / 2) ** 2
+            + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+        return 2 * raioTerraKm * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
     function ordenarComunidades(lista) {
         const copia = Array.isArray(lista) ? [...lista] : [];
 
         if (state.userLocation?.lat && state.userLocation?.lng) {
             return copia.sort((a, b) => {
-                const da = Number(a?.distancia_km);
-                const db = Number(b?.distancia_km);
+                const alat = normalizarCoordenada(a?.latitude);
+                const alng = normalizarCoordenada(a?.longitude);
+                const blat = normalizarCoordenada(b?.latitude);
+                const blng = normalizarCoordenada(b?.longitude);
+                const da = (Number.isFinite(alat) && Number.isFinite(alng))
+                    ? distanciaKm(state.userLocation.lat, state.userLocation.lng, alat, alng)
+                    : Number.MAX_SAFE_INTEGER;
+                const db = (Number.isFinite(blat) && Number.isFinite(blng))
+                    ? distanciaKm(state.userLocation.lat, state.userLocation.lng, blat, blng)
+                    : Number.MAX_SAFE_INTEGER;
                 const va = Number.isFinite(da) ? da : Number.MAX_SAFE_INTEGER;
                 const vb = Number.isFinite(db) ? db : Number.MAX_SAFE_INTEGER;
                 return va - vb;
