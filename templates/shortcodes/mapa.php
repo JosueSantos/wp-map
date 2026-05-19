@@ -5,7 +5,8 @@
                 <div class="cc-filtros-rapidos" role="group" aria-label="Filtros rápidos">
                     <button type="button" class="cc-btn-rapido" data-quick-filter="missa_hoje"><i class="bi bi-plus-circle"></i><span>Missa Hoje</span></button>
                     <button type="button" class="cc-btn-rapido" data-quick-filter="confissao_hoje"><i class="bi bi-people-fill"></i><span>Confissão Hoje</span></button>
-                    <button type="button" class="cc-btn-rapido cc-btn-rapido--filtros" data-toggle-filtros><i class="bi bi-funnel-fill"></i><span>Outros Filtros</span></button>
+                    <button type="button" class="cc-btn-rapido" data-quick-filter="adoracao_semana"><i class="bi bi-stars"></i><span>Adoração ao Santíssimo</span></button>
+                    <button type="button" class="cc-btn-rapido cc-btn-rapido--filtros" data-toggle-filtros><i class="bi bi-funnel-fill"></i><span>Outras Buscas</span></button>
                 </div>
                 <div class="cc-filtros-mapa-fixo cc-filtros-mapa-fixo--oculto" data-filtros-fixo>
                     <div class="cc-overlay-panels">

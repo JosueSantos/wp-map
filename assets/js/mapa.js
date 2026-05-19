@@ -22,9 +22,9 @@ document.addEventListener("DOMContentLoaded", async function () {
     const listaLocaisEl = document.getElementById("mapa-lista-locais");
     const filtrosFixosEl = containerEl.querySelector("[data-filtros-fixo]");
 
-    const fallbackCenter = [-3.7319, -38.5267]; // Fortaleza
-    const fallbackZoom = 13;
-    const userZoom = 13;
+    const fallbackCenter = [-3.72528, -38.52439]; // Catedral Metropolitana de Fortaleza
+    const fallbackZoom = 15;
+    const userZoom = 16;
 
     let dominio = containerEl.dataset.dominio || "";
     if (dominio.endsWith("/")) dominio = dominio.slice(0, -1);
@@ -43,8 +43,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         attribution: "&copy; OpenStreetMap"
     }).addTo(map);
 
-    const markerClusterGroup = L.markerClusterGroup();
-    map.addLayer(markerClusterGroup);
+    const markerLayerGroup = L.layerGroup().addTo(map);
 
     const resizeObserver = new ResizeObserver(() => {
         map.invalidateSize();
@@ -541,7 +540,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     function clearMarkers() {
-        markerClusterGroup.clearLayers();
+        markerLayerGroup.clearLayers();
         state.markers = [];
     }
 
@@ -563,7 +562,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             if (isMobile()) scrollDetalhesIntoView();
         });
 
-        markerClusterGroup.addLayer(marker);
+        markerLayerGroup.addLayer(marker);
         state.markers.push(marker);
     }
 
@@ -583,14 +582,21 @@ document.addEventListener("DOMContentLoaded", async function () {
         params.delete("raio");
         params.delete("lat");
         params.delete("lng");
+        params.delete("proximidade");
 
         const queryString = params.toString();
         return queryString ? `${API_URL}?${queryString}` : API_URL;
     }
 
     async function fetchComunidades() {
-        const res = await fetch(buildUrlWithFilters());
-        const comunidades = await res.json();
+        const res = await fetch(buildUrlWithFilters(), { headers: { Accept: "application/json" } });
+        const raw = await res.text();
+        let comunidades = [];
+        try {
+            comunidades = JSON.parse(raw);
+        } catch (e) {
+            throw new Error(`Resposta inválida da API: ${raw.slice(0, 140)}`);
+        }
         return Array.isArray(comunidades) ? comunidades : [];
     }
 
@@ -623,17 +629,52 @@ document.addEventListener("DOMContentLoaded", async function () {
             return;
         }
 
-        const pontos = state.comunidades
-            .map((c) => [Number(c.latitude), Number(c.longitude)])
-            .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
+        map.setView(fallbackCenter, fallbackZoom);
+    }
 
-        if (pontos.length > 0) {
-            const bounds = L.latLngBounds(pontos);
-            map.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 });
-            return;
+    function normalizarCoordenada(valor) {
+        if (typeof valor === "number") return Number.isFinite(valor) ? valor : NaN;
+        return Number(String(valor ?? "").replace(",", ".").trim());
+    }
+
+    function distanciaKm(lat1, lng1, lat2, lng2) {
+        const toRad = (graus) => (graus * Math.PI) / 180;
+        const raioTerraKm = 6371;
+        const dLat = toRad(lat2 - lat1);
+        const dLng = toRad(lng2 - lng1);
+        const a = Math.sin(dLat / 2) ** 2
+            + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+        return 2 * raioTerraKm * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function ordenarComunidades(lista) {
+        const copia = Array.isArray(lista) ? [...lista] : [];
+
+        if (state.userLocation?.lat && state.userLocation?.lng) {
+            return copia.sort((a, b) => {
+                const alat = normalizarCoordenada(a?.latitude);
+                const alng = normalizarCoordenada(a?.longitude);
+                const blat = normalizarCoordenada(b?.latitude);
+                const blng = normalizarCoordenada(b?.longitude);
+                const da = (Number.isFinite(alat) && Number.isFinite(alng))
+                    ? distanciaKm(state.userLocation.lat, state.userLocation.lng, alat, alng)
+                    : Number.MAX_SAFE_INTEGER;
+                const db = (Number.isFinite(blat) && Number.isFinite(blng))
+                    ? distanciaKm(state.userLocation.lat, state.userLocation.lng, blat, blng)
+                    : Number.MAX_SAFE_INTEGER;
+                const va = Number.isFinite(da) ? da : Number.MAX_SAFE_INTEGER;
+                const vb = Number.isFinite(db) ? db : Number.MAX_SAFE_INTEGER;
+                return va - vb;
+            });
         }
 
-        map.setView(fallbackCenter, fallbackZoom);
+        return copia.sort((a, b) => {
+            const ea = Array.isArray(a?.eventos) ? a.eventos : [];
+            const eb = Array.isArray(b?.eventos) ? b.eventos : [];
+            const ha = String(ea[0]?.horario || "99:99");
+            const hb = String(eb[0]?.horario || "99:99");
+            return ha.localeCompare(hb);
+        });
     }
 
 
@@ -736,6 +777,10 @@ document.addEventListener("DOMContentLoaded", async function () {
         state.quickFilterAtivo = tipo;
         if (tipo === 'missa_hoje') filtroEventoPeriodoEl.value = 'hoje|missa';
         if (tipo === 'confissao_hoje') filtroEventoPeriodoEl.value = 'hoje|confissao';
+        if (tipo === 'adoracao_semana') {
+            const option = Array.from(filtroEventoPeriodoEl.options || []).find((opt) => String(opt.value || '').includes('semana|') && String(opt.value || '').toLowerCase().includes('ador'));
+            if (option) filtroEventoPeriodoEl.value = option.value;
+        }
         quickFilterBtns.forEach((btn) => btn.classList.toggle('is-active', btn.dataset.quickFilter === tipo));
         sincronizarFiltrosEventoPeriodo();
         atualizarCampoDataFiltro();
@@ -765,7 +810,8 @@ document.addEventListener("DOMContentLoaded", async function () {
             state.autocompleteBase = unicos;
             updateAutocomplete(state.autocompleteBase);
 
-            state.comunidades = filtrarPorBusca(unicos);
+            const filtrados = filtrarPorBusca(unicos);
+            state.comunidades = ordenarComunidades(filtrados);
             state.paginaAtual = 1;
             state.comunidades.forEach(addMarker);
             renderListaLocais();
