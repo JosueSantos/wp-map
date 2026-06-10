@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+  <title>Horários de missas</title>
+  <path fill="#0b1f52" d="M44 8h8v30h-8z"/>
+  <path fill="#0b1f52" d="M38 20c-6 13-10 24-15 37l11 5c4-11 8-22 14-35l14 35 11-5c-5-13-9-24-15-37l-10 24L38 20Z"/>
+  <path fill="#0b1f52" d="M43 45h10v40H43z"/>
+  <path fill="#0b1f52" d="M30 82h36v8H30z"/>
+  <path fill="#0b1f52" d="M25 54c-8 4-13 11-15 20l10 3c2-7 6-12 12-15l-7-8Zm46 0 7 8c6 3 10 8 12 15l10-3c-2-9-7-16-15-20l-14 0Z" opacity=".95" transform="translate(-7 0)"/>
+</svg>

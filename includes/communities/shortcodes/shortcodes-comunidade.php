@@ -62,13 +62,6 @@ function cc_eventos_comunidade($atts) {
 add_shortcode('cc_eventos', 'cc_eventos_comunidade');
 
 function cc_resumo_cadastros_shortcode() {
-    wp_enqueue_style(
-        'bootstrap-icons',
-        'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css',
-        [],
-        '1.11.3'
-    );
-
     $total_locais = wp_count_posts('comunidade');
     $total_locais = isset($total_locais->publish) ? (int) $total_locais->publish : 0;
 
@@ -99,11 +92,31 @@ function cc_resumo_cadastros_shortcode() {
     }
 
     $cards = [
-        ['titulo' => 'Locais cadastrados', 'valor' => $total_locais, 'icone' => 'bi-geo-alt-fill'],
-        ['titulo' => 'Horários de missas', 'valor' => $contadores['missas'], 'icone' => 'bi-brightness-high-fill'],
-        ['titulo' => 'Locais de confissão', 'valor' => count($contadores['confissoes']), 'icone' => 'bi-person-fill'],
-        ['titulo' => 'Locais de adoração', 'valor' => count($contadores['adoracao_santissimo']), 'icone' => 'bi-stars'],
-        ['titulo' => 'Locais com obras caritativas', 'valor' => count($contadores['obras_caritativas']), 'icone' => 'bi-heart-fill'],
+        [
+            'titulo' => 'Locais cadastrados',
+            'valor' => $total_locais,
+            'icone' => CC_URL . 'assets/img/resumo-cadastros/locais-cadastrados.svg',
+        ],
+        [
+            'titulo' => 'Horários de missas',
+            'valor' => $contadores['missas'],
+            'icone' => CC_URL . 'assets/img/resumo-cadastros/horarios-missas.svg',
+        ],
+        [
+            'titulo' => 'Locais de confissão',
+            'valor' => count($contadores['confissoes']),
+            'icone' => CC_URL . 'assets/img/resumo-cadastros/locais-confissao.svg',
+        ],
+        [
+            'titulo' => 'Locais de adoração',
+            'valor' => count($contadores['adoracao_santissimo']),
+            'icone' => CC_URL . 'assets/img/resumo-cadastros/locais-adoracao.svg',
+        ],
+        [
+            'titulo' => 'Locais com obras caritativas',
+            'valor' => count($contadores['obras_caritativas']),
+            'icone' => CC_URL . 'assets/img/resumo-cadastros/obras-caritativas.svg',
+        ],
     ];
 
     ob_start();
@@ -111,7 +124,7 @@ function cc_resumo_cadastros_shortcode() {
     <div class="cc-resumo-cadastros-grid">
         <?php foreach ($cards as $card) : ?>
             <article class="cc-resumo-cadastro-card">
-                <i class="cc-resumo-cadastro-icone bi <?php echo esc_attr($card['icone']); ?>" aria-hidden="true"></i>
+                <img class="cc-resumo-cadastro-icone" src="<?php echo esc_url($card['icone']); ?>" alt="" aria-hidden="true" loading="lazy" decoding="async">
                 <strong class="cc-resumo-cadastro-valor"><?php echo esc_html(number_format_i18n((int) $card['valor'])); ?></strong>
                 <span class="cc-resumo-cadastro-titulo"><?php echo esc_html($card['titulo']); ?></span>
             </article>
@@ -121,7 +134,7 @@ function cc_resumo_cadastros_shortcode() {
         .cc-resumo-cadastros-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; }
         .cc-resumo-cadastro-card { border:1px solid #e2e8f0; border-radius:12px; padding:16px 14px; text-align:center; background:#fff; transition:box-shadow .2s ease, transform .2s ease; }
         .cc-resumo-cadastro-card:hover { box-shadow:0 12px 28px rgba(15,23,42,.14); transform:translateY(-1px); }
-        .cc-resumo-cadastro-icone { display:block; margin-bottom:8px; color:#0b1f52; font-size:2.15rem; line-height:1; }
+        .cc-resumo-cadastro-icone { display:block; width:48px; height:48px; object-fit:contain; margin:0 auto 8px; }
         .cc-resumo-cadastro-valor { display:block; font-size:2rem; line-height:1.1; color:#0f172a; }
         .cc-resumo-cadastro-titulo { display:block; margin-top:6px; color:#0b1f52; font-size:.92rem; font-weight:700; }
     </style>
