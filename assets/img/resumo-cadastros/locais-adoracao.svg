@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+  <title>Locais de adoração</title>
+  <g fill="none" stroke="#0b1f52" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="48" cy="42" r="20" stroke-width="6"/>
+    <circle cx="48" cy="42" r="9" stroke-width="5"/>
+    <path stroke-width="5" d="M48 9v10M48 65v10M15 42h10M71 42h10M25 19l7 7M64 58l7 7M71 19l-7 7M32 58l-7 7"/>
+    <path stroke-width="6" d="M48 62v18M32 87h32M40 80h16"/>
+  </g>
+  <path fill="#0b1f52" d="M45 14h6v10h-6z"/>
+</svg>
