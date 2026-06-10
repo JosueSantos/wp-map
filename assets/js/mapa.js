@@ -98,6 +98,79 @@ document.addEventListener("DOMContentLoaded", async function () {
         if (dias.length) return `Toda ${dias.map((dia) => diaMap[dia]).join(', ')}`;
         return `Todo ${diaSemana}`;
     }
+
+
+    function tituloPadraoAtividade(evento) {
+        const textos = [evento?.tipo, evento?.titulo_base, evento?.titulo, evento?.descricao]
+            .map((valor) => String(valor || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase());
+
+        if (textos.some((texto) => texto.includes('missa'))) return 'Missa';
+        if (textos.some((texto) => texto.includes('conf'))) return 'Confissão';
+        if (textos.some((texto) => texto.includes('ador') || texto.includes('santissimo'))) return 'Adoração ao Santíssimo';
+        if (textos.some((texto) => texto.includes('carit') || texto.includes('acao'))) return 'Ação Caritativa';
+
+        return String(evento?.titulo_base || evento?.titulo || 'Atividade');
+    }
+
+    function labelsRecorrenciaAtividade(evento) {
+        const frequencia = String(evento?.frequencia || 'semanal');
+        const dias = Array.isArray(evento?.dias)
+            ? evento.dias.map((dia) => String(dia)).filter((dia) => Object.prototype.hasOwnProperty.call(diaMap, dia))
+            : [];
+
+        if (frequencia === 'missa_dominical') return ['Domingo'];
+
+        if (frequencia === 'semanal') {
+            const diasSemana = dias.length
+                ? dias
+                : (Object.prototype.hasOwnProperty.call(diaMap, String(evento?.dia)) ? [String(evento.dia)] : []);
+
+            return diasSemana.length ? diasSemana.map((dia) => diaMap[dia]) : ['Dia não informado'];
+        }
+
+        return [descricaoRecorrencia(evento)];
+    }
+
+    function agruparAtividadesParaExibicao(eventos) {
+        const grupos = new Map();
+
+        eventos.forEach((evento) => {
+            const frequencia = String(evento?.frequencia || 'semanal');
+            const titulo = (frequencia === 'semanal' || frequencia === 'missa_dominical')
+                ? tituloPadraoAtividade(evento)
+                : String(evento?.titulo_base || evento?.titulo || tituloPadraoAtividade(evento));
+            const chave = `${titulo.toLowerCase()}|${frequencia}`;
+
+            if (!grupos.has(chave)) {
+                grupos.set(chave, {
+                    titulo,
+                    linhas: new Map(),
+                    observacoes: [],
+                });
+            }
+
+            const grupo = grupos.get(chave);
+            const horario = String(evento?.horario || '').trim() || 'Horário não informado';
+            labelsRecorrenciaAtividade(evento).forEach((label) => {
+                const recorrencia = String(label || '').trim() || 'Dia não informado';
+                if (!grupo.linhas.has(recorrencia)) grupo.linhas.set(recorrencia, []);
+                const horarios = grupo.linhas.get(recorrencia);
+                if (!horarios.includes(horario)) horarios.push(horario);
+            });
+
+            const observacao = String(evento?.observacao || '').trim();
+            if (observacao && !grupo.observacoes.includes(observacao)) grupo.observacoes.push(observacao);
+        });
+
+        return Array.from(grupos.values()).map((grupo) => ({
+            ...grupo,
+            linhas: Array.from(grupo.linhas.entries()).map(([recorrencia, horarios]) => ({
+                recorrencia,
+                horarios: horarios.sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric: true })),
+            })),
+        }));
+    }
+
     function isMobile() {
         return window.matchMedia("(max-width: 1023px)").matches;
     }
@@ -359,7 +432,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                     <a href="${escapeHtml(rede.href)}"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sky-700 hover:text-sky-900 hover:bg-slate-50 text-sm transition">
+                    class="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sky-700 hover:shadow-md text-sm transition">
                         <i class="bi ${icon} text-slate-600"></i>
                         <span>${escapeHtml(rede.display || rede.label)}</span>
                     </a>
@@ -473,16 +546,15 @@ document.addEventListener("DOMContentLoaded", async function () {
             : (Array.isArray(comunidade.eventos) ? comunidade.eventos : []);
 
         const eventosHtml = eventosOrdenados.length
-            ? eventosOrdenados.map((evento) => {
-                const recorrencia = descricaoRecorrencia(evento);
-                return `
+            ? agruparAtividadesParaExibicao(eventosOrdenados).map((grupo) => `
                     <li class="bg-slate-50 border border-slate-200 rounded-lg p-3">
-                        <p class="text-sm font-medium text-slate-900">${escapeHtml(evento.titulo_base || evento.titulo || "Atividade")}</p>
-                        <p class="text-xs text-slate-600">${escapeHtml(recorrencia)} • ${escapeHtml(evento.horario || "Horário não informado")}</p>
-                        ${evento.observacao ? `<br><small>${escapeHtml(evento.observacao)}</small>` : ""}
+                        <p class="text-sm font-medium text-slate-900">${escapeHtml(grupo.titulo || "Atividade")}</p>
+                        <div class="mt-1 space-y-1">
+                            ${grupo.linhas.map((linha) => `<p class="text-xs text-slate-600"><strong>${escapeHtml(linha.recorrencia)}:</strong> ${escapeHtml(linha.horarios.join(" - "))}</p>`).join("")}
+                        </div>
+                        ${grupo.observacoes.map((observacao) => `<p class="mt-1 text-xs text-slate-500">${escapeHtml(observacao)}</p>`).join("")}
                     </li>
-                `;
-            }).join("")
+                `).join("")
             : "<li class='bg-slate-50 border border-slate-200 rounded-lg p-3'><p class='text-xs text-slate-600'>Sem atividades para os filtros selecionados.</p></li>";
 
         const contatosFormatados = renderContatos(comunidade.contatos);

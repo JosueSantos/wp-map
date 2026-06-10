@@ -3,8 +3,8 @@
         <div class="cc-mapa-main">
             <div class="cc-mapa-topbar">
                 <div class="cc-filtros-rapidos" role="group" aria-label="Filtros rápidos">
-                    <button type="button" class="cc-btn-rapido" data-quick-filter="missa_hoje"><i class="bi bi-plus-circle"></i><span>Missa Hoje</span></button>
-                    <button type="button" class="cc-btn-rapido" data-quick-filter="confissao_hoje"><i class="bi bi-people-fill"></i><span>Confissão Hoje</span></button>
+                    <button type="button" class="cc-btn-rapido" data-quick-filter="missa_hoje"><i class="bi bi-brightness-high-fill"></i><span>Missa Hoje</span></button>
+                    <button type="button" class="cc-btn-rapido" data-quick-filter="confissao_hoje"><i class="bi bi-person-fill"></i><span>Confissão Hoje</span></button>
                     <button type="button" class="cc-btn-rapido" data-quick-filter="adoracao_semana"><i class="bi bi-stars"></i><span>Adoração ao Santíssimo</span></button>
                     <button type="button" class="cc-btn-rapido cc-btn-rapido--filtros" data-toggle-filtros><i class="bi bi-funnel-fill"></i><span>Outras Buscas</span></button>
                 </div>

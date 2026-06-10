@@ -98,6 +98,106 @@ $share_url = urlencode(get_permalink($comunidade_id));
 $share_text = urlencode('Confira este local: ' . $nome);
 
 
+
+function cc_evento_dia_nome_single($dia) {
+    $dia_map = ['0' => 'Domingo', '1' => 'Segunda', '2' => 'Terça', '3' => 'Quarta', '4' => 'Quinta', '5' => 'Sexta', '6' => 'Sábado'];
+    return $dia_map[(string) $dia] ?? '';
+}
+
+function cc_evento_titulo_agrupado_single($evento, $titulo_secao) {
+    $frequencia = (string) ($evento['frequencia'] ?? 'semanal');
+
+    if ($frequencia === 'semanal' || $frequencia === 'missa_dominical') {
+        return $titulo_secao;
+    }
+
+    return trim((string) ($evento['titulo'] ?? '')) ?: $titulo_secao;
+}
+
+function cc_evento_labels_recorrencia_single($evento) {
+    $frequencia = (string) ($evento['frequencia'] ?? 'semanal');
+    $dias = is_array($evento['dias'] ?? null) ? array_values(array_filter($evento['dias'], 'strlen')) : [];
+
+    if ($frequencia === 'missa_dominical') {
+        return ['Domingo'];
+    }
+
+    if ($frequencia === 'semanal') {
+        if (empty($dias) && isset($evento['dia']) && (string) $evento['dia'] !== '') {
+            $dias = [(string) $evento['dia']];
+        }
+
+        $labels = [];
+        foreach ($dias as $dia) {
+            $nome = cc_evento_dia_nome_single($dia);
+            if ($nome) $labels[] = $nome;
+        }
+
+        return $labels ?: ['Dia não informado'];
+    }
+
+    return [cc_formatar_recorrencia_single($evento)];
+}
+
+function cc_agrupar_eventos_exibicao_single($eventos, $titulo_secao) {
+    $grupos = [];
+
+    foreach ($eventos as $evento) {
+        $frequencia = (string) ($evento['frequencia'] ?? 'semanal');
+        $titulo = cc_evento_titulo_agrupado_single($evento, $titulo_secao);
+        $chave = sanitize_title($titulo) . '|' . sanitize_key($frequencia);
+
+        if (!isset($grupos[$chave])) {
+            $grupos[$chave] = [
+                'titulo' => $titulo,
+                'frequencia' => $frequencia,
+                'linhas' => [],
+                'tipos_evento' => [],
+                'descricoes' => [],
+                'observacoes' => [],
+                'tags_evento' => [],
+            ];
+        }
+
+        $horario = trim((string) ($evento['horario'] ?? '')) ?: 'Horário não informado';
+        foreach (cc_evento_labels_recorrencia_single($evento) as $label) {
+            $label = trim((string) $label) ?: 'Dia não informado';
+            if (!isset($grupos[$chave]['linhas'][$label])) {
+                $grupos[$chave]['linhas'][$label] = [];
+            }
+            if (!in_array($horario, $grupos[$chave]['linhas'][$label], true)) {
+                $grupos[$chave]['linhas'][$label][] = $horario;
+            }
+        }
+
+        foreach (['tipos_evento', 'tags_evento'] as $campo_lista) {
+            foreach ((array) ($evento[$campo_lista] ?? []) as $valor) {
+                $valor = trim((string) $valor);
+                if ($valor !== '' && !in_array($valor, $grupos[$chave][$campo_lista], true)) {
+                    $grupos[$chave][$campo_lista][] = $valor;
+                }
+            }
+        }
+
+        foreach (['descricao' => 'descricoes', 'observacao' => 'observacoes'] as $campo => $destino) {
+            $valor = trim((string) ($evento[$campo] ?? ''));
+            if ($valor !== '' && !in_array($valor, $grupos[$chave][$destino], true)) {
+                $grupos[$chave][$destino][] = $valor;
+            }
+        }
+    }
+
+    foreach ($grupos as &$grupo) {
+        foreach ($grupo['linhas'] as &$horarios) {
+            usort($horarios, 'strnatcasecmp');
+        }
+        unset($horarios);
+    }
+    unset($grupo);
+
+    return array_values($grupos);
+}
+
 function cc_contato_label($tipo) {
     $map = [
         'telefone' => 'Telefone',
@@ -257,15 +357,15 @@ get_header();
             <?php if (!empty($secoes_eventos_disponiveis)): ?>
                 <nav class="flex flex-wrap gap-2" aria-label="Atalhos das atividades">
                     <?php foreach ($secoes_eventos_disponiveis as $slug_secao => $titulo_secao): ?>
-                        <a href="#secao-<?php echo esc_attr($slug_secao); ?>" class="inline-flex items-center px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 transition text-sm"><?php echo esc_html($titulo_secao); ?></a>
+                        <a href="#secao-<?php echo esc_attr($slug_secao); ?>" class="inline-flex items-center px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 hover:shadow-md transition text-sm"><?php echo esc_html($titulo_secao); ?></a>
                     <?php endforeach; ?>
                 </nav>
             <?php endif; ?>
 
             <div class="flex flex-wrap gap-3 pt-2">
-                <a class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700" href="https://wa.me/?text=<?php echo $share_text . '%20' . $share_url; ?>" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp"></i> Compartilhar no WhatsApp</a>
-                <a class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700" href="https://www.facebook.com/sharer/sharer.php?u=<?php echo $share_url; ?>" target="_blank" rel="noopener noreferrer"><i class="bi bi-facebook"></i> Compartilhar no Facebook</a>
-                <a class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100" href="mailto:?subject=<?php echo rawurlencode($nome); ?>&body=<?php echo $share_text . '%20' . $share_url; ?>"><i class="bi bi-envelope"></i> Compartilhar por e-mail</a>
+                <a class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:shadow-lg" href="https://wa.me/?text=<?php echo $share_text . '%20' . $share_url; ?>" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp"></i> Compartilhar no WhatsApp</a>
+                <a class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:shadow-lg" href="https://www.facebook.com/sharer/sharer.php?u=<?php echo $share_url; ?>" target="_blank" rel="noopener noreferrer"><i class="bi bi-facebook"></i> Compartilhar no Facebook</a>
+                <a class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 hover:shadow-lg" href="mailto:?subject=<?php echo rawurlencode($nome); ?>&body=<?php echo $share_text . '%20' . $share_url; ?>"><i class="bi bi-envelope"></i> Compartilhar por e-mail</a>
             </div>
         </header>
 
@@ -311,21 +411,25 @@ get_header();
                             <section id="secao-<?php echo esc_attr($slug_secao); ?>" class="pt-2 space-y-3">
                                 <h3 class="text-xl font-semibold text-slate-900"><?php echo esc_html($titulo_secao); ?></h3>
                                 <ul class="space-y-3">
-                                    <?php foreach ($eventos_por_secao[$slug_secao] as $evento): ?>
+                                    <?php foreach (cc_agrupar_eventos_exibicao_single($eventos_por_secao[$slug_secao], $titulo_secao) as $grupo_evento): ?>
                                         <li class="border border-slate-200 bg-slate-50 rounded-xl p-4 space-y-2">
-                                            <h4 class="text-lg font-semibold text-slate-900"><?php echo esc_html($evento['titulo'] ?: 'Evento'); ?></h4>
-                                            <p class="text-sm text-slate-600"><?php echo esc_html(cc_formatar_recorrencia_single($evento)); ?> • <?php echo esc_html($evento['horario'] ?: 'Horário não informado'); ?></p>
-                                            <?php if (!empty($evento['tipos_evento'])): ?>
-                                                <p class="text-xs font-medium text-sky-700"><?php echo esc_html(implode(' • ', $evento['tipos_evento'])); ?></p>
+                                            <h4 class="text-lg font-semibold text-slate-900"><?php echo esc_html($grupo_evento['titulo'] ?: 'Evento'); ?></h4>
+                                            <div class="space-y-1">
+                                                <?php foreach ($grupo_evento['linhas'] as $recorrencia => $horarios): ?>
+                                                    <p class="text-sm text-slate-600"><strong><?php echo esc_html($recorrencia); ?>:</strong> <?php echo esc_html(implode(' - ', $horarios)); ?></p>
+                                                <?php endforeach; ?>
+                                            </div>
+                                            <?php if (!empty($grupo_evento['tipos_evento'])): ?>
+                                                <p class="text-xs font-medium text-sky-700"><?php echo esc_html(implode(' • ', $grupo_evento['tipos_evento'])); ?></p>
                                             <?php endif; ?>
-                                            <?php if (!empty($evento['descricao'])): ?>
-                                                <p class="text-slate-700"><?php echo esc_html($evento['descricao']); ?></p>
-                                            <?php endif; ?>
-                                            <?php if (!empty($evento['observacao'])): ?>
-                                                <p class="text-sm text-slate-500"><?php echo esc_html($evento['observacao']); ?></p>
-                                            <?php endif; ?>
-                                            <?php if (!empty($evento['tags_evento'])): ?>
-                                                <p class="text-xs text-slate-500">Tags: <?php echo esc_html(implode(', ', $evento['tags_evento'])); ?></p>
+                                            <?php foreach ($grupo_evento['descricoes'] as $descricao_evento): ?>
+                                                <p class="text-slate-700"><?php echo esc_html($descricao_evento); ?></p>
+                                            <?php endforeach; ?>
+                                            <?php foreach ($grupo_evento['observacoes'] as $observacao_evento): ?>
+                                                <p class="text-sm text-slate-500"><?php echo esc_html($observacao_evento); ?></p>
+                                            <?php endforeach; ?>
+                                            <?php if (!empty($grupo_evento['tags_evento'])): ?>
+                                                <p class="text-xs text-slate-500">Tags: <?php echo esc_html(implode(', ', $grupo_evento['tags_evento'])); ?></p>
                                             <?php endif; ?>
                                         </li>
                                     <?php endforeach; ?>

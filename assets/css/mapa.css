@@ -494,3 +494,19 @@
 
 #mapa-igrejas .cc-local-item { cursor:pointer; }
 #mapa-igrejas .cc-local-item.is-selected { border-color:#1d4ed8; box-shadow:0 0 0 2px rgba(29,78,216,.15); }
+
+#mapa-igrejas .cc-btn-rapido,
+#mapa-igrejas .cc-btn-detalhes,
+#mapa-igrejas .cc-view-btn,
+#mapa-igrejas .cc-lista-pagination button {
+    transition: box-shadow .2s ease, transform .2s ease, background-color .2s ease, border-color .2s ease;
+}
+
+#mapa-igrejas .cc-btn-rapido:hover,
+#mapa-igrejas .cc-btn-detalhes:hover,
+#mapa-igrejas .cc-view-btn:hover:not(.is-active),
+#mapa-igrejas .cc-lista-pagination button:hover:not(:disabled) {
+    box-shadow: 0 10px 24px rgba(15, 23, 42, .16);
+    transform: translateY(-1px);
+    text-decoration: none;
+}
