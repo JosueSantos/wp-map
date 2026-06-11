@@ -157,7 +157,7 @@ function cc_api_formatar_intervalo_horario($horario_inicio, $horario_fim = '') {
         return $horario_fim;
     }
 
-    return $horario_fim !== '' ? $horario_inicio . ' - ' . $horario_fim : $horario_inicio;
+    return $horario_fim !== '' ? $horario_inicio . ' às ' . $horario_fim : $horario_inicio;
 }
 
 function cc_api_obter_horario_inicio_evento($evento_id) {
