@@ -744,7 +744,7 @@ function mapaFormatarIntervaloHorario(inicio = '', fim = '') {
     const inicioLimpo = String(inicio || '').trim();
     const fimLimpo = String(fim || '').trim();
     if (!inicioLimpo) return fimLimpo;
-    return fimLimpo ? `${inicioLimpo} - ${fimLimpo}` : inicioLimpo;
+    return fimLimpo ? `${inicioLimpo} às ${fimLimpo}` : inicioLimpo;
 }
 
 function mapaInitAtividadesUI() {
