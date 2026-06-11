@@ -79,7 +79,7 @@ if (!function_exists('cc_resumo_tipo_evento_corresponde')) {
 
         if ($categoria === 'confissao') return strpos($slug, 'conf') !== false;
         if ($categoria === 'adoracao_santissimo') return strpos($slug, 'ador') !== false || strpos($slug, 'santissimo') !== false;
-        if ($categoria === 'acao_caritativa') return strpos($slug, 'carit') !== false || strpos($slug, 'acao') !== false;
+        if ($categoria === 'acao_caritativa') return $slug === 'acao-social';
 
         return false;
     }
@@ -106,11 +106,17 @@ function cc_resumo_cadastros_shortcode() {
     foreach ($eventos_ids as $evento_id) {
         $comunidade_id = (int) get_post_meta($evento_id, 'comunidade_id', true);
         $tem_comunidade_publicada = cc_resumo_comunidade_publicada_existe($comunidade_id);
+        if (!$tem_comunidade_publicada) continue;
+
         $tipos = wp_get_post_terms($evento_id, 'tipo_evento', ['fields' => 'slugs']);
+        $evento_contabilizado_como_missa = false;
+
         foreach ((array) $tipos as $slug) {
             $slug_normalizado = sanitize_title($slug);
-            if (strpos($slug_normalizado, 'missa') !== false) $contadores['missas']++;
-            if (!$tem_comunidade_publicada) continue;
+            if (!$evento_contabilizado_como_missa && strpos($slug_normalizado, 'missa') !== false) {
+                $contadores['missas']++;
+                $evento_contabilizado_como_missa = true;
+            }
             if (cc_resumo_tipo_evento_corresponde($slug_normalizado, 'confissao')) $contadores['confissoes'][$comunidade_id] = true;
             if (cc_resumo_tipo_evento_corresponde($slug_normalizado, 'adoracao_santissimo')) $contadores['adoracao_santissimo'][$comunidade_id] = true;
             if (cc_resumo_tipo_evento_corresponde($slug_normalizado, 'acao_caritativa')) $contadores['obras_caritativas'][$comunidade_id] = true;

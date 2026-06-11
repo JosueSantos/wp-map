@@ -100,7 +100,6 @@ function cc_obter_eventos_comunidade_ordenados($comunidade_id) {
 
     foreach ($eventos as $evento) {
         $dia_semana = get_post_meta($evento->ID, 'dia_semana', true);
-
         $lista_eventos[] = [
             'id' => $evento->ID,
             'titulo' => $evento->post_title,
@@ -114,6 +113,7 @@ function cc_obter_eventos_comunidade_ordenados($comunidade_id) {
             'numero_semana' => get_post_meta($evento->ID, 'numero_semana', true),
             'mes' => get_post_meta($evento->ID, 'mes', true),
             'tipos_evento' => wp_get_post_terms($evento->ID, 'tipo_evento', ['fields' => 'names']),
+            'tipos_evento_slugs' => wp_get_post_terms($evento->ID, 'tipo_evento', ['fields' => 'slugs']),
             'tags_evento' => wp_get_post_terms($evento->ID, 'tags_evento', ['fields' => 'names']),
         ];
     }

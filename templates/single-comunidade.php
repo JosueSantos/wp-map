@@ -288,6 +288,10 @@ function cc_evento_pertence_categoria($evento, $categoria) {
         $textos = array_merge($textos, $evento['tipos_evento']);
     }
 
+    if (!empty($evento['tipos_evento_slugs']) && is_array($evento['tipos_evento_slugs'])) {
+        $textos = array_merge($textos, $evento['tipos_evento_slugs']);
+    }
+
     if (!empty($evento['titulo'])) $textos[] = (string) $evento['titulo'];
     if (!empty($evento['descricao'])) $textos[] = (string) $evento['descricao'];
 
@@ -299,11 +303,30 @@ function cc_evento_pertence_categoria($evento, $categoria) {
     return false;
 }
 
+
+function cc_evento_tem_tipo_acao_social_single($evento) {
+    $tipos = [];
+
+    if (!empty($evento['tipos_evento']) && is_array($evento['tipos_evento'])) {
+        $tipos = array_merge($tipos, $evento['tipos_evento']);
+    }
+
+    if (!empty($evento['tipos_evento_slugs']) && is_array($evento['tipos_evento_slugs'])) {
+        $tipos = array_merge($tipos, $evento['tipos_evento_slugs']);
+    }
+
+    foreach ($tipos as $tipo) {
+        if (cc_normalizar_texto_evento($tipo) === 'acao-social') return true;
+    }
+
+    return false;
+}
+
 $eventos_por_secao = [
     'missa' => [],
     'confissao' => [],
     'adoracao-ao-santissimo' => [],
-    'acao-caritativa' => [],
+    'obras-caritativas' => [],
     'demais' => [],
 ];
 
@@ -323,8 +346,8 @@ foreach ($eventos as $evento) {
         continue;
     }
 
-    if (cc_evento_pertence_categoria($evento, 'acao-caritativa') || cc_evento_pertence_categoria($evento, 'caridade')) {
-        $eventos_por_secao['acao-caritativa'][] = $evento;
+    if (cc_evento_tem_tipo_acao_social_single($evento)) {
+        $eventos_por_secao['obras-caritativas'][] = $evento;
         continue;
     }
 
@@ -335,7 +358,7 @@ $secoes_eventos = [
     'missa' => 'Missa',
     'confissao' => 'Confissão',
     'adoracao-ao-santissimo' => 'Adoração ao Santíssimo',
-    'acao-caritativa' => 'Ação Caritativa',
+    'obras-caritativas' => 'Obras Caritativas',
     'demais' => 'Demais atividades',
 ];
 
