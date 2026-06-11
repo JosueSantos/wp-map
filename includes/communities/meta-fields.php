@@ -449,7 +449,7 @@ function cc_save_meta_evento($post_id) {
         $horario_fim = sanitize_text_field($_POST['cc_horario_fim'] ?? '');
         $horario_exibicao = $horario_inicio;
         if ($horario_inicio !== '' && $horario_fim !== '') {
-            $horario_exibicao = $horario_inicio . ' - ' . $horario_fim;
+            $horario_exibicao = $horario_inicio . ' às ' . $horario_fim;
         }
 
         update_post_meta($post_id, 'horario_inicio', $horario_inicio);
