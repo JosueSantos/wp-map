@@ -131,6 +131,18 @@ document.addEventListener("DOMContentLoaded", async function () {
         return [descricaoRecorrencia(evento)];
     }
 
+
+    function formatarIntervaloEvento(evento) {
+        const inicio = String(evento?.horario_inicio || '').trim();
+        const fim = String(evento?.horario_fim || '').trim();
+
+        if (inicio) {
+            return fim ? `${inicio} - ${fim}` : inicio;
+        }
+
+        return String(evento?.horario || '').trim() || 'Horário não informado';
+    }
+
     function agruparAtividadesParaExibicao(eventos) {
         const grupos = new Map();
 
@@ -150,7 +162,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             }
 
             const grupo = grupos.get(chave);
-            const horario = String(evento?.horario || '').trim() || 'Horário não informado';
+            const horario = formatarIntervaloEvento(evento);
             labelsRecorrenciaAtividade(evento).forEach((label) => {
                 const recorrencia = String(label || '').trim() || 'Dia não informado';
                 if (!grupo.linhas.has(recorrencia)) grupo.linhas.set(recorrencia, []);
@@ -743,8 +755,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         return copia.sort((a, b) => {
             const ea = Array.isArray(a?.eventos) ? a.eventos : [];
             const eb = Array.isArray(b?.eventos) ? b.eventos : [];
-            const ha = String(ea[0]?.horario || "99:99");
-            const hb = String(eb[0]?.horario || "99:99");
+            const ha = String(ea[0]?.horario_inicio || ea[0]?.horario || "99:99");
+            const hb = String(eb[0]?.horario_inicio || eb[0]?.horario || "99:99");
             return ha.localeCompare(hb);
         });
     }

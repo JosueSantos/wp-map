@@ -460,6 +460,9 @@
     cursor: pointer;
 }
 #mapa-igrejas .cc-btn-rapido.is-active { background:#1e3a8a; color:#fff; }
+#mapa-igrejas .cc-btn-rapido.is-active img {
+    filter: brightness(0) invert(1);
+}
 #mapa-igrejas .cc-btn-rapido img {
     width: 1.35rem;
     height: 1.35rem;

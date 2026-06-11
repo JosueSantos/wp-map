@@ -312,6 +312,11 @@ function cc_api_mapa_comunidades($request) {
             $dia_semana = get_post_meta($e->ID, 'dia_semana', true);
             $dias_semana = cc_evento_get_dias_semana($e->ID);
             $horario    = get_post_meta($e->ID, 'horario', true);
+            $horario_inicio = get_post_meta($e->ID, 'horario_inicio', true);
+            if ($horario_inicio === '') {
+                $horario_inicio = preg_match('/^(\d{1,2}:\d{2})/', (string) $horario, $match) ? $match[1] : $horario;
+            }
+            $horario_fim = get_post_meta($e->ID, 'horario_fim', true);
             $descricao  = get_post_meta($e->ID, 'descricao', true);
             $observacao = get_post_meta($e->ID, 'observacao', true);
 
@@ -345,6 +350,8 @@ function cc_api_mapa_comunidades($request) {
                 'numero_semana' => get_post_meta($e->ID, 'numero_semana', true),
                 'mes'       => get_post_meta($e->ID, 'mes', true),
                 'horario'   => $horario,
+                'horario_inicio' => $horario_inicio,
+                'horario_fim' => $horario_fim,
                 'descricao' => $descricao,
                 'observacao'=> $observacao,
                 'tags'      => array_values(array_unique($tags_evento)),
