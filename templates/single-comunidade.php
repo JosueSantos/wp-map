@@ -155,7 +155,7 @@ function cc_evento_horario_exibicao_single($evento) {
     $fim = trim((string) ($evento['horario_fim'] ?? ''));
 
     if ($inicio !== '') {
-        return $fim !== '' ? $inicio . ' - ' . $fim : $inicio;
+        return $fim !== '' ? $inicio . ' às ' . $fim : $inicio;
     }
 
     return trim((string) ($evento['horario'] ?? '')) ?: 'Horário não informado';
