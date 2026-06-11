@@ -151,8 +151,8 @@ function cc_handle_custom_auth_forms() {
                 $key = get_password_reset_key($user);
                 if (!is_wp_error($key)) {
                     $reset_url = add_query_arg([
-                        'login' => rawurlencode($user->user_login),
-                        'key' => rawurlencode($key),
+                        'login' => $user->user_login,
+                        'key' => $key,
                     ], cc_get_auth_page_url('redefinir-senha', '/redefinir-senha'));
 
                     $message = sprintf(
