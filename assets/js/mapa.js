@@ -137,7 +137,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         const fim = String(evento?.horario_fim || '').trim();
 
         if (inicio) {
-            return fim ? `${inicio} - ${fim}` : inicio;
+            return fim ? `${inicio} às ${fim}` : inicio;
         }
 
         return String(evento?.horario || '').trim() || 'Horário não informado';
