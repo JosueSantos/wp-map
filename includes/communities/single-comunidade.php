@@ -100,12 +100,20 @@ function cc_obter_eventos_comunidade_ordenados($comunidade_id) {
 
     foreach ($eventos as $evento) {
         $dia_semana = get_post_meta($evento->ID, 'dia_semana', true);
+        $horario = get_post_meta($evento->ID, 'horario', true);
+        $horario_inicio = get_post_meta($evento->ID, 'horario_inicio', true);
+        if ($horario_inicio === '') {
+            $horario_inicio = preg_match('/^(\d{1,2}:\d{2})/', (string) $horario, $match) ? $match[1] : $horario;
+        }
         $lista_eventos[] = [
             'id' => $evento->ID,
             'titulo' => $evento->post_title,
+            'titulo_base' => get_post_meta($evento->ID, 'titulo_base', true) ?: $evento->post_title,
             'descricao' => get_post_meta($evento->ID, 'descricao', true),
             'observacao' => get_post_meta($evento->ID, 'observacao', true),
-            'horario' => get_post_meta($evento->ID, 'horario', true),
+            'horario' => $horario,
+            'horario_inicio' => $horario_inicio,
+            'horario_fim' => get_post_meta($evento->ID, 'horario_fim', true),
             'frequencia' => get_post_meta($evento->ID, 'frequencia', true) ?: 'semanal',
             'dia' => $dia_semana,
             'dias' => function_exists('cc_evento_get_dias_semana') ? cc_evento_get_dias_semana($evento->ID) : [],

@@ -148,6 +148,28 @@ function cc_api_processar_upload_imagem($comunidade_id, $file_params) {
     return (int) $attachment_id;
 }
 
+
+function cc_api_formatar_intervalo_horario($horario_inicio, $horario_fim = '') {
+    $horario_inicio = sanitize_text_field((string) $horario_inicio);
+    $horario_fim = sanitize_text_field((string) $horario_fim);
+
+    if ($horario_inicio === '') {
+        return $horario_fim;
+    }
+
+    return $horario_fim !== '' ? $horario_inicio . ' - ' . $horario_fim : $horario_inicio;
+}
+
+function cc_api_obter_horario_inicio_evento($evento_id) {
+    $horario_inicio = get_post_meta($evento_id, 'horario_inicio', true);
+    if ($horario_inicio !== '') {
+        return $horario_inicio;
+    }
+
+    $horario = get_post_meta($evento_id, 'horario', true);
+    return preg_match('/^(\d{1,2}:\d{2})/', (string) $horario, $match) ? $match[1] : $horario;
+}
+
 function cc_api_obter_comunidade_para_edicao($request) {
     if (!is_user_logged_in()) {
         return new WP_Error('nao_autorizado', 'Login necessário', ['status' => 401]);
@@ -213,6 +235,8 @@ function cc_api_obter_comunidade_para_edicao($request) {
             'numero_semana' => get_post_meta($evento->ID, 'numero_semana', true),
             'mes' => get_post_meta($evento->ID, 'mes', true),
             'horario' => get_post_meta($evento->ID, 'horario', true),
+            'horario_inicio' => cc_api_obter_horario_inicio_evento($evento->ID),
+            'horario_fim' => get_post_meta($evento->ID, 'horario_fim', true),
             'descricao' => get_post_meta($evento->ID, 'descricao', true),
             'observacao' => $observacao,
             'tipo_evento_id' => $tipo_evento_id,
@@ -379,7 +403,17 @@ function cc_api_salvar_eventos($comunidade_id, $eventos = []) {
         $dia_mes = isset($evt['dia_mes']) && $evt['dia_mes'] !== '' ? max(1, min(31, (int) $evt['dia_mes'])) : '';
         $numero_semana = isset($evt['numero_semana']) && $evt['numero_semana'] !== '' ? max(1, min(5, (int) $evt['numero_semana'])) : '';
         $mes = isset($evt['mes']) && $evt['mes'] !== '' ? max(1, min(12, (int) $evt['mes'])) : '';
-        $horario = sanitize_text_field($evt['horario'] ?? '');
+        $horario_legado = sanitize_text_field($evt['horario'] ?? '');
+        $horario_inicio = sanitize_text_field($evt['horario_inicio'] ?? '');
+        $horario_fim = sanitize_text_field($evt['horario_fim'] ?? '');
+        if ($horario_inicio === '' && $horario_legado !== '') {
+            $partes_horario = preg_split('/\s+-\s+/', $horario_legado, 2);
+            $horario_inicio = sanitize_text_field($partes_horario[0] ?? '');
+            if ($horario_fim === '' && isset($partes_horario[1])) {
+                $horario_fim = sanitize_text_field($partes_horario[1]);
+            }
+        }
+        $horario = cc_api_formatar_intervalo_horario($horario_inicio, $horario_fim);
         $titulo_evento = cc_api_gerar_titulo_evento_dinamico($titulo_base, $frequencia, $dias_semana, $dia_mes, $numero_semana, $mes, $horario);
 
         update_post_meta($evento_id, 'comunidade_id', $comunidade_id);
@@ -410,6 +444,8 @@ function cc_api_salvar_eventos($comunidade_id, $eventos = []) {
         } else {
             update_post_meta($evento_id, 'mes', $mes);
         }
+        update_post_meta($evento_id, 'horario_inicio', $horario_inicio);
+        update_post_meta($evento_id, 'horario_fim', $horario_fim);
         update_post_meta($evento_id, 'horario', $horario);
         update_post_meta($evento_id, 'descricao', sanitize_textarea_field($evt['descricao'] ?? ''));
         update_post_meta($evento_id, 'observacao', sanitize_textarea_field($evt['observacao'] ?? ''));

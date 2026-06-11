@@ -117,6 +117,18 @@ function cc_register_meta() {
         'type' => 'string'
     ]);
 
+    register_post_meta('evento', 'horario_inicio', [
+        'show_in_rest' => true,
+        'single' => true,
+        'type' => 'string'
+    ]);
+
+    register_post_meta('evento', 'horario_fim', [
+        'show_in_rest' => true,
+        'single' => true,
+        'type' => 'string'
+    ]);
+
     register_post_meta('evento', 'descricao', [
         'show_in_rest' => true,
         'single' => true,
@@ -347,6 +359,11 @@ function cc_render_meta_box_evento($post) {
     $comunidade_id = get_post_meta($post->ID, 'comunidade_id', true);
     $dia = get_post_meta($post->ID, 'dia_semana', true);
     $hora = get_post_meta($post->ID, 'horario', true);
+    $hora_inicio = get_post_meta($post->ID, 'horario_inicio', true);
+    $hora_fim = get_post_meta($post->ID, 'horario_fim', true);
+    if ($hora_inicio === '') {
+        $hora_inicio = preg_match('/^(\d{1,2}:\d{2})/', (string) $hora, $match) ? $match[1] : $hora;
+    }
     $descricao = get_post_meta($post->ID, 'descricao', true);
     $observacao = get_post_meta($post->ID, 'observacao', true);
 
@@ -386,8 +403,14 @@ function cc_render_meta_box_evento($post) {
     </p>
 
     <p>
-        <label><strong>Horário:</strong></label><br>
-        <input type="time" name="cc_horario" value="<?php echo esc_attr($hora); ?>" style="width:100%">
+        <label><strong>Horário de início:</strong></label><br>
+        <input type="time" name="cc_horario_inicio" value="<?php echo esc_attr($hora_inicio); ?>" style="width:100%">
+    </p>
+
+    <p>
+        <label><strong>Horário de fim:</strong></label><br>
+        <input type="time" name="cc_horario_fim" value="<?php echo esc_attr($hora_fim); ?>" style="width:100%">
+        <small>Opcional. Quando informado, será exibido junto ao horário de início.</small>
     </p>
 
     <p>
@@ -421,8 +444,17 @@ function cc_save_meta_evento($post_id) {
         update_post_meta($post_id, 'dia_semana', sanitize_text_field($_POST['cc_dia_semana']));
     }
 
-    if (array_key_exists('cc_horario', $_POST)) {
-        update_post_meta($post_id, 'horario', sanitize_text_field($_POST['cc_horario']));
+    if (array_key_exists('cc_horario_inicio', $_POST) || array_key_exists('cc_horario_fim', $_POST) || array_key_exists('cc_horario', $_POST)) {
+        $horario_inicio = sanitize_text_field($_POST['cc_horario_inicio'] ?? ($_POST['cc_horario'] ?? ''));
+        $horario_fim = sanitize_text_field($_POST['cc_horario_fim'] ?? '');
+        $horario_exibicao = $horario_inicio;
+        if ($horario_inicio !== '' && $horario_fim !== '') {
+            $horario_exibicao = $horario_inicio . ' - ' . $horario_fim;
+        }
+
+        update_post_meta($post_id, 'horario_inicio', $horario_inicio);
+        update_post_meta($post_id, 'horario_fim', $horario_fim);
+        update_post_meta($post_id, 'horario', $horario_exibicao);
     }
 
     if (array_key_exists('cc_descricao', $_POST)) {

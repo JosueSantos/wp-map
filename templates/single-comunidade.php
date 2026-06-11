@@ -111,7 +111,7 @@ function cc_evento_titulo_agrupado_single($evento, $titulo_secao) {
         return $titulo_secao;
     }
 
-    return trim((string) ($evento['titulo'] ?? '')) ?: $titulo_secao;
+    return trim((string) ($evento['titulo_base'] ?? ($evento['titulo'] ?? ''))) ?: $titulo_secao;
 }
 
 function cc_evento_labels_recorrencia_single($evento) {
@@ -139,6 +139,32 @@ function cc_evento_labels_recorrencia_single($evento) {
     return [cc_formatar_recorrencia_single($evento)];
 }
 
+
+function cc_evento_frequencia_label_single($evento) {
+    $frequencia = (string) ($evento['frequencia'] ?? 'semanal');
+
+    if ($frequencia === 'missa_dominical') return 'Missa Dominical';
+    if ($frequencia === 'mensal') return 'Mensal';
+    if ($frequencia === 'numero_semana') return 'Por número da semana';
+    if ($frequencia === 'anual') return 'Anual';
+    return 'Semanal';
+}
+
+function cc_evento_horario_exibicao_single($evento) {
+    $inicio = trim((string) ($evento['horario_inicio'] ?? ''));
+    $fim = trim((string) ($evento['horario_fim'] ?? ''));
+
+    if ($inicio !== '') {
+        return $fim !== '' ? $inicio . ' - ' . $fim : $inicio;
+    }
+
+    return trim((string) ($evento['horario'] ?? '')) ?: 'Horário não informado';
+}
+
+function cc_evento_linha_chave_single($evento) {
+    return cc_evento_frequencia_label_single($evento) . '||' . implode(' / ', cc_evento_labels_recorrencia_single($evento));
+}
+
 function cc_agrupar_eventos_exibicao_single($eventos, $titulo_secao) {
     $grupos = [];
 
@@ -159,23 +185,18 @@ function cc_agrupar_eventos_exibicao_single($eventos, $titulo_secao) {
             ];
         }
 
-        $horario = trim((string) ($evento['horario'] ?? '')) ?: 'Horário não informado';
+        $horario = cc_evento_horario_exibicao_single($evento);
         $horario_exibicao = $horario . (!empty($evento['tags_evento']) ? '*' : '');
-        foreach (cc_evento_labels_recorrencia_single($evento) as $label) {
-            $label = trim((string) $label) ?: 'Dia não informado';
-            if (!isset($grupos[$chave]['linhas'][$label])) {
-                $grupos[$chave]['linhas'][$label] = [];
-            }
+        $label = cc_evento_linha_chave_single($evento);
+        if (!isset($grupos[$chave]['linhas'][$label])) {
+            $grupos[$chave]['linhas'][$label] = [];
+        }
 
-            $horario_sem_tag_index = array_search($horario, $grupos[$chave]['linhas'][$label], true);
-            if ($horario_sem_tag_index !== false && $horario_exibicao !== $horario) {
-                $grupos[$chave]['linhas'][$label][$horario_sem_tag_index] = $horario_exibicao;
-                continue;
-            }
-
-            if (!in_array($horario_exibicao, $grupos[$chave]['linhas'][$label], true) && !in_array($horario, $grupos[$chave]['linhas'][$label], true)) {
-                $grupos[$chave]['linhas'][$label][] = $horario_exibicao;
-            }
+        $horario_sem_tag_index = array_search($horario, $grupos[$chave]['linhas'][$label], true);
+        if ($horario_sem_tag_index !== false && $horario_exibicao !== $horario) {
+            $grupos[$chave]['linhas'][$label][$horario_sem_tag_index] = $horario_exibicao;
+        } elseif (!in_array($horario_exibicao, $grupos[$chave]['linhas'][$label], true) && !in_array($horario, $grupos[$chave]['linhas'][$label], true)) {
+            $grupos[$chave]['linhas'][$label][] = $horario_exibicao;
         }
 
         foreach (['tipos_evento', 'tags_evento'] as $campo_lista) {
@@ -447,7 +468,13 @@ get_header();
                                             <h4 class="text-lg font-semibold text-slate-900"><?php echo esc_html($grupo_evento['titulo'] ?: 'Evento'); ?></h4>
                                             <div class="space-y-1">
                                                 <?php foreach ($grupo_evento['linhas'] as $recorrencia => $horarios): ?>
-                                                    <p class="text-sm text-slate-600"><strong><?php echo esc_html($recorrencia); ?>:</strong> <?php echo esc_html(implode(' - ', $horarios)); ?></p>
+                                                    <?php [$frequencia_linha, $detalhe_linha] = array_pad(explode('||', (string) $recorrencia, 2), 2, ''); ?>
+                                                    <div class="text-sm text-slate-600">
+                                                        <p><strong><?php echo esc_html($frequencia_linha ?: $recorrencia); ?>:</strong> <?php echo esc_html(implode(' - ', $horarios)); ?></p>
+                                                        <?php if ($detalhe_linha !== '' && $detalhe_linha !== $frequencia_linha): ?>
+                                                            <p><?php echo esc_html($detalhe_linha); ?></p>
+                                                        <?php endif; ?>
+                                                    </div>
                                                 <?php endforeach; ?>
                                             </div>
                                             <?php if (!empty($grupo_evento['tipos_evento'])): ?>

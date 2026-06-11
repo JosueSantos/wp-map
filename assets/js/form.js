@@ -724,6 +724,29 @@ function mapaFrequenciaPadrao() {
     };
 }
 
+function mapaNormalizarHorarioItem(item = '') {
+    if (item && typeof item === 'object') {
+        return {
+            inicio: item.inicio || item.horario_inicio || item.horario || '',
+            fim: item.fim || item.horario_fim || ''
+        };
+    }
+
+    const texto = String(item || '').trim();
+    const partes = texto.split(/\s+-\s+/);
+    return {
+        inicio: partes[0] || '',
+        fim: partes[1] || ''
+    };
+}
+
+function mapaFormatarIntervaloHorario(inicio = '', fim = '') {
+    const inicioLimpo = String(inicio || '').trim();
+    const fimLimpo = String(fim || '').trim();
+    if (!inicioLimpo) return fimLimpo;
+    return fimLimpo ? `${inicioLimpo} - ${fimLimpo}` : inicioLimpo;
+}
+
 function mapaInitAtividadesUI() {
     const root = document.getElementById('atividades-root');
     if (!root) return;
@@ -1168,18 +1191,28 @@ function mapaBindHorarioEditors(row, freq) {
     const render = () => {
         lista.innerHTML = '';
         (freq.horarios || []).forEach((horario, hIdx) => {
+            const horarioNormalizado = mapaNormalizarHorarioItem(horario);
+            freq.horarios[hIdx] = horarioNormalizado;
             const item = document.createElement('div');
-            item.className = 'flex items-center gap-2';
+            item.className = 'grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end';
             item.innerHTML = `
-                <input type="time" class="horario-input flex-1 rounded border border-gray-300 px-2 py-1.5" value="${horario || ''}" aria-label="Horário">
+                <label class="text-xs font-semibold text-gray-700">Início
+                    <input type="time" class="horario-inicio-input mt-1 w-full rounded border border-gray-300 px-2 py-1.5" value="${horarioNormalizado.inicio || ''}" aria-label="Horário de início">
+                </label>
+                <label class="text-xs font-semibold text-gray-700">Fim <span class="font-normal text-gray-500">(opcional)</span>
+                    <input type="time" class="horario-fim-input mt-1 w-full rounded border border-gray-300 px-2 py-1.5" value="${horarioNormalizado.fim || ''}" aria-label="Horário de fim">
+                </label>
                 <button type="button" class="horario-remover px-2 py-1 text-xs rounded border border-red-200 text-red-700">Remover</button>
             `;
             item.querySelector('.horario-remover')?.addEventListener('click', () => {
                 freq.horarios.splice(hIdx, 1);
                 render();
             });
-            item.querySelector('.horario-input')?.addEventListener('change', (event) => {
-                freq.horarios[hIdx] = event.target.value || '';
+            item.querySelector('.horario-inicio-input')?.addEventListener('change', (event) => {
+                freq.horarios[hIdx].inicio = event.target.value || '';
+            });
+            item.querySelector('.horario-fim-input')?.addEventListener('change', (event) => {
+                freq.horarios[hIdx].fim = event.target.value || '';
             });
             lista.appendChild(item);
         });
@@ -1188,9 +1221,9 @@ function mapaBindHorarioEditors(row, freq) {
 
     botaoAdd.addEventListener('click', () => {
         freq.horarios = Array.isArray(freq.horarios) ? freq.horarios : [];
-        freq.horarios.push('');
+        freq.horarios.push({ inicio: '', fim: '' });
         render();
-        lista.querySelector('input:last-of-type')?.focus();
+        lista.querySelector('.horario-inicio-input:last-of-type')?.focus();
     });
 
     const freqTipo = row.querySelector('.freq-frequencia');
@@ -1272,9 +1305,15 @@ function mapaRenderCamposDinamicos(row, freq, grupo) {
 
 function mapaLerFrequenciaInline(row, freq, grupo) {
     const tipo = row.querySelector('.freq-frequencia')?.value || 'semanal';
-    const horarios = Array.from(row.querySelectorAll('.horario-input')).map((el) => el.value).filter(Boolean);
-    const duplicado = horarios.some((valor, idx) => horarios.indexOf(valor) !== idx);
+    const horarios = Array.from(row.querySelectorAll('.freq-horarios-lista > div')).map((item) => ({
+        inicio: item.querySelector('.horario-inicio-input')?.value || '',
+        fim: item.querySelector('.horario-fim-input')?.value || ''
+    })).filter((item) => item.inicio || item.fim);
+    const horariosInvalidos = horarios.some((item) => !item.inicio || (item.fim && item.fim < item.inicio));
+    const chavesHorarios = horarios.map((item) => mapaFormatarIntervaloHorario(item.inicio, item.fim));
+    const duplicado = chavesHorarios.some((valor, idx) => chavesHorarios.indexOf(valor) !== idx);
 
+    if (horariosInvalidos) return { ok: false, mensagem: 'Informe o horário de início e, quando houver fim, use um fim maior ou igual ao início.' };
     if (duplicado) return { ok: false, mensagem: 'Não é permitido cadastrar horários duplicados na mesma frequência.' };
     if (!horarios.length) return { ok: false, mensagem: 'Adicione ao menos um horário.' };
 
@@ -1328,10 +1367,18 @@ function mapaLerFrequenciaInline(row, freq, grupo) {
 }
 
 function mapaFormatarHorarioAmigavel(horario) {
-    if (!horario || !String(horario).includes(':')) return '';
-    const [hora, minuto] = String(horario).split(':');
-    if (minuto === '00') return `${parseInt(hora, 10)}h`;
-    return `${parseInt(hora, 10)}:${minuto}`;
+    const item = mapaNormalizarHorarioItem(horario);
+    const formatarHora = (valor) => {
+        if (!valor || !String(valor).includes(':')) return '';
+        const [hora, minuto] = String(valor).split(':');
+        if (minuto === '00') return `${parseInt(hora, 10)}h`;
+        return `${parseInt(hora, 10)}:${minuto}`;
+    };
+
+    const inicio = formatarHora(item.inicio);
+    const fim = formatarHora(item.fim);
+    if (!inicio) return fim;
+    return fim ? `${inicio} - ${fim}` : inicio;
 }
 
 function mapaJuntarListaPtBR(lista = []) {
@@ -1356,7 +1403,7 @@ function mapaAdicionarEventoPorGrupo(grupo, evento = null) {
             dia_mes: evento.dia_mes || '',
             numero_semana: evento.numero_semana || '',
             mes: evento.mes || '',
-            horarios: evento.horario ? [evento.horario] : []
+            horarios: (evento.horario_inicio || evento.horario_fim) ? [{ inicio: evento.horario_inicio || evento.horario || '', fim: evento.horario_fim || '' }] : (evento.horario ? [evento.horario] : [])
         };
 
         let atividadeExistente = wizardState.atividades.find((a) => a.titulo === (evento.titulo_base || evento.titulo || '') && a.grupo === (grupo || 'missa'));
@@ -1691,7 +1738,7 @@ function mapaEnviar() {
 
         (atividade.frequencias || []).forEach((ocorrencia) => {
             const eventoId = parseInt(ocorrencia.id, 10);
-            const horarios = Array.isArray(ocorrencia.horarios) ? ocorrencia.horarios.filter(Boolean) : [];
+            const horarios = Array.isArray(ocorrencia.horarios) ? ocorrencia.horarios.map(mapaNormalizarHorarioItem).filter((item) => item.inicio || item.fim) : [];
 
             horarios.forEach((horario) => {
                 eventos.push({
@@ -1703,7 +1750,9 @@ function mapaEnviar() {
                     dia_mes: ocorrencia.dia_mes || '',
                     numero_semana: ocorrencia.numero_semana || '',
                     mes: ocorrencia.mes || '',
-                    horario: horario || '',
+                    horario: mapaFormatarIntervaloHorario(horario.inicio, horario.fim),
+                    horario_inicio: horario.inicio || '',
+                    horario_fim: horario.fim || '',
                     descricao,
                     observacao,
                     tipo_evento: Number.isInteger(tipoEvento) ? tipoEvento : null,
