@@ -267,6 +267,19 @@
     color: #fff;
 }
 
+
+#mapa-igrejas .cc-btn-detalhes--whatsapp:hover {
+    background: #16a34a;
+    border-color: #16a34a;
+    color: #fff;
+}
+
+#mapa-igrejas .cc-btn-detalhes--facebook:hover {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+}
+
 #mapa-igrejas .cc-social-grid {
     display: grid;
     gap: .5rem;
@@ -447,6 +460,13 @@
     cursor: pointer;
 }
 #mapa-igrejas .cc-btn-rapido.is-active { background:#1e3a8a; color:#fff; }
+#mapa-igrejas .cc-btn-rapido img {
+    width: 1.35rem;
+    height: 1.35rem;
+    object-fit: contain;
+    flex: 0 0 auto;
+}
+
 #mapa-igrejas .cc-btn-rapido--filtros { border-color:#334155; color:#334155; }
 #mapa-igrejas .cc-view-toggle {
     position: absolute;
@@ -509,4 +529,24 @@
     box-shadow: 0 10px 24px rgba(15, 23, 42, .16);
     transform: translateY(-1px);
     text-decoration: none;
+}
+
+.cc-share-btn {
+    transition: box-shadow .2s ease, transform .2s ease;
+    text-decoration: none;
+}
+
+.cc-share-btn:hover {
+    transform: translateY(-1px);
+    text-decoration: none;
+}
+
+.cc-share-btn--whatsapp:hover {
+    background-color: #16a34a;
+    color: #fff;
+}
+
+.cc-share-btn--facebook:hover {
+    background-color: #2563eb;
+    color: #fff;
 }

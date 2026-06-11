@@ -160,13 +160,21 @@ function cc_agrupar_eventos_exibicao_single($eventos, $titulo_secao) {
         }
 
         $horario = trim((string) ($evento['horario'] ?? '')) ?: 'Horário não informado';
+        $horario_exibicao = $horario . (!empty($evento['tags_evento']) ? '*' : '');
         foreach (cc_evento_labels_recorrencia_single($evento) as $label) {
             $label = trim((string) $label) ?: 'Dia não informado';
             if (!isset($grupos[$chave]['linhas'][$label])) {
                 $grupos[$chave]['linhas'][$label] = [];
             }
-            if (!in_array($horario, $grupos[$chave]['linhas'][$label], true)) {
-                $grupos[$chave]['linhas'][$label][] = $horario;
+
+            $horario_sem_tag_index = array_search($horario, $grupos[$chave]['linhas'][$label], true);
+            if ($horario_sem_tag_index !== false && $horario_exibicao !== $horario) {
+                $grupos[$chave]['linhas'][$label][$horario_sem_tag_index] = $horario_exibicao;
+                continue;
+            }
+
+            if (!in_array($horario_exibicao, $grupos[$chave]['linhas'][$label], true) && !in_array($horario, $grupos[$chave]['linhas'][$label], true)) {
+                $grupos[$chave]['linhas'][$label][] = $horario_exibicao;
             }
         }
 
@@ -363,8 +371,8 @@ get_header();
             <?php endif; ?>
 
             <div class="flex flex-wrap gap-3 pt-2">
-                <a class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:shadow-lg" href="https://wa.me/?text=<?php echo $share_text . '%20' . $share_url; ?>" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp"></i> Compartilhar no WhatsApp</a>
-                <a class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:shadow-lg" href="https://www.facebook.com/sharer/sharer.php?u=<?php echo $share_url; ?>" target="_blank" rel="noopener noreferrer"><i class="bi bi-facebook"></i> Compartilhar no Facebook</a>
+                <a class="cc-share-btn cc-share-btn--whatsapp inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:text-white hover:shadow-lg" href="https://wa.me/?text=<?php echo $share_text . '%20' . $share_url; ?>" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp"></i> Compartilhar no WhatsApp</a>
+                <a class="cc-share-btn cc-share-btn--facebook inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:text-white hover:shadow-lg" href="https://www.facebook.com/sharer/sharer.php?u=<?php echo $share_url; ?>" target="_blank" rel="noopener noreferrer"><i class="bi bi-facebook"></i> Compartilhar no Facebook</a>
                 <a class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 hover:shadow-lg" href="mailto:?subject=<?php echo rawurlencode($nome); ?>&body=<?php echo $share_text . '%20' . $share_url; ?>"><i class="bi bi-envelope"></i> Compartilhar por e-mail</a>
             </div>
         </header>
@@ -429,7 +437,7 @@ get_header();
                                                 <p class="text-sm text-slate-500"><?php echo esc_html($observacao_evento); ?></p>
                                             <?php endforeach; ?>
                                             <?php if (!empty($grupo_evento['tags_evento'])): ?>
-                                                <p class="text-xs text-slate-500">Tags: <?php echo esc_html(implode(', ', $grupo_evento['tags_evento'])); ?></p>
+                                                <p class="text-xs text-slate-500">Tags: <?php echo esc_html(implode(', ', array_map(static function ($tag) { return $tag . '*'; }, $grupo_evento['tags_evento']))); ?></p>
                                             <?php endif; ?>
                                         </li>
                                     <?php endforeach; ?>

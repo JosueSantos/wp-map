@@ -66,6 +66,31 @@ add_action('rest_api_init', function () {
 
 });
 
+
+function cc_mapa_comunidade_publicada_existe($comunidade_id) {
+    $comunidade_id = (int) $comunidade_id;
+    if ($comunidade_id <= 0) return false;
+
+    $post = get_post($comunidade_id);
+    return $post && $post->post_type === 'comunidade' && $post->post_status === 'publish';
+}
+
+function cc_mapa_tipo_evento_corresponde($slug, $categoria) {
+    $slug = sanitize_title((string) $slug);
+    $categoria = sanitize_key((string) $categoria);
+
+    if ($categoria === 'missa') return strpos($slug, 'missa') !== false;
+    if ($categoria === 'confissao') return strpos($slug, 'conf') !== false;
+    if ($categoria === 'adoracao_santissimo') return strpos($slug, 'ador') !== false || strpos($slug, 'santissimo') !== false;
+    if ($categoria === 'acao_caritativa') return strpos($slug, 'carit') !== false || strpos($slug, 'acao') !== false;
+
+    return false;
+}
+
+function cc_mapa_evento_tem_comunidade_publicada($evento_id) {
+    return cc_mapa_comunidade_publicada_existe((int) get_post_meta((int) $evento_id, 'comunidade_id', true));
+}
+
 function cc_api_mapa_filtros() {
 
     $tipos_comunidade = get_terms([
@@ -91,7 +116,20 @@ function cc_api_mapa_filtros() {
         'fields' => 'ids',
     ]);
 
-    foreach ($eventos as $evento_id) {
+    $eventos_vinculados = array_values(array_filter(array_map('intval', $eventos), 'cc_mapa_evento_tem_comunidade_publicada'));
+    $tipo_evento_slugs_com_eventos = [];
+
+    foreach ($eventos_vinculados as $evento_id) {
+        $slugs_evento = wp_get_post_terms($evento_id, 'tipo_evento', ['fields' => 'slugs']);
+        foreach ((array) $slugs_evento as $slug_evento) {
+            $slug_evento = sanitize_title((string) $slug_evento);
+            if ($slug_evento !== '') {
+                $tipo_evento_slugs_com_eventos[$slug_evento] = true;
+            }
+        }
+    }
+
+    foreach ($eventos_vinculados as $evento_id) {
         $tags_evento = get_post_meta($evento_id, 'tags', true);
         $tags_evento = is_array($tags_evento) ? $tags_evento : array_filter(array_map('trim', explode(',', (string) $tags_evento)));
 
@@ -130,6 +168,10 @@ function cc_api_mapa_filtros() {
 
     $lista_tipos_evento = [];
     foreach ($tipos_evento as $termo) {
+        if (empty($tipo_evento_slugs_com_eventos[$termo->slug])) {
+            continue;
+        }
+
         $lista_tipos_evento[] = [
             'slug' => $termo->slug,
             'nome' => $termo->name,
@@ -213,6 +255,7 @@ function cc_api_mapa_comunidades($request) {
     $user_lng = $request->get_param('lng');
     $raio = floatval($request->get_param('raio'));
     $tag = sanitize_text_field($request->get_param('tag'));
+    $tag_especial_obra_caritativa = sanitize_key($tag) === 'com_alguma_obra_caritativa';
     $limite = intval($request->get_param('limite'));
     $proximidade = filter_var($request->get_param('proximidade'), FILTER_VALIDATE_BOOLEAN);
 
@@ -302,7 +345,8 @@ function cc_api_mapa_comunidades($request) {
                 'mes'       => get_post_meta($e->ID, 'mes', true),
                 'horario'   => $horario,
                 'descricao' => $descricao,
-                'observacao'=> $observacao
+                'observacao'=> $observacao,
+                'tags'      => array_values(array_unique($tags_evento)),
             ];
 
             $todas_atividades[] = $evento_item;
@@ -310,7 +354,11 @@ function cc_api_mapa_comunidades($request) {
             // FILTROS
             if ($periodo !== '' && !cc_evento_ocorre_no_periodo($e->ID, $periodo, $data_param)) continue;
             if ($tipo_evento && $tipo_evt !== $tipo_evento) continue;
-            if ($tag && !in_array(sanitize_title($tag), $tags_evento, true)) continue;
+            if ($tag_especial_obra_caritativa) {
+                if (!cc_mapa_tipo_evento_corresponde($tipo_evt, 'acao_caritativa')) continue;
+            } elseif ($tag && !in_array(sanitize_title($tag), $tags_evento, true)) {
+                continue;
+            }
 
             $lista_eventos[] = $evento_item;
         }

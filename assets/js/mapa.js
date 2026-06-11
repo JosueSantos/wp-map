@@ -999,7 +999,10 @@ document.addEventListener("DOMContentLoaded", async function () {
             });
 
             selectToOption("filtro-tag-missa", tagsPorTipo.missa || [], "Todas as características de missa");
-            selectToOption("filtro-tag-acao-caritativa", tagsPorTipo.acao_caritativa || [], "Todos os tipos de ações caritativas");
+            selectToOption("filtro-tag-acao-caritativa", [
+                { slug: "com_alguma_obra_caritativa", nome: "Com alguma Obra Caritativa" },
+                ...(tagsPorTipo.acao_caritativa || []),
+            ], "Todos os tipos de ações caritativas");
             sincronizarFiltroTag();
             sincronizarFiltrosEventoPeriodo();
         } catch (err) {
