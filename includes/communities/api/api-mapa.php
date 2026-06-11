@@ -82,7 +82,7 @@ function cc_mapa_tipo_evento_corresponde($slug, $categoria) {
     if ($categoria === 'missa') return strpos($slug, 'missa') !== false;
     if ($categoria === 'confissao') return strpos($slug, 'conf') !== false;
     if ($categoria === 'adoracao_santissimo') return strpos($slug, 'ador') !== false || strpos($slug, 'santissimo') !== false;
-    if ($categoria === 'acao_caritativa') return $slug === 'acao-social';
+    if ($categoria === 'acao_caritativa') return in_array($slug, ['acao-social', 'acao_social'], true);
 
     return false;
 }
@@ -358,7 +358,7 @@ function cc_api_mapa_comunidades($request) {
             if ($tag_especial_obra_caritativa) {
                 $tem_acao_social = false;
                 foreach ($tipo_evt_slugs as $tipo_evt_slug) {
-                    if (cc_mapa_tipo_evento_corresponde($tipo_evt_slug, 'acao_social')) {
+                    if (cc_mapa_tipo_evento_corresponde($tipo_evt_slug, 'acao_caritativa')) {
                         $tem_acao_social = true;
                         break;
                     }
