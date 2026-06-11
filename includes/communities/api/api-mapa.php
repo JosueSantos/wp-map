@@ -358,7 +358,7 @@ function cc_api_mapa_comunidades($request) {
             if ($tag_especial_obra_caritativa) {
                 $tem_acao_social = false;
                 foreach ($tipo_evt_slugs as $tipo_evt_slug) {
-                    if (cc_mapa_tipo_evento_corresponde($tipo_evt_slug, 'acao_caritativa')) {
+                    if (cc_mapa_tipo_evento_corresponde($tipo_evt_slug, 'acao_social')) {
                         $tem_acao_social = true;
                         break;
                     }
