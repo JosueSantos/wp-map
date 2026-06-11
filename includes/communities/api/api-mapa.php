@@ -82,7 +82,7 @@ function cc_mapa_tipo_evento_corresponde($slug, $categoria) {
     if ($categoria === 'missa') return strpos($slug, 'missa') !== false;
     if ($categoria === 'confissao') return strpos($slug, 'conf') !== false;
     if ($categoria === 'adoracao_santissimo') return strpos($slug, 'ador') !== false || strpos($slug, 'santissimo') !== false;
-    if ($categoria === 'acao_caritativa') return strpos($slug, 'carit') !== false || strpos($slug, 'acao') !== false;
+    if ($categoria === 'acao_caritativa') return $slug === 'acao-social';
 
     return false;
 }
@@ -315,8 +315,9 @@ function cc_api_mapa_comunidades($request) {
             $descricao  = get_post_meta($e->ID, 'descricao', true);
             $observacao = get_post_meta($e->ID, 'observacao', true);
 
-            $tipo_evt = wp_get_post_terms($e->ID, 'tipo_evento', ['fields'=>'slugs']);
-            $tipo_evt = $tipo_evt[0] ?? '';
+            $tipo_evt_slugs = wp_get_post_terms($e->ID, 'tipo_evento', ['fields'=>'slugs']);
+            $tipo_evt_slugs = is_array($tipo_evt_slugs) ? $tipo_evt_slugs : [];
+            $tipo_evt = $tipo_evt_slugs[0] ?? '';
 
             $tags_evento_meta = get_post_meta($e->ID, 'tags', true);
             $tags_evento_meta = is_array($tags_evento_meta) ? $tags_evento_meta : array_filter(array_map('trim', explode(',', (string)$tags_evento_meta)));
@@ -355,7 +356,14 @@ function cc_api_mapa_comunidades($request) {
             if ($periodo !== '' && !cc_evento_ocorre_no_periodo($e->ID, $periodo, $data_param)) continue;
             if ($tipo_evento && $tipo_evt !== $tipo_evento) continue;
             if ($tag_especial_obra_caritativa) {
-                if (!cc_mapa_tipo_evento_corresponde($tipo_evt, 'acao_caritativa')) continue;
+                $tem_acao_social = false;
+                foreach ($tipo_evt_slugs as $tipo_evt_slug) {
+                    if (cc_mapa_tipo_evento_corresponde($tipo_evt_slug, 'acao_caritativa')) {
+                        $tem_acao_social = true;
+                        break;
+                    }
+                }
+                if (!$tem_acao_social) continue;
             } elseif ($tag && !in_array(sanitize_title($tag), $tags_evento, true)) {
                 continue;
             }
