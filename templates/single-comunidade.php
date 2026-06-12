@@ -162,7 +162,34 @@ function cc_evento_horario_exibicao_single($evento) {
 }
 
 function cc_evento_linha_chave_single($evento) {
-    return cc_evento_frequencia_label_single($evento) . '||' . implode(' / ', cc_evento_labels_recorrencia_single($evento));
+    return implode(' / ', cc_evento_labels_recorrencia_single($evento));
+}
+
+function cc_evento_ordem_recorrencia_single($label) {
+    $ordem_dias = [
+        'Domingo' => 0,
+        'Segunda' => 1,
+        'Terça' => 2,
+        'Quarta' => 3,
+        'Quinta' => 4,
+        'Sexta' => 5,
+        'Sábado' => 6,
+    ];
+
+    $label = trim((string) $label);
+    return $ordem_dias[$label] ?? 99;
+}
+
+function cc_evento_chave_grupo_single($evento, $titulo) {
+    $frequencia = (string) ($evento['frequencia'] ?? 'semanal');
+    $frequencia_grupo = ($frequencia === 'missa_dominical') ? 'semanal' : $frequencia;
+    $partes = [sanitize_title($titulo), sanitize_key($frequencia_grupo)];
+
+    if ($frequencia_grupo !== 'semanal') {
+        $partes[] = sanitize_title(cc_evento_linha_chave_single($evento));
+    }
+
+    return implode('|', $partes);
 }
 
 function cc_agrupar_eventos_exibicao_single($eventos, $titulo_secao) {
@@ -171,12 +198,12 @@ function cc_agrupar_eventos_exibicao_single($eventos, $titulo_secao) {
     foreach ($eventos as $evento) {
         $frequencia = (string) ($evento['frequencia'] ?? 'semanal');
         $titulo = cc_evento_titulo_agrupado_single($evento, $titulo_secao);
-        $chave = sanitize_title($titulo) . '|' . sanitize_key($frequencia);
+        $chave = cc_evento_chave_grupo_single($evento, $titulo);
 
         if (!isset($grupos[$chave])) {
             $grupos[$chave] = [
                 'titulo' => $titulo,
-                'frequencia' => $frequencia,
+                'frequencia' => $frequencia === 'missa_dominical' ? 'semanal' : $frequencia,
                 'linhas' => [],
                 'tipos_evento' => [],
                 'descricoes' => [],
@@ -187,16 +214,20 @@ function cc_agrupar_eventos_exibicao_single($eventos, $titulo_secao) {
 
         $horario = cc_evento_horario_exibicao_single($evento);
         $horario_exibicao = $horario . (!empty($evento['tags_evento']) ? '*' : '');
-        $label = cc_evento_linha_chave_single($evento);
-        if (!isset($grupos[$chave]['linhas'][$label])) {
-            $grupos[$chave]['linhas'][$label] = [];
-        }
+        $labels = cc_evento_labels_recorrencia_single($evento);
 
-        $horario_sem_tag_index = array_search($horario, $grupos[$chave]['linhas'][$label], true);
-        if ($horario_sem_tag_index !== false && $horario_exibicao !== $horario) {
-            $grupos[$chave]['linhas'][$label][$horario_sem_tag_index] = $horario_exibicao;
-        } elseif (!in_array($horario_exibicao, $grupos[$chave]['linhas'][$label], true) && !in_array($horario, $grupos[$chave]['linhas'][$label], true)) {
-            $grupos[$chave]['linhas'][$label][] = $horario_exibicao;
+        foreach ($labels as $label) {
+            $label = trim((string) $label) ?: 'Dia não informado';
+            if (!isset($grupos[$chave]['linhas'][$label])) {
+                $grupos[$chave]['linhas'][$label] = [];
+            }
+
+            $horario_sem_tag_index = array_search($horario, $grupos[$chave]['linhas'][$label], true);
+            if ($horario_sem_tag_index !== false && $horario_exibicao !== $horario) {
+                $grupos[$chave]['linhas'][$label][$horario_sem_tag_index] = $horario_exibicao;
+            } elseif (!in_array($horario_exibicao, $grupos[$chave]['linhas'][$label], true) && !in_array($horario, $grupos[$chave]['linhas'][$label], true)) {
+                $grupos[$chave]['linhas'][$label][] = $horario_exibicao;
+            }
         }
 
         foreach (['tipos_evento', 'tags_evento'] as $campo_lista) {
@@ -221,6 +252,17 @@ function cc_agrupar_eventos_exibicao_single($eventos, $titulo_secao) {
             usort($horarios, 'strnatcasecmp');
         }
         unset($horarios);
+
+        uksort($grupo['linhas'], static function ($label_a, $label_b) {
+            $ordem_a = cc_evento_ordem_recorrencia_single($label_a);
+            $ordem_b = cc_evento_ordem_recorrencia_single($label_b);
+
+            if ($ordem_a === $ordem_b) {
+                return strnatcasecmp($label_a, $label_b);
+            }
+
+            return $ordem_a <=> $ordem_b;
+        });
     }
     unset($grupo);
 
@@ -468,13 +510,7 @@ get_header();
                                             <h4 class="text-lg font-semibold text-slate-900"><?php echo esc_html($grupo_evento['titulo'] ?: 'Evento'); ?></h4>
                                             <div class="space-y-1">
                                                 <?php foreach ($grupo_evento['linhas'] as $recorrencia => $horarios): ?>
-                                                    <?php [$frequencia_linha, $detalhe_linha] = array_pad(explode('||', (string) $recorrencia, 2), 2, ''); ?>
-                                                    <div class="text-sm text-slate-600">
-                                                        <p><strong><?php echo esc_html($frequencia_linha ?: $recorrencia); ?>:</strong> <?php echo esc_html(implode(' - ', $horarios)); ?></p>
-                                                        <?php if ($detalhe_linha !== '' && $detalhe_linha !== $frequencia_linha): ?>
-                                                            <p><?php echo esc_html($detalhe_linha); ?></p>
-                                                        <?php endif; ?>
-                                                    </div>
+                                                    <p class="text-sm text-slate-600"><strong><?php echo esc_html($recorrencia ?: 'Dia não informado'); ?>:</strong> <?php echo esc_html(implode(' - ', $horarios)); ?></p>
                                                 <?php endforeach; ?>
                                             </div>
                                             <?php if (!empty($grupo_evento['tipos_evento'])): ?>
