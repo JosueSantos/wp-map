@@ -143,6 +143,24 @@ document.addEventListener("DOMContentLoaded", async function () {
         return String(evento?.horario || '').trim() || 'Horário não informado';
     }
 
+    function ordemTipoAtividade(evento) {
+        const texto = [evento?.tipo, evento?.titulo_base, evento?.titulo, evento?.descricao].map((v) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()).join(' ');
+        if (texto.includes('missa')) return 0;
+        if (texto.includes('conf')) return 1;
+        if (texto.includes('ador') || texto.includes('santissimo')) return 2;
+        if (texto.includes('carit') || texto.includes('acao')) return 3;
+        return 9;
+    }
+
+    function ordemRecorrencia(label) {
+        const ordem = { 'Domingo': 0, 'Segunda': 1, 'Terça': 2, 'Quarta': 3, 'Quinta': 4, 'Sexta': 5, 'Sábado': 6, 'Missa Dominical': 0 };
+        return Object.prototype.hasOwnProperty.call(ordem, label) ? ordem[label] : 99;
+    }
+
+    function marcadorTags(tags) {
+        return Array.isArray(tags) && tags.length ? '*'.repeat(tags.length) : '';
+    }
+
     function agruparAtividadesParaExibicao(eventos) {
         const grupos = new Map();
 
@@ -158,11 +176,15 @@ document.addEventListener("DOMContentLoaded", async function () {
                     titulo,
                     linhas: new Map(),
                     observacoes: [],
+                    ordem: ordemTipoAtividade(evento),
+                    tags: [],
                 });
             }
 
             const grupo = grupos.get(chave);
-            const horario = formatarIntervaloEvento(evento);
+            const tags = Array.isArray(evento?.tags) ? evento.tags : [];
+            tags.forEach((tag) => { if (tag && !grupo.tags.includes(tag)) grupo.tags.push(tag); });
+            const horario = `${formatarIntervaloEvento(evento)}${marcadorTags(tags)}`;
             labelsRecorrenciaAtividade(evento).forEach((label) => {
                 const recorrencia = String(label || '').trim() || 'Dia não informado';
                 if (!grupo.linhas.has(recorrencia)) grupo.linhas.set(recorrencia, []);
@@ -176,11 +198,11 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         return Array.from(grupos.values()).map((grupo) => ({
             ...grupo,
-            linhas: Array.from(grupo.linhas.entries()).map(([recorrencia, horarios]) => ({
+            linhas: Array.from(grupo.linhas.entries()).sort(([a], [b]) => ordemRecorrencia(a) - ordemRecorrencia(b) || a.localeCompare(b, 'pt-BR')).map(([recorrencia, horarios]) => ({
                 recorrencia,
                 horarios: horarios.sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric: true })),
             })),
-        }));
+        })).sort((a, b) => (a.ordem - b.ordem) || String(a.titulo).localeCompare(String(b.titulo), 'pt-BR'));
     }
 
     function isMobile() {

@@ -95,6 +95,7 @@ if (!empty($comunidades_atreladas)) {
 }
 
 $share_url = urlencode(get_permalink($comunidade_id));
+$correcao_url = function_exists('cc_get_editar_comunidade_url') ? cc_get_editar_comunidade_url($comunidade_id) : add_query_arg('editar_comunidade', $comunidade_id, home_url('/cadastro-comunidade/'));
 $share_text = urlencode('Confira este local: ' . $nome);
 
 
@@ -177,7 +178,8 @@ function cc_evento_ordem_recorrencia_single($label) {
     ];
 
     $label = trim((string) $label);
-    return $ordem_dias[$label] ?? 99;
+    $label_normalizado = preg_replace('/^Toda\s+/i', '', $label);
+    return $ordem_dias[$label_normalizado] ?? ($ordem_dias[$label] ?? 99);
 }
 
 function cc_evento_chave_grupo_single($evento, $titulo) {
@@ -213,7 +215,8 @@ function cc_agrupar_eventos_exibicao_single($eventos, $titulo_secao) {
         }
 
         $horario = cc_evento_horario_exibicao_single($evento);
-        $horario_exibicao = $horario . (!empty($evento['tags_evento']) ? '*' : '');
+        $tags_do_horario = array_values(array_filter((array) ($evento['tags_evento'] ?? [])));
+        $horario_exibicao = $horario . (!empty($tags_do_horario) ? str_repeat('*', count($tags_do_horario)) : '');
         $labels = cc_evento_labels_recorrencia_single($evento);
 
         foreach ($labels as $label) {
@@ -523,7 +526,7 @@ get_header();
                                                 <p class="text-sm text-slate-500"><?php echo esc_html($observacao_evento); ?></p>
                                             <?php endforeach; ?>
                                             <?php if (!empty($grupo_evento['tags_evento'])): ?>
-                                                <p class="text-xs text-slate-500">Tags: <?php echo esc_html(implode(', ', array_map(static function ($tag) { return $tag . '*'; }, $grupo_evento['tags_evento']))); ?></p>
+                                                <p class="text-xs text-slate-500">Tags: <?php echo esc_html(implode(', ', array_map(static function ($tag, $idx) { return str_repeat('*', $idx + 1) . ' ' . $tag; }, $grupo_evento['tags_evento'], array_keys($grupo_evento['tags_evento'])))); ?></p>
                                             <?php endif; ?>
                                         </li>
                                     <?php endforeach; ?>
@@ -531,6 +534,10 @@ get_header();
                             </section>
                         <?php endforeach; ?>
                     <?php endif; ?>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                    <a href="<?php echo esc_url($correcao_url); ?>" class="text-sky-700 hover:text-sky-900 hover:underline font-medium">Existe alguma informação incorreta ou desatualizada?</a>
                 </div>
             </div>
 
