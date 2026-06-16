@@ -55,8 +55,7 @@ add_action('rest_api_init', function () {
             foreach ($query->posts as $post) {
                 $resultado[] = [
                     'id' => $post->ID,
-                    'nome' => $post->post_title,
-                    'endereco' => get_post_meta($post->ID, 'endereco', true),
+                    'nome' => $post->post_title
                 ];
             }
 
@@ -328,7 +327,7 @@ function cc_api_mapa_comunidades($request) {
             $tags_evento_meta = get_post_meta($e->ID, 'tags', true);
             $tags_evento_meta = is_array($tags_evento_meta) ? $tags_evento_meta : array_filter(array_map('trim', explode(',', (string)$tags_evento_meta)));
 
-            $tags_evento_taxonomia = wp_get_post_terms($e->ID, 'tags_evento', ['fields' => 'names']);
+            $tags_evento_taxonomia = wp_get_post_terms($e->ID, 'tags_evento', ['fields' => 'slugs']);
             $tags_evento_taxonomia = is_array($tags_evento_taxonomia) ? $tags_evento_taxonomia : [];
 
             $tags_evento = [];
