@@ -7,7 +7,6 @@ let comunidadeEditandoId = null;
 let eventosRemovidos = [];
 let mapaDefinirCoordenadas = null;
 let tagsEventoCache = [];
-let mapaDuplicidadeConfirmada = false;
 const FREQUENCIA_MISSA_DOMINICAL = 'missa_dominical';
 
 document.addEventListener('DOMContentLoaded', async function () {
@@ -300,10 +299,10 @@ document.getElementById('busca-paroquia').addEventListener('input', async functi
 
         const item = document.createElement('div');
         item.className = "p-2 hover:bg-gray-100 cursor-pointer";
-        item.textContent = [c.nome, c.endereco].filter(Boolean).join(' - ');
+        item.textContent = c.nome;
 
         item.onclick = () => {
-            document.getElementById('busca-paroquia').value = [c.nome, c.endereco].filter(Boolean).join(' - ');
+            document.getElementById('busca-paroquia').value = c.nome;
             document.getElementById('parent_paroquia').value = c.id;
             resultadoBox.classList.add('hidden');
         };
@@ -852,34 +851,15 @@ function mapaTrocarStepWizard(delta) {
     mapaRenderWizard();
 }
 
-function mapaExibirErroWizard(msg) {
-    const feedback = document.getElementById('wizard-feedback');
-    const footer = document.querySelector('#atividade-wizard-modal .border-t');
-    if (feedback) {
-        feedback.className = 'rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700';
-        feedback.textContent = msg;
-        feedback.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-    let footerErro = document.getElementById('wizard-footer-feedback');
-    if (footer && !footerErro) {
-        footerErro = document.createElement('p');
-        footerErro.id = 'wizard-footer-feedback';
-        footerErro.className = 'w-full text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2';
-        footer.prepend(footerErro);
-    }
-    if (footerErro) footerErro.textContent = msg;
-}
-
-function mapaLimparErroWizard() {
-    const feedback = document.getElementById('wizard-feedback');
-    if (feedback) feedback.className = 'hidden rounded-lg border px-3 py-2 text-sm';
-    document.getElementById('wizard-footer-feedback')?.remove();
-}
-
 function mapaValidarStepAtual() {
     if (!wizardState.draft) return false;
 
-    const erro = (msg) => mapaExibirErroWizard(msg);
+    const feedback = document.getElementById('wizard-feedback');
+    const erro = (msg) => {
+        if (!feedback) return;
+        feedback.className = 'rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700';
+        feedback.textContent = msg;
+    };
 
     if (wizardState.currentStep === 1) {
         if (wizardState.draft.grupo === 'acao_caritativa' && !String(wizardState.draft.titulo || '').trim()) {
@@ -899,27 +879,12 @@ function mapaValidarStepAtual() {
         return false;
     }
 
-    mapaLimparErroWizard();
+    if (feedback) feedback.className = 'hidden';
     return true;
 }
 
 function mapaSalvarWizardAtividade() {
-    const freqAbertaInvalida = wizardState.currentStep === 2 && Array.from(document.querySelectorAll('.freq-inline-wrap:not(.hidden)')).some((wrap) => {
-        const row = wrap.closest('.rounded-lg');
-        const idx = Array.from(document.querySelectorAll('#wizard-frequencias-lista > .rounded-lg')).indexOf(row);
-        const freq = wizardState.draft?.frequencias?.[idx];
-        if (!row || !freq) return false;
-        const atualizado = mapaLerFrequenciaInline(row, freq, wizardState.draft.grupo || 'missa');
-        if (!atualizado.ok) {
-            const erro = row.querySelector('.freq-erro');
-            if (erro) { erro.textContent = atualizado.mensagem; erro.classList.remove('hidden'); }
-            mapaExibirErroWizard(atualizado.mensagem);
-            return true;
-        }
-        freq.__editing = false;
-        return false;
-    });
-    if (freqAbertaInvalida || !mapaValidarStepAtual()) return;
+    if (!mapaValidarStepAtual()) return;
 
     const btnSalvar = document.getElementById('wizard-salvar-btn');
     if (btnSalvar) {
@@ -950,15 +915,8 @@ function mapaSalvarWizardAtividade() {
     }
 }
 
-function mapaCompararFrequenciasPorDia(a, b) {
-    const diaA = a.frequencia === FREQUENCIA_MISSA_DOMINICAL ? 0 : (Array.isArray(a.dias) && a.dias.length ? parseInt(a.dias[0], 10) : 99);
-    const diaB = b.frequencia === FREQUENCIA_MISSA_DOMINICAL ? 0 : (Array.isArray(b.dias) && b.dias.length ? parseInt(b.dias[0], 10) : 99);
-    if (diaA !== diaB) return diaA - diaB;
-    return mapaFormatarListaHorarios(a.horarios || []).localeCompare(mapaFormatarListaHorarios(b.horarios || ''), 'pt-BR', { numeric: true });
-}
-
 function mapaResumoAtividade(atividade) {
-    return [...(atividade.frequencias || [])].sort(mapaCompararFrequenciasPorDia).map((freq) => {
+    return (atividade.frequencias || []).map((freq) => {
         const descricao = mapaGerarDescricaoFrequencia(freq.frequencia, freq.dias, freq.dia_mes, freq.numero_semana, freq.mes);
         const horarios = mapaFormatarListaHorarios(freq.horarios || []);
         return `${descricao}${horarios ? ` às ${horarios}` : ''}`;
@@ -1099,10 +1057,9 @@ function renderStepDadosAtividade() {
 
     if (tags) {
         tags.dataset.tipoEventoId = String(wizardState.draft.tipo_evento || '');
-        const tagsSelecionadas = Array.isArray(wizardState.draft.tags_evento) ? wizardState.draft.tags_evento.map((id) => parseInt(id, 10)) : [];
         mapaCarregarTagsEvento(tags).then(() => {
             Array.from(tags.options).forEach((option) => {
-                option.selected = tagsSelecionadas.includes(parseInt(option.value, 10));
+                option.selected = (wizardState.draft.tags_evento || []).includes(parseInt(option.value, 10));
             });
         });
         tags.addEventListener('change', () => {
@@ -1113,7 +1070,6 @@ function renderStepDadosAtividade() {
             if (!option || option.tagName !== 'OPTION') return;
             event.preventDefault();
             option.selected = !option.selected;
-            tags.dispatchEvent(new Event('change'));
         });
     }
 }
@@ -1134,7 +1090,6 @@ function renderFrequencias() {
         nova.__editing = true;
         wizardState.draft.frequencias.push(nova);
         mapaRenderWizard();
-        setTimeout(() => document.querySelector('#wizard-frequencias-lista > .rounded-lg:last-child .freq-frequencia')?.focus(), 30);
     });
 
     const lista = step.querySelector('#wizard-frequencias-lista');
@@ -1268,7 +1223,7 @@ function mapaBindHorarioEditors(row, freq) {
         freq.horarios = Array.isArray(freq.horarios) ? freq.horarios : [];
         freq.horarios.push({ inicio: '', fim: '' });
         render();
-        lista.querySelector('.freq-horarios-lista > div:last-child .horario-inicio-input')?.focus();
+        lista.querySelector('.horario-inicio-input:last-of-type')?.focus();
     });
 
     const freqTipo = row.querySelector('.freq-frequencia');
@@ -1740,81 +1695,7 @@ function mapaExibirModalSucesso(resp) {
     document.body.style.overflow = 'hidden';
 }
 
-function mapaTextoComparacaoDuplicidade(texto = '') {
-    return String(texto || '')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .replace(/\b(paroquia|capela|igreja|comunidade|matriz|sao|santa|nossa senhora)\b/g, ' ')
-        .replace(/[^a-z0-9\s]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-}
-
-function mapaSimilaridadeTexto(a = '', b = '') {
-    const textoA = mapaTextoComparacaoDuplicidade(a);
-    const textoB = mapaTextoComparacaoDuplicidade(b);
-    if (!textoA || !textoB) return 0;
-    const tokensA = new Set(textoA.split(' ').filter(Boolean));
-    const tokensB = new Set(textoB.split(' ').filter(Boolean));
-    const intersecao = [...tokensA].filter((token) => tokensB.has(token)).length;
-    const uniao = new Set([...tokensA, ...tokensB]).size || 1;
-    return intersecao / uniao;
-}
-
-function mapaDistanciaMetros(lat1, lng1, lat2, lng2) {
-    const raioTerra = 6371000;
-    const rad = Math.PI / 180;
-    const dLat = (lat2 - lat1) * rad;
-    const dLng = (lng2 - lng1) * rad;
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLng / 2) ** 2;
-    return 2 * raioTerra * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-async function mapaConfirmarPossiveisDuplicados() {
-    if (modoEdicao || mapaDuplicidadeConfirmada) return true;
-
-    const lat = parseFloat(document.getElementById('latitude')?.value || '');
-    const lng = parseFloat(document.getElementById('longitude')?.value || '');
-    const nome = document.getElementById('nome')?.value || '';
-    const endereco = document.getElementById('endereco')?.value || '';
-    if (!Number.isFinite(lat) || !Number.isFinite(lng) || !nome.trim()) return true;
-
-    try {
-        const response = await fetch('/wp-json/mapa/v1/comunidades?limite=500', { credentials: 'same-origin' });
-        if (!response.ok) return true;
-        const locais = await response.json();
-        if (!Array.isArray(locais)) return true;
-
-        const candidatos = locais.map((local) => {
-            const distancia = mapaDistanciaMetros(lat, lng, parseFloat(local.latitude), parseFloat(local.longitude));
-            const nomeScore = mapaSimilaridadeTexto(nome, local.nome);
-            const enderecoScore = mapaSimilaridadeTexto(endereco, local.endereco);
-            const proximidadeScore = Math.max(0, 1 - (distancia / 500));
-            const score = (nomeScore * 0.45) + (enderecoScore * 0.35) + (proximidadeScore * 0.20);
-            return { ...local, distancia, score, nomeScore, enderecoScore };
-        }).filter((local) => local.distancia <= 500 && local.score >= 0.45 && (local.nomeScore >= 0.35 || local.enderecoScore >= 0.35))
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 3);
-
-        if (!candidatos.length) return true;
-
-        const resumo = candidatos.map((local, idx) => `${idx + 1}. ${local.nome || 'Local sem nome'} - ${local.endereco || 'sem endereço'} (${Math.round(local.distancia)}m)`).join('\n');
-        const continuar = window.confirm(`Encontramos possíveis locais duplicados em até 500m:\n\n${resumo}\n\nVerifique o local existente em outra aba ou edite-o se for o caso. Deseja cadastrar mesmo assim?`);
-        if (continuar) {
-            mapaDuplicidadeConfirmada = true;
-            return true;
-        }
-
-        mapaMostrarFeedback('Cadastro pausado: revise os possíveis duplicados antes de cadastrar este local.', 'erro');
-        return false;
-    } catch (error) {
-        console.warn('Não foi possível verificar possíveis duplicidades.', error);
-        return true;
-    }
-}
-
-async function mapaEnviar() {
+function mapaEnviar() {
 
     if (!MAPA_API?.is_logged_in) {
         mapaMostrarFeedback('Faça login para enviar o formulário.', 'erro');
@@ -1822,8 +1703,6 @@ async function mapaEnviar() {
     }
 
     if (!mapaValidarRegraCapela()) return;
-
-    if (!(await mapaConfirmarPossiveisDuplicados())) return;
 
     const contatos = [];
     let contatoInvalido = null;
