@@ -299,10 +299,10 @@ document.getElementById('busca-paroquia').addEventListener('input', async functi
 
         const item = document.createElement('div');
         item.className = "p-2 hover:bg-gray-100 cursor-pointer";
-        item.textContent = c.nome;
+        item.textContent = [c.nome, c.endereco].filter(Boolean).join(' - ');
 
         item.onclick = () => {
-            document.getElementById('busca-paroquia').value = c.nome;
+            document.getElementById('busca-paroquia').value = [c.nome, c.endereco].filter(Boolean).join(' - ');
             document.getElementById('parent_paroquia').value = c.id;
             resultadoBox.classList.add('hidden');
         };
@@ -915,8 +915,15 @@ function mapaSalvarWizardAtividade() {
     }
 }
 
+function mapaCompararFrequenciasPorDia(a, b) {
+    const diaA = a.frequencia === FREQUENCIA_MISSA_DOMINICAL ? 0 : (Array.isArray(a.dias) && a.dias.length ? parseInt(a.dias[0], 10) : 99);
+    const diaB = b.frequencia === FREQUENCIA_MISSA_DOMINICAL ? 0 : (Array.isArray(b.dias) && b.dias.length ? parseInt(b.dias[0], 10) : 99);
+    if (diaA !== diaB) return diaA - diaB;
+    return mapaFormatarListaHorarios(a.horarios || []).localeCompare(mapaFormatarListaHorarios(b.horarios || ''), 'pt-BR', { numeric: true });
+}
+
 function mapaResumoAtividade(atividade) {
-    return (atividade.frequencias || []).map((freq) => {
+    return [...(atividade.frequencias || [])].sort(mapaCompararFrequenciasPorDia).map((freq) => {
         const descricao = mapaGerarDescricaoFrequencia(freq.frequencia, freq.dias, freq.dia_mes, freq.numero_semana, freq.mes);
         const horarios = mapaFormatarListaHorarios(freq.horarios || []);
         return `${descricao}${horarios ? ` às ${horarios}` : ''}`;
@@ -1057,9 +1064,10 @@ function renderStepDadosAtividade() {
 
     if (tags) {
         tags.dataset.tipoEventoId = String(wizardState.draft.tipo_evento || '');
+        const tagsSelecionadas = Array.isArray(wizardState.draft.tags_evento) ? wizardState.draft.tags_evento.map((id) => parseInt(id, 10)) : [];
         mapaCarregarTagsEvento(tags).then(() => {
             Array.from(tags.options).forEach((option) => {
-                option.selected = (wizardState.draft.tags_evento || []).includes(parseInt(option.value, 10));
+                option.selected = tagsSelecionadas.includes(parseInt(option.value, 10));
             });
         });
         tags.addEventListener('change', () => {
@@ -1070,6 +1078,7 @@ function renderStepDadosAtividade() {
             if (!option || option.tagName !== 'OPTION') return;
             event.preventDefault();
             option.selected = !option.selected;
+            tags.dispatchEvent(new Event('change'));
         });
     }
 }
@@ -1131,6 +1140,7 @@ function renderFrequencias() {
             if (Number.isInteger(freq.id) && freq.id > 0) eventosRemovidos.push(freq.id);
             wizardState.draft.frequencias.splice(idx, 1);
             mapaRenderWizard();
+            setTimeout(() => document.querySelector('#wizard-frequencias-lista > .rounded-lg:last-child .freq-frequencia')?.focus(), 30);
         });
 
         const btnEditar = row.querySelector('.freq-inline-editar');
@@ -1223,7 +1233,7 @@ function mapaBindHorarioEditors(row, freq) {
         freq.horarios = Array.isArray(freq.horarios) ? freq.horarios : [];
         freq.horarios.push({ inicio: '', fim: '' });
         render();
-        lista.querySelector('.horario-inicio-input:last-of-type')?.focus();
+        lista.querySelector('.freq-horarios-lista > div:last-child .horario-inicio-input')?.focus();
     });
 
     const freqTipo = row.querySelector('.freq-frequencia');
