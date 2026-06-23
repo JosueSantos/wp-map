@@ -211,12 +211,28 @@ function cc_agrupar_eventos_exibicao_single($eventos, $titulo_secao) {
                 'descricoes' => [],
                 'observacoes' => [],
                 'tags_evento' => [],
+                'mapa_tags' => [],
             ];
         }
 
         $horario = cc_evento_horario_exibicao_single($evento);
         $tags_do_horario = array_values(array_filter((array) ($evento['tags_evento'] ?? [])));
-        $horario_exibicao = $horario . (!empty($tags_do_horario) ? str_repeat('*', count($tags_do_horario)) : '');
+        
+        foreach ($tags_do_horario as $tag) {
+            if (!isset($grupos[$chave]['mapa_tags'][$tag])) {
+                $grupos[$chave]['mapa_tags'][$tag] = str_repeat('*', count($grupos[$chave]['mapa_tags']) + 1);
+            }
+        }
+        $marcadores = [];
+        
+        foreach ($tags_do_horario as $tag) {
+            $marcadores[] = $grupos[$chave]['mapa_tags'][$tag];
+        }
+        $horario_exibicao = $horario;
+        
+        if (!empty($marcadores)) {
+            $horario_exibicao .= ' ' . implode(' ', $marcadores);
+        }
         $labels = cc_evento_labels_recorrencia_single($evento);
 
         foreach ($labels as $label) {
@@ -266,6 +282,16 @@ function cc_agrupar_eventos_exibicao_single($eventos, $titulo_secao) {
 
             return $ordem_a <=> $ordem_b;
         });
+    }
+    
+    foreach ($grupos as &$grupo) {
+        $grupo['legenda_tags'] = [];
+        foreach ($grupo['mapa_tags'] as $tag => $marcador) {
+            $grupo['legenda_tags'][] = [
+                'marcador' => $marcador,
+                'tag' => $tag,
+                ];
+        }
     }
     unset($grupo);
 
@@ -525,8 +551,16 @@ get_header();
                                             <?php foreach ($grupo_evento['observacoes'] as $observacao_evento): ?>
                                                 <p class="text-sm text-slate-500"><?php echo esc_html($observacao_evento); ?></p>
                                             <?php endforeach; ?>
-                                            <?php if (!empty($grupo_evento['tags_evento'])): ?>
-                                                <p class="text-xs text-slate-500">Tags: <?php echo esc_html(implode(', ', array_map(static function ($tag, $idx) { return str_repeat('*', $idx + 1) . ' ' . $tag; }, $grupo_evento['tags_evento'], array_keys($grupo_evento['tags_evento'])))); ?></p>
+                                            <?php if (!empty($grupo_evento['legenda_tags'])): ?>
+                                                <div class="text-xs text-slate-500">
+                                                    <strong>Tags:</strong>
+                                                    <?php foreach ($grupo_evento['legenda_tags'] as $item): ?>
+                                                        <div>
+                                                            <?php echo esc_html($item['marcador']); ?>
+                                                            <?php echo esc_html($item['tag']); ?>
+                                                        </div>
+                                                    <?php endforeach; ?>
+                                                </div>
                                             <?php endif; ?>
                                         </li>
                                     <?php endforeach; ?>
