@@ -133,27 +133,27 @@ function cc_resumo_cadastros_shortcode($atts = []) {
     }
 
     $cards = [
-        [
+        'locais' => [
             'titulo' => 'Locais cadastrados',
             'valor' => $total_locais,
             'icone' => CC_URL . 'assets/img/resumo-cadastros/locais-cadastrados.svg',
         ],
-        [
+        'missas' => [
             'titulo' => 'Horários de missas',
             'valor' => $contadores['missas'],
             'icone' => CC_URL . 'assets/img/resumo-cadastros/horarios-missas.svg',
         ],
-        [
+        'confissoes' => [
             'titulo' => 'Locais de confissão',
             'valor' => count($contadores['confissoes']),
             'icone' => CC_URL . 'assets/img/resumo-cadastros/locais-confissao.svg',
         ],
-        [
+        'adoracao_santissimo' => [
             'titulo' => 'Locais de adoração',
             'valor' => count($contadores['adoracao_santissimo']),
             'icone' => CC_URL . 'assets/img/resumo-cadastros/locais-adoracao.svg',
         ],
-        [
+        'obras_caritativas' => [
             'titulo' => 'Locais com obras caritativas',
             'valor' => count($contadores['obras_caritativas']),
             'icone' => CC_URL . 'assets/img/resumo-cadastros/obras-caritativas.svg',
