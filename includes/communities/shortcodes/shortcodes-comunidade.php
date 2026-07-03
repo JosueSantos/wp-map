@@ -85,7 +85,16 @@ if (!function_exists('cc_resumo_tipo_evento_corresponde')) {
     }
 }
 
-function cc_resumo_cadastros_shortcode() {
+function cc_resumo_cadastros_shortcode($atts = []) {
+    $atts = shortcode_atts([
+        'exceto' => '',
+    ], $atts, 'cc_resumo_cadastros');
+
+    $exceto = array_map(
+        'sanitize_key',
+        array_filter(array_map('trim', explode(',', $atts['exceto'])))
+    );
+    
     $total_locais = wp_count_posts('comunidade');
     $total_locais = isset($total_locais->publish) ? (int) $total_locais->publish : 0;
 
@@ -150,6 +159,10 @@ function cc_resumo_cadastros_shortcode() {
             'icone' => CC_URL . 'assets/img/resumo-cadastros/obras-caritativas.svg',
         ],
     ];
+
+    foreach ($exceto as $slug) {
+        unset($cards[$slug]);
+    }
 
     ob_start();
     ?>
