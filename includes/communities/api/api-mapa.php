@@ -252,6 +252,7 @@ function cc_api_mapa_comunidades($request) {
     $data_param = sanitize_text_field((string) $request->get_param('data'));
     $tipo_evento = sanitize_text_field($request->get_param('tipo_evento'));
     $tipo_comunidade = sanitize_text_field($request->get_param('tipo_comunidade'));
+    $nome = sanitize_text_field((string) $request->get_param('nome'));
     $user_lat = $request->get_param('lat');
     $user_lng = $request->get_param('lng');
     $raio = floatval($request->get_param('raio'));
@@ -266,6 +267,10 @@ function cc_api_mapa_comunidades($request) {
         'posts_per_page' => -1,
         'post_status'    => 'publish'
     ];
+
+    if ($nome !== '') {
+        $args['s'] = $nome;
+    }
 
     if ($tipo_comunidade) {
         $tipos_filtrados = $tipo_comunidade === 'capela'

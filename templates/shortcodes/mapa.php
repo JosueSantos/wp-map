@@ -1,4 +1,4 @@
-<section id="mapa-igrejas" data-dominio="<?php echo esc_attr($dominio); ?>" data-url-cadastro="<?php echo esc_attr($url_cadastro); ?>" data-user-logado="<?php echo $is_user_logged_in ? '1' : '0'; ?>" class="cc-mapa-fullwidth">
+<section id="mapa-igrejas" data-dominio="<?php echo esc_attr($dominio); ?>" data-url-cadastro="<?php echo esc_attr($url_cadastro); ?>" data-user-logado="<?php echo $is_user_logged_in ? '1' : '0'; ?>" data-filtros-completos="<?php echo !empty($exibir_filtros_completos) ? '1' : '0'; ?>" class="cc-mapa-fullwidth">
     <div class="cc-mapa-layout">
         <div class="cc-mapa-main">
             <div class="cc-mapa-topbar">
@@ -6,7 +6,7 @@
                     <button type="button" class="cc-btn-rapido" data-quick-filter="missa_hoje"><img src="<?php echo esc_url(CC_URL . 'assets/img/resumo-cadastros/horarios-missas.svg'); ?>" alt="" aria-hidden="true"><span>Missa Hoje</span></button>
                     <button type="button" class="cc-btn-rapido" data-quick-filter="confissao_hoje"><img src="<?php echo esc_url(CC_URL . 'assets/img/resumo-cadastros/locais-confissao.svg'); ?>" alt="" aria-hidden="true"><span>Confissão Hoje</span></button>
                     <button type="button" class="cc-btn-rapido" data-quick-filter="adoracao_semana"><img src="<?php echo esc_url(CC_URL . 'assets/img/resumo-cadastros/locais-adoracao.svg'); ?>" alt="" aria-hidden="true"><span>Adoração ao Santíssimo</span></button>
-                    <button type="button" class="cc-btn-rapido cc-btn-rapido--filtros" data-toggle-filtros><i class="bi bi-funnel-fill"></i><span>Outras Buscas</span></button>
+                    <button type="button" class="cc-btn-rapido cc-btn-rapido--filtros" data-toggle-filtros><i class="bi bi-funnel-fill"></i><span>Busca</span></button>
                 </div>
                 <div class="cc-filtros-mapa-fixo cc-filtros-mapa-fixo--oculto" data-filtros-fixo>
                     <div class="cc-overlay-panels">
@@ -25,35 +25,42 @@
                                         <select id="filtro-evento-periodo"></select>
                                     </label>
 
-                                    <label id="filtro-data-wrap">
-                                        <span>Data específica</span>
-                                        <input type="date" id="filtro-data" name="data">
-                                    </label>
+                                    <?php if (!empty($exibir_filtros_completos)) : ?>
+                                        <label id="filtro-data-wrap">
+                                            <span>Data específica</span>
+                                            <input type="date" id="filtro-data" name="data">
+                                        </label>
+                                    <?php endif; ?>
 
                                     <input type="hidden" id="filtro-periodo" name="periodo" value="">
                                     <input type="hidden" id="filtro-tipo-evento" name="tipo_evento" value="">
 
-                                    <label>
-                                        <span>Característica de Missa</span>
-                                        <select id="filtro-tag-missa" name="tag_missa"></select>
-                                    </label>
+                                    <?php if (!empty($exibir_filtros_completos)) : ?>
+                                        <label>
+                                            <span>Característica de Missa</span>
+                                            <select id="filtro-tag-missa" name="tag_missa"></select>
+                                        </label>
 
-                                    <label>
-                                        <span>Tipos de Ações Caritativas</span>
-                                        <select id="filtro-tag-acao-caritativa" name="tag_acao_caritativa"></select>
-                                    </label>
+                                        <label>
+                                            <span>Tipos de Ações Caritativas</span>
+                                            <select id="filtro-tag-acao-caritativa" name="tag_acao_caritativa"></select>
+                                        </label>
+                                    <?php endif; ?>
 
                                     <input type="hidden" id="filtro-tag" name="tag" value="">
 
                                     <label>
                                         <span>Nome do Local</span>
-                                        <input type="search" id="filtro-nome-local" name="nome" placeholder="Digite o nome do local">
+                                        <input type="search" id="filtro-nome-local" name="nome" list="mapa-comunidades-list" placeholder="Digite o nome do local" autocomplete="off">
+                                        <datalist id="mapa-comunidades-list"></datalist>
                                     </label>
 
-                                    <label>
-                                        <span>Tipo de Local</span>
-                                        <select id="filtro-tipo-comunidade" name="tipo_comunidade"></select>
-                                    </label>
+                                    <?php if (!empty($exibir_filtros_completos)) : ?>
+                                        <label>
+                                            <span>Tipo de Local</span>
+                                            <select id="filtro-tipo-comunidade" name="tipo_comunidade"></select>
+                                        </label>
+                                    <?php endif; ?>
                                 </form>
 
                                 <div class="cc-filtros-acoes">
