@@ -5,11 +5,13 @@ function cc_mapa_shortcode($atts) {
 
     $atts = shortcode_atts([
         'dominio' => '',
-        'url_cadastro' => '/cadastro-comunidade/'
+        'url_cadastro' => '/cadastro-comunidade/',
+        'filtros' => 'false'
     ], $atts);
 
     $dominio = esc_url_raw($atts['dominio']);
     $url_cadastro = esc_url_raw($atts['url_cadastro']);
+    $exibir_filtros_completos = filter_var($atts['filtros'], FILTER_VALIDATE_BOOLEAN);
 
     wp_enqueue_style('leaflet-css', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
 
@@ -33,6 +35,7 @@ function cc_mapa_shortcode($atts) {
         'dominio' => $dominio,
         'url_cadastro' => $url_cadastro,
         'is_user_logged_in' => is_user_logged_in(),
+        'exibir_filtros_completos' => $exibir_filtros_completos,
     ]);
 }
 

@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const limparBtn = document.getElementById("mapa-limpar-filtros");
     const aplicarBtn = document.getElementById("mapa-aplicar-filtros");
     const panelEls = Array.from(containerEl.querySelectorAll(".cc-overlay-panel"));
-    const buscaEl = document.getElementById("filtro-busca");
+    const buscaEl = document.getElementById("filtro-nome-local");
     const buscaListEl = document.getElementById("mapa-comunidades-list");
     const buscaBtn = document.getElementById("mapa-buscar-comunidade");
     const filtroEventoPeriodoEl = document.getElementById("filtro-evento-periodo");
@@ -21,6 +21,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const viewModeBtns = Array.from(containerEl.querySelectorAll("[data-view-mode]"));
     const listaLocaisEl = document.getElementById("mapa-lista-locais");
     const filtrosFixosEl = containerEl.querySelector("[data-filtros-fixo]");
+    const filtrosCompletos = containerEl.dataset.filtrosCompletos === "1";
 
     const fallbackCenter = [-3.72528, -38.52439]; // Catedral Metropolitana de Fortaleza
     const fallbackZoom = 15;
@@ -984,14 +985,14 @@ document.addEventListener("DOMContentLoaded", async function () {
         if (missa) {
             opcoes.push({ value: `hoje|${missa.slug}`, label: 'Missa hoje' });
             opcoes.push({ value: `semana|${missa.slug}`, label: 'Missa esta semana' });
-            opcoes.push({ value: `data|${missa.slug}`, label: 'Missa data específica' });
+            if (filtrosCompletos) opcoes.push({ value: `data|${missa.slug}`, label: 'Missa data específica' });
         }
 
         const confissao = mapTipos['confissao'] || mapTipos['confissão'];
         if (confissao) {
             opcoes.push({ value: `hoje|${confissao.slug}`, label: 'Confissão hoje' });
             opcoes.push({ value: `semana|${confissao.slug}`, label: 'Confissão esta semana' });
-            opcoes.push({ value: `data|${confissao.slug}`, label: 'Confissão data específica' });
+            if (filtrosCompletos) opcoes.push({ value: `data|${confissao.slug}`, label: 'Confissão data específica' });
         }
 
         const adoracao = Object.values(mapTipos).find((tipo) => {
@@ -1107,7 +1108,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     buscaBtn?.addEventListener("click", aplicarBusca);
 
     filtroTagMissaEl?.addEventListener("change", () => {
-        if (filtroTagMissaEl.value && filtroTagAcaoEl) filtroTagAcaoEl.value = "";
+        if (filtroTagMissaEl?.value && filtroTagAcaoEl) filtroTagAcaoEl.value = "";
         sincronizarFiltroTag();
     });
 
