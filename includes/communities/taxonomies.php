@@ -5,7 +5,8 @@ function cc_register_taxonomies() {
     register_taxonomy('tipo_comunidade', 'comunidade', [
         'label' => 'Tipo de Comunidade',
         'hierarchical' => false,
-        'show_in_rest' => true
+        'show_in_rest' => true,
+        'rewrite' => ['slug' => 'tipo_comunidade', 'with_front' => false],
     ]);
 
     register_taxonomy('tipo_evento', 'evento', [
@@ -22,7 +23,22 @@ function cc_register_taxonomies() {
         'rewrite' => ['slug' => 'tags_eventos', 'with_front' => false],
     ]);
 
+
+    add_rewrite_rule('^tags_evento/([^/]+)/?$', 'index.php?tags_evento=$matches[1]', 'top');
 }
+
+function cc_maybe_flush_rewrite_rules() {
+    $rewrite_version = '20260721_taxonomy_contexts';
+
+    if (get_option('cc_rewrite_version') === $rewrite_version) {
+        return;
+    }
+
+    flush_rewrite_rules(false);
+    update_option('cc_rewrite_version', $rewrite_version);
+}
+
+add_action('init', 'cc_maybe_flush_rewrite_rules', 20);
 
 function cc_register_tags_evento_meta() {
     register_term_meta('tags_evento', 'exclusive_tipo_evento_ids', [

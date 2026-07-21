@@ -30,6 +30,31 @@ function cc_render_comunidade_card($comunidade_id) {
     return cc_render_template('shortcodes/item-comunidade.php', $context);
 }
 
+function cc_get_comunidade_ids_by_taxonomy($taxonomy, $term_id) {
+    $taxonomy = sanitize_key((string) $taxonomy);
+    $term_id = (int) $term_id;
+
+    if ($taxonomy === 'tipo_comunidade' && $term_id > 0) {
+        $comunidades = get_posts([
+            'post_type' => 'comunidade',
+            'post_status' => 'publish',
+            'posts_per_page' => -1,
+            'fields' => 'ids',
+            'tax_query' => [
+                [
+                    'taxonomy' => 'tipo_comunidade',
+                    'field' => 'term_id',
+                    'terms' => [$term_id],
+                ],
+            ],
+        ]);
+
+        return array_values(array_filter(array_map('intval', $comunidades), 'cc_get_comunidade_card_context'));
+    }
+
+    return cc_get_comunidade_ids_by_event_taxonomy($taxonomy, $term_id);
+}
+
 function cc_get_comunidade_ids_by_event_taxonomy($taxonomy, $term_id) {
     $taxonomy = sanitize_key((string) $taxonomy);
     $term_id = (int) $term_id;
@@ -85,7 +110,28 @@ function cc_event_context_template($template) {
         return file_exists($custom_template) ? $custom_template : $template;
     }
 
+    if (is_tax('tipo_comunidade')) {
+        $custom_template = CC_PATH . 'templates/taxonomy-tipo_comunidade.php';
+        return file_exists($custom_template) ? $custom_template : $template;
+    }
+
     return $template;
 }
+
+function cc_event_context_enqueue_assets() {
+    if (!is_singular('evento') && !is_tax(['tipo_evento', 'tags_evento', 'tipo_comunidade'])) {
+        return;
+    }
+
+    wp_enqueue_script('tailwind-cdn', 'https://cdn.tailwindcss.com', [], null);
+    wp_enqueue_style(
+        'bootstrap-icons',
+        'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css',
+        [],
+        '1.11.3'
+    );
+}
+
+add_action('wp_enqueue_scripts', 'cc_event_context_enqueue_assets');
 
 add_filter('template_include', 'cc_event_context_template');
