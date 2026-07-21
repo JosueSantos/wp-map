@@ -14,8 +14,12 @@ function cc_lista_comunidades() {
         $q->the_post();
 
         echo cc_render_template('shortcodes/item-comunidade.php', [
+            'id' => get_the_ID(),
             'titulo' => get_the_title(),
             'resumo' => get_the_excerpt(),
+            'endereco' => get_post_meta(get_the_ID(), 'endereco', true),
+            'imagem' => get_the_post_thumbnail_url(get_the_ID(), 'medium_large'),
+            'url' => get_permalink(),
         ]);
     }
 
