@@ -11,13 +11,15 @@ function cc_register_taxonomies() {
     register_taxonomy('tipo_evento', 'evento', [
         'label' => 'Tipo de Evento',
         'hierarchical' => false,
-        'show_in_rest' => true
+        'show_in_rest' => true,
+        'rewrite' => ['slug' => 'tipo_evento', 'with_front' => false],
     ]);
 
     register_taxonomy('tags_evento', 'evento', [
         'label' => 'Características do Evento',
         'hierarchical' => false,
         'show_in_rest' => true,
+        'rewrite' => ['slug' => 'tags_eventos', 'with_front' => false],
     ]);
 
 }
