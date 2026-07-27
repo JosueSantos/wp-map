@@ -119,7 +119,7 @@ function cc_event_context_template($template) {
 }
 
 function cc_event_context_enqueue_assets() {
-    if (!is_singular('evento') && !is_tax(['tipo_evento', 'tags_evento', 'tipo_comunidade'])) {
+    if (!is_singular('evento') && !is_author() && !is_tax(['tipo_evento', 'tags_evento', 'tipo_comunidade'])) {
         return;
     }
 
@@ -130,6 +130,10 @@ function cc_event_context_enqueue_assets() {
         [],
         '1.11.3'
     );
+
+    if (is_author()) {
+        wp_enqueue_style('cc-mapa-css', CC_URL . 'assets/css/mapa.css', [], filemtime(CC_PATH . 'assets/css/mapa.css'));
+    }
 }
 
 add_action('wp_enqueue_scripts', 'cc_event_context_enqueue_assets');
