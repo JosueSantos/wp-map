@@ -726,7 +726,9 @@ function mapaFrequenciaPadrao() {
 
 function mapaNormalizarHorarioItem(item = '') {
     if (item && typeof item === 'object') {
+        const id = parseInt(item.id || item.evento_id || item.horario_id, 10);
         return {
+            id: Number.isInteger(id) ? id : null,
             inicio: item.inicio || item.horario_inicio || item.horario || '',
             fim: item.fim || item.horario_fim || ''
         };
@@ -735,6 +737,7 @@ function mapaNormalizarHorarioItem(item = '') {
     const texto = String(item || '').trim();
     const partes = texto.split(/\s+-\s+/);
     return {
+        id: null,
         inicio: partes[0] || '',
         fim: partes[1] || ''
     };
@@ -963,7 +966,13 @@ function renderAtividades() {
         card.querySelector('.atividade-editar')?.addEventListener('click', () => mapaAbrirWizardAtividade(idx));
         card.querySelector('.atividade-remover')?.addEventListener('click', () => {
             if (!window.confirm('Deseja remover esta atividade?')) return;
-            const idsRemovidos = (atividade.frequencias || []).map((f) => f.id).filter((id) => Number.isInteger(id) && id > 0);
+            const idsRemovidos = (atividade.frequencias || []).flatMap((freq) => {
+                const freqId = parseInt(freq?.id, 10);
+                const idsHorarios = Array.isArray(freq?.horarios)
+                    ? freq.horarios.map((horario) => parseInt(horario?.id || horario?.evento_id || horario?.horario_id, 10))
+                    : [];
+                return [freqId, ...idsHorarios].filter((id) => Number.isInteger(id) && id > 0);
+            });
             eventosRemovidos.push(...idsRemovidos);
             wizardState.atividades.splice(idx, 1);
             mapaPersistirAtividadesLocalStorage();
@@ -1137,7 +1146,11 @@ function renderFrequencias() {
 
         row.querySelector('.freq-remover')?.addEventListener('click', () => {
             if (!window.confirm('Remover esta frequência?')) return;
-            if (Number.isInteger(freq.id) && freq.id > 0) eventosRemovidos.push(freq.id);
+            const idsRemovidos = Array.isArray(freq.horarios)
+                ? freq.horarios.map((horario) => parseInt(horario?.id || horario?.evento_id || horario?.horario_id, 10)).filter((id) => Number.isInteger(id) && id > 0)
+                : [];
+            if (Number.isInteger(freq.id) && freq.id > 0) idsRemovidos.push(freq.id);
+            eventosRemovidos.push(...idsRemovidos);
             wizardState.draft.frequencias.splice(idx, 1);
             mapaRenderWizard();
             setTimeout(() => document.querySelector('#wizard-frequencias-lista > .rounded-lg:last-child .freq-frequencia')?.focus(), 30);
@@ -1215,6 +1228,8 @@ function mapaBindHorarioEditors(row, freq) {
                 <button type="button" class="horario-remover px-2 py-1 text-xs rounded border border-red-200 text-red-700">Remover</button>
             `;
             item.querySelector('.horario-remover')?.addEventListener('click', () => {
+                const horarioId = parseInt(freq.horarios[hIdx]?.id || freq.horarios[hIdx]?.evento_id || freq.horarios[hIdx]?.horario_id, 10);
+                if (Number.isInteger(horarioId) && horarioId > 0) eventosRemovidos.push(horarioId);
                 freq.horarios.splice(hIdx, 1);
                 render();
             });
@@ -1231,9 +1246,9 @@ function mapaBindHorarioEditors(row, freq) {
 
     botaoAdd.addEventListener('click', () => {
         freq.horarios = Array.isArray(freq.horarios) ? freq.horarios : [];
-        freq.horarios.push({ inicio: '', fim: '' });
+        freq.horarios.push({ id: null, inicio: '', fim: '' });
         render();
-        lista.querySelector('.freq-horarios-lista > div:last-child .horario-inicio-input')?.focus();
+        lista.querySelector('div:last-child .horario-inicio-input')?.focus();
     });
 
     const freqTipo = row.querySelector('.freq-frequencia');
@@ -1315,7 +1330,8 @@ function mapaRenderCamposDinamicos(row, freq, grupo) {
 
 function mapaLerFrequenciaInline(row, freq, grupo) {
     const tipo = row.querySelector('.freq-frequencia')?.value || 'semanal';
-    const horarios = Array.from(row.querySelectorAll('.freq-horarios-lista > div')).map((item) => ({
+    const horarios = Array.from(row.querySelectorAll('.freq-horarios-lista > div')).map((item, idx) => ({
+        id: mapaNormalizarHorarioItem(freq.horarios?.[idx]).id || null,
         inicio: item.querySelector('.horario-inicio-input')?.value || '',
         fim: item.querySelector('.horario-fim-input')?.value || ''
     })).filter((item) => item.inicio || item.fim);
@@ -1413,7 +1429,7 @@ function mapaAdicionarEventoPorGrupo(grupo, evento = null) {
             dia_mes: evento.dia_mes || '',
             numero_semana: evento.numero_semana || '',
             mes: evento.mes || '',
-            horarios: (evento.horario_inicio || evento.horario_fim) ? [{ inicio: evento.horario_inicio || evento.horario || '', fim: evento.horario_fim || '' }] : (evento.horario ? [evento.horario] : [])
+            horarios: (evento.horario_inicio || evento.horario_fim) ? [{ id: evento.id || null, inicio: evento.horario_inicio || evento.horario || '', fim: evento.horario_fim || '' }] : (evento.horario ? [{ ...mapaNormalizarHorarioItem(evento.horario), id: evento.id || null }] : [])
         };
 
         let atividadeExistente = wizardState.atividades.find((a) => a.titulo === (evento.titulo_base || evento.titulo || '') && a.grupo === (grupo || 'missa'));
@@ -1429,7 +1445,20 @@ function mapaAdicionarEventoPorGrupo(grupo, evento = null) {
             };
             wizardState.atividades.push(atividadeExistente);
         }
-        atividadeExistente.frequencias.push(freq);
+        const frequenciaExistente = atividadeExistente.frequencias.find((item) => (
+            item.frequencia === freq.frequencia
+            && JSON.stringify((item.dias || []).map(String).sort()) === JSON.stringify((freq.dias || []).map(String).sort())
+            && String(item.dia_mes || '') === String(freq.dia_mes || '')
+            && String(item.numero_semana || '') === String(freq.numero_semana || '')
+            && String(item.mes || '') === String(freq.mes || '')
+        ));
+
+        if (frequenciaExistente) {
+            frequenciaExistente.horarios = Array.isArray(frequenciaExistente.horarios) ? frequenciaExistente.horarios : [];
+            frequenciaExistente.horarios.push(...freq.horarios);
+        } else {
+            atividadeExistente.frequencias.push(freq);
+        }
         mapaPersistirAtividadesLocalStorage();
         renderAtividades();
         return;
@@ -1749,10 +1778,12 @@ function mapaEnviar() {
         (atividade.frequencias || []).forEach((ocorrencia) => {
             const eventoId = parseInt(ocorrencia.id, 10);
             const horarios = Array.isArray(ocorrencia.horarios) ? ocorrencia.horarios.map(mapaNormalizarHorarioItem).filter((item) => item.inicio || item.fim) : [];
+            const eventoIdValido = Number.isInteger(eventoId) ? eventoId : null;
 
-            horarios.forEach((horario) => {
+            horarios.forEach((horario, horarioIndex) => {
+                const horarioId = parseInt(horario.id, 10);
                 eventos.push({
-                    id: Number.isInteger(eventoId) ? eventoId : null,
+                    id: Number.isInteger(horarioId) ? horarioId : (horarioIndex === 0 ? eventoIdValido : null),
                     titulo,
                     titulo_base: titulo,
                     frequencia: ocorrencia.frequencia || 'semanal',

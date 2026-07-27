@@ -553,3 +553,83 @@
     background-color: #2563eb;
     color: #fff;
 }
+
+.cc-author-page {
+    min-height: 100vh;
+    padding: clamp(2rem, 4vw, 4rem) 1rem;
+    background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+}
+
+.cc-author-container {
+    width: min(1120px, 100%);
+    margin: 0 auto;
+}
+
+.cc-author-header,
+.cc-author-empty {
+    border: 1px solid #e2e8f0;
+    border-radius: 1.25rem;
+    background: rgba(255, 255, 255, .94);
+    box-shadow: 0 18px 45px rgba(15, 23, 42, .08);
+}
+
+.cc-author-header {
+    padding: clamp(1.5rem, 3vw, 2.5rem);
+    margin-bottom: 2rem;
+}
+
+.cc-author-eyebrow {
+    margin: 0 0 .5rem;
+    color: #64748b;
+    font-size: .875rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.cc-author-title {
+    margin: 0;
+    color: #0f172a;
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.cc-author-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.cc-author-empty {
+    padding: 1.5rem;
+    color: #475569;
+}
+
+.cc-author-pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+.cc-author-pagination .page-numbers {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+    margin: 0 .2rem;
+    padding: .45rem .75rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    background: #fff;
+    color: #334155;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.cc-author-pagination .page-numbers.current {
+    border-color: #1d4ed8;
+    background: #1d4ed8;
+    color: #fff;
+}
