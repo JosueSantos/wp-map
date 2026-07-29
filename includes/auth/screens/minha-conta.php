@@ -83,6 +83,105 @@ function cc_minha_conta_listar_possiveis_duplicadas($distancia_km = 0.5, $simila
 }
 
 
+
+function cc_minha_conta_label_post_id($id, $fallback_taxonomy = '') {
+    $id = (int) $id;
+    if ($id <= 0) {
+        return __('Sem vínculo', 'cadastro-comunidades');
+    }
+
+    $titulo = get_the_title($id);
+    if ($titulo) {
+        return sprintf('%s (#%d)', $titulo, $id);
+    }
+
+    if ($fallback_taxonomy) {
+        $term = get_term($id, $fallback_taxonomy);
+        if ($term && !is_wp_error($term)) {
+            return sprintf('%s (#%d)', $term->name, $id);
+        }
+    }
+
+    return sprintf(__('Registro #%d', 'cadastro-comunidades'), $id);
+}
+
+function cc_minha_conta_label_select_alteracao($campo, $valor) {
+    $valor_string = (string) $valor;
+    $dias = ['0' => __('Domingo', 'cadastro-comunidades'), '1' => __('Segunda-feira', 'cadastro-comunidades'), '2' => __('Terça-feira', 'cadastro-comunidades'), '3' => __('Quarta-feira', 'cadastro-comunidades'), '4' => __('Quinta-feira', 'cadastro-comunidades'), '5' => __('Sexta-feira', 'cadastro-comunidades'), '6' => __('Sábado', 'cadastro-comunidades')];
+    $frequencias = [
+        'missa_dominical' => __('Missa Dominical', 'cadastro-comunidades'),
+        'semanal' => __('Semanal', 'cadastro-comunidades'),
+        'mensal' => __('Mensal', 'cadastro-comunidades'),
+        'numero_semana' => __('Por número da semana', 'cadastro-comunidades'),
+        'anual' => __('Anual', 'cadastro-comunidades'),
+    ];
+
+    if (preg_match('/(^|\.)dias(\[\d+\])?$/', $campo) || preg_match('/(^|\.)dia$/', $campo)) {
+        return $dias[$valor_string] ?? $valor_string;
+    }
+
+    if (preg_match('/(^|\.)frequencia$/', $campo)) {
+        return $frequencias[$valor_string] ?? $valor_string;
+    }
+
+    if (preg_match('/(^|\.)numero_semana$/', $campo)) {
+        return $valor_string !== '' ? sprintf(__('%sª semana', 'cadastro-comunidades'), $valor_string) : __('Não informado', 'cadastro-comunidades');
+    }
+
+    if (preg_match('/(^|\.)tipo_evento(_id)?$/', $campo)) {
+        return cc_minha_conta_label_post_id($valor, 'tipo_evento');
+    }
+
+    if (preg_match('/(^|\.)parent_paroquia$/', $campo)) {
+        return cc_minha_conta_label_post_id($valor);
+    }
+
+    if (preg_match('/(^|\.)comunidade_id$/', $campo)) {
+        return cc_minha_conta_label_post_id($valor);
+    }
+
+    return null;
+}
+
+function cc_minha_conta_obter_valor_por_caminho($dados, $caminho) {
+    if (!is_array($dados)) return null;
+    $partes = preg_split('/\.(?![^\[]*\])/', (string) $caminho);
+    $valor = $dados;
+    foreach ($partes as $parte) {
+        if (preg_match('/^([^\[]*)\[(\d+)\]$/', $parte, $m)) {
+            if ($m[1] !== '') {
+                if (!is_array($valor) || !array_key_exists($m[1], $valor)) return null;
+                $valor = $valor[$m[1]];
+            }
+            $idx = (int) $m[2];
+            if (!is_array($valor) || !array_key_exists($idx, $valor)) return null;
+            $valor = $valor[$idx];
+            continue;
+        }
+        if (!is_array($valor) || !array_key_exists($parte, $valor)) return null;
+        $valor = $valor[$parte];
+    }
+    return $valor;
+}
+
+function cc_minha_conta_evento_label_alteracao($chave, $anterior, $atual) {
+    if (!preg_match('/^eventos\[(\d+)\]/', (string) $chave, $matches)) return '';
+    $idx = (int) $matches[1];
+    $evento = cc_minha_conta_obter_valor_por_caminho($atual, 'eventos[' . $idx . ']');
+    if (!is_array($evento)) $evento = cc_minha_conta_obter_valor_por_caminho($anterior, 'eventos[' . $idx . ']');
+    if (!is_array($evento)) return '';
+
+    $nome = trim((string) ($evento['titulo'] ?? $evento['nome'] ?? $evento['descricao'] ?? ''));
+    if ($nome === '' && !empty($evento['tipo_evento'])) {
+        $nome = cc_minha_conta_label_post_id($evento['tipo_evento'], 'tipo_evento');
+    }
+    if ($nome === '' && !empty($evento['tipo_evento_id'])) {
+        $nome = cc_minha_conta_label_post_id($evento['tipo_evento_id'], 'tipo_evento');
+    }
+
+    return $nome !== '' ? $nome : sprintf(__('Atividade #%d', 'cadastro-comunidades'), $idx + 1);
+}
+
 function cc_minha_conta_formatar_caminho_alteracao($caminho) {
     $rotulos = [
         'acao' => __('Ação', 'cadastro-comunidades'),
@@ -97,6 +196,16 @@ function cc_minha_conta_formatar_caminho_alteracao($caminho) {
         'eventos_removidos' => __('Eventos removidos', 'cadastro-comunidades'),
         'observacao' => __('Observação', 'cadastro-comunidades'),
         'remover_imagem' => __('Remover imagem', 'cadastro-comunidades'),
+        'id' => __('Identificador', 'cadastro-comunidades'),
+        'tipo_evento' => __('Tipo de atividade', 'cadastro-comunidades'),
+        'tipo_evento_id' => __('Tipo de atividade', 'cadastro-comunidades'),
+        'frequencia' => __('Frequência', 'cadastro-comunidades'),
+        'dias' => __('Dias da semana', 'cadastro-comunidades'),
+        'dia' => __('Dia da semana', 'cadastro-comunidades'),
+        'dia_mes' => __('Dia do mês', 'cadastro-comunidades'),
+        'numero_semana' => __('Semana do mês', 'cadastro-comunidades'),
+        'mes' => __('Mês', 'cadastro-comunidades'),
+        'horario' => __('Horário', 'cadastro-comunidades'),
     ];
 
     $partes = array_map(static function ($parte) use ($rotulos) {
@@ -171,9 +280,9 @@ function cc_minha_conta_analisar_alteracao($dados_json_anterior, $dados_json_atu
     if (!is_array($anterior)) {
         return [[
             'tipo' => __('Primeiro registro', 'cadastro-comunidades'),
-            'campo' => __('Histórico anterior', 'cadastro-comunidades'),
-            'antes' => __('Sem versão anterior registrada para este local.', 'cadastro-comunidades'),
-            'depois' => __('Esta alteração será usada como base para as próximas comparações.', 'cadastro-comunidades'),
+            'campo' => __('Primeiro registro deste local', 'cadastro-comunidades'),
+            'mensagem' => __('Este é o primeiro registro salvo para este local. Ainda não existe uma versão anterior para comparar; as próximas alterações serão exibidas com antes e depois.', 'cadastro-comunidades'),
+            'primeiro_registro' => true,
         ]];
     }
 
@@ -186,16 +295,29 @@ function cc_minha_conta_analisar_alteracao($dados_json_anterior, $dados_json_atu
     foreach ($chaves as $chave) {
         $existe_antes = array_key_exists($chave, $antes);
         $existe_depois = array_key_exists($chave, $depois);
-        $valor_antes = $existe_antes ? cc_minha_conta_normalizar_valor_alteracao($antes[$chave]) : '';
-        $valor_depois = $existe_depois ? cc_minha_conta_normalizar_valor_alteracao($depois[$chave]) : '';
+        $valor_antes = $existe_antes ? (cc_minha_conta_label_select_alteracao($chave, $antes[$chave]) ?? cc_minha_conta_normalizar_valor_alteracao($antes[$chave])) : '';
+        $valor_depois = $existe_depois ? (cc_minha_conta_label_select_alteracao($chave, $depois[$chave]) ?? cc_minha_conta_normalizar_valor_alteracao($depois[$chave])) : '';
 
         if ($existe_antes && $existe_depois && $valor_antes === $valor_depois) {
             continue;
         }
 
+        $tipo_mudanca = !$existe_antes ? __('Adicionado', 'cadastro-comunidades') : (!$existe_depois ? __('Removido', 'cadastro-comunidades') : __('Alterado', 'cadastro-comunidades'));
+        $campo = cc_minha_conta_formatar_caminho_alteracao($chave);
+        $evento_label = cc_minha_conta_evento_label_alteracao($chave, $anterior, $atual);
+
+        if ($evento_label !== '') {
+            $campo = preg_replace('/^' . preg_quote(__('Eventos', 'cadastro-comunidades'), '/') . ' #\d+/', sprintf(__('Atividade: %s', 'cadastro-comunidades'), $evento_label), $campo);
+        }
+
+        if (!$existe_antes && preg_match('/^eventos\[(\d+)\]\.id$/', $chave)) {
+            $tipo_mudanca = __('Atividade adicionada', 'cadastro-comunidades');
+            $campo = sprintf(__('Atividade %s adicionada', 'cadastro-comunidades'), $evento_label ?: $valor_depois);
+        }
+
         $mudancas[] = [
-            'tipo' => !$existe_antes ? __('Adicionado', 'cadastro-comunidades') : (!$existe_depois ? __('Removido', 'cadastro-comunidades') : __('Alterado', 'cadastro-comunidades')),
-            'campo' => cc_minha_conta_formatar_caminho_alteracao($chave),
+            'tipo' => $tipo_mudanca,
+            'campo' => $campo,
             'antes' => $existe_antes ? $valor_antes : __('Não existia', 'cadastro-comunidades'),
             'depois' => $existe_depois ? $valor_depois : __('Removido', 'cadastro-comunidades'),
         ];
@@ -600,6 +722,18 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
 
                         if (modalConteudo) {
                             modalConteudo.innerHTML = mudancas.length ? mudancas.map(function (mudanca) {
+                                if (mudanca.primeiro_registro) {
+                                    return `
+                                        <article class="rounded-xl border border-indigo-100 bg-indigo-50 p-4 space-y-2">
+                                            <div class="flex flex-wrap items-center gap-2">
+                                                <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-indigo-700">${escapeHtml(mudanca.tipo)}</span>
+                                                <strong class="text-gray-900">${escapeHtml(mudanca.campo)}</strong>
+                                            </div>
+                                            <p class="text-sm text-gray-700">${escapeHtml(mudanca.mensagem || '<?php echo esc_js(__('Este foi o primeiro registro deste local.', 'cadastro-comunidades')); ?>')}</p>
+                                        </article>
+                                    `;
+                                }
+
                                 return `
                                     <article class="rounded-xl border border-gray-200 p-4 space-y-2">
                                         <div class="flex flex-wrap items-center gap-2">
