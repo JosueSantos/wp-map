@@ -441,7 +441,8 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
     $pagina_alteracoes = (int) ($alteracoes_paginadas['page'] ?? 1);
     $total_paginas_alteracoes = (int) ($alteracoes_paginadas['total_pages'] ?? 1);
 
-    $duplicadas = current_user_can('manage_options') ? cc_minha_conta_listar_possiveis_duplicadas() : [];
+    $usuario_admin = current_user_can('manage_options');
+    $duplicadas = $usuario_admin ? cc_minha_conta_listar_possiveis_duplicadas() : [];
     $total_duplicadas = count($duplicadas);
     $total_paginas_duplicadas = max(1, (int) ceil($total_duplicadas / $por_pagina_padrao));
     $pagina_duplicadas = min($pagina_duplicadas, $total_paginas_duplicadas);
@@ -593,14 +594,16 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
                                 <span class="text-gray-500 break-words"> — <?php echo esc_html($alteracao->usuario_nome ?: 'Usuário removido'); ?> — <?php echo esc_html(mysql2date('d/m/Y H:i', $alteracao->created_at)); ?></span>
                             </p>
                             <div class="flex flex-wrap items-center gap-2">
-                                <?php $analise_alteracao = cc_minha_conta_analisar_alteracao($alteracao->dados_json_anterior ?? '', $alteracao->dados_json ?? ''); ?>
-                                <button
-                                    type="button"
-                                    class="<?php echo esc_attr(cc_auth_button_class('secondary')); ?> cc-analisar-alteracao"
-                                    data-local="<?php echo esc_attr($alteracao->comunidade_nome ?: __('Local removida', 'cadastro-comunidades')); ?>"
-                                    data-data="<?php echo esc_attr(mysql2date('d/m/Y H:i', $alteracao->created_at)); ?>"
-                                    data-mudancas="<?php echo esc_attr(wp_json_encode($analise_alteracao, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>"
-                                ><?php esc_html_e('Analisar mudanças', 'cadastro-comunidades'); ?></button>
+                                <?php if ($usuario_admin): ?>
+                                    <?php $analise_alteracao = cc_minha_conta_analisar_alteracao($alteracao->dados_json_anterior ?? '', $alteracao->dados_json ?? ''); ?>
+                                    <button
+                                        type="button"
+                                        class="<?php echo esc_attr(cc_auth_button_class('secondary')); ?> cc-analisar-alteracao"
+                                        data-local="<?php echo esc_attr($alteracao->comunidade_nome ?: __('Local removida', 'cadastro-comunidades')); ?>"
+                                        data-data="<?php echo esc_attr(mysql2date('d/m/Y H:i', $alteracao->created_at)); ?>"
+                                        data-mudancas="<?php echo esc_attr(wp_json_encode($analise_alteracao, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>"
+                                    ><?php esc_html_e('Analisar mudanças', 'cadastro-comunidades'); ?></button>
+                                <?php endif; ?>
                                 <?php if (!empty($alteracao->comunidade_id)): ?>
                                     <a href="<?php echo esc_url(get_permalink((int) $alteracao->comunidade_id)); ?>" target="_blank" rel="noopener noreferrer" class="<?php echo esc_attr(cc_auth_button_class('secondary')); ?>"><?php esc_html_e('Ver detalhes', 'cadastro-comunidades'); ?></a>
                                 <?php endif; ?>
@@ -614,7 +617,7 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
         </section>
 
 
-        <?php if (current_user_can('manage_options')): ?>
+        <?php if ($usuario_admin): ?>
             <section id="sec-duplicadas" class="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 space-y-4">
                 <div>
                     <h4 class="text-xl font-semibold text-gray-800"><?php esc_html_e('Possíveis locais duplicados', 'cadastro-comunidades'); ?></h4>
@@ -643,7 +646,8 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
             </section>
         <?php endif; ?>
 
-        <div id="cc-modal-analise-alteracao" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="cc-modal-analise-titulo">
+        <?php if ($usuario_admin): ?>
+            <div id="cc-modal-analise-alteracao" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="cc-modal-analise-titulo">
             <div class="w-full max-w-3xl rounded-2xl bg-white shadow-xl border border-gray-200 max-h-[85vh] overflow-hidden">
                 <div class="flex items-start justify-between gap-4 border-b border-gray-200 p-5">
                     <div>
@@ -654,7 +658,8 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
                 </div>
                 <div id="cc-modal-analise-conteudo" class="max-h-[65vh] overflow-auto p-5 space-y-3"></div>
             </div>
-        </div>
+            </div>
+        <?php endif; ?>
 
         <datalist id="cc-paroquias-datalist">
             <option value=""><?php esc_html_e('Sem vínculo de paróquia', 'cadastro-comunidades'); ?></option>
