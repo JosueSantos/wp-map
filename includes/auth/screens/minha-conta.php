@@ -82,6 +82,137 @@ function cc_minha_conta_listar_possiveis_duplicadas($distancia_km = 0.5, $simila
     return $duplicadas;
 }
 
+
+function cc_minha_conta_formatar_caminho_alteracao($caminho) {
+    $rotulos = [
+        'acao' => __('Ação', 'cadastro-comunidades'),
+        'nome' => __('Nome', 'cadastro-comunidades'),
+        'tipo' => __('Tipo', 'cadastro-comunidades'),
+        'endereco' => __('Endereço', 'cadastro-comunidades'),
+        'latitude' => __('Latitude', 'cadastro-comunidades'),
+        'longitude' => __('Longitude', 'cadastro-comunidades'),
+        'parent_paroquia' => __('Paróquia', 'cadastro-comunidades'),
+        'contatos' => __('Contatos', 'cadastro-comunidades'),
+        'eventos' => __('Eventos', 'cadastro-comunidades'),
+        'eventos_removidos' => __('Eventos removidos', 'cadastro-comunidades'),
+        'observacao' => __('Observação', 'cadastro-comunidades'),
+        'remover_imagem' => __('Remover imagem', 'cadastro-comunidades'),
+    ];
+
+    $partes = array_map(static function ($parte) use ($rotulos) {
+        if (preg_match('/^(.+)\[(\d+)\]$/', $parte, $matches)) {
+            $base = $rotulos[$matches[1]] ?? ucwords(str_replace('_', ' ', $matches[1]));
+            return sprintf('%s #%d', $base, ((int) $matches[2]) + 1);
+        }
+        return $rotulos[$parte] ?? ucwords(str_replace('_', ' ', $parte));
+    }, explode('.', (string) $caminho));
+
+    return implode(' › ', $partes);
+}
+
+function cc_minha_conta_normalizar_valor_alteracao($valor) {
+    if (is_bool($valor)) {
+        return $valor ? __('Sim', 'cadastro-comunidades') : __('Não', 'cadastro-comunidades');
+    }
+
+    if ($valor === null || $valor === '') {
+        return __('Vazio', 'cadastro-comunidades');
+    }
+
+    if (is_array($valor)) {
+        return wp_json_encode($valor, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+
+    return (string) $valor;
+}
+
+function cc_minha_conta_achatar_dados_alteracao($dados, $prefixo = '') {
+    $resultado = [];
+
+    if (!is_array($dados)) {
+        return $prefixo === '' ? ['valor' => $dados] : [$prefixo => $dados];
+    }
+
+    if (empty($dados)) {
+        if ($prefixo !== '') {
+            $resultado[$prefixo] = [];
+        }
+        return $resultado;
+    }
+
+    foreach ($dados as $chave => $valor) {
+        $segmento = is_int($chave) ? '[' . $chave . ']' : (string) $chave;
+        $caminho = $prefixo === '' ? $segmento : (is_int($chave) ? $prefixo . $segmento : $prefixo . '.' . $segmento);
+
+        if (is_array($valor)) {
+            $resultado += cc_minha_conta_achatar_dados_alteracao($valor, $caminho);
+            continue;
+        }
+
+        $resultado[$caminho] = $valor;
+    }
+
+    return $resultado;
+}
+
+function cc_minha_conta_analisar_alteracao($dados_json_anterior, $dados_json_atual) {
+    $anterior = json_decode((string) $dados_json_anterior, true);
+    $atual = json_decode((string) $dados_json_atual, true);
+
+    if (!is_array($atual)) {
+        return [[
+            'tipo' => __('Aviso', 'cadastro-comunidades'),
+            'campo' => __('Dados da alteração', 'cadastro-comunidades'),
+            'antes' => '',
+            'depois' => __('Não foi possível ler os dados desta alteração.', 'cadastro-comunidades'),
+        ]];
+    }
+
+    if (!is_array($anterior)) {
+        return [[
+            'tipo' => __('Primeiro registro', 'cadastro-comunidades'),
+            'campo' => __('Histórico anterior', 'cadastro-comunidades'),
+            'antes' => __('Sem versão anterior registrada para este local.', 'cadastro-comunidades'),
+            'depois' => __('Esta alteração será usada como base para as próximas comparações.', 'cadastro-comunidades'),
+        ]];
+    }
+
+    $antes = cc_minha_conta_achatar_dados_alteracao($anterior);
+    $depois = cc_minha_conta_achatar_dados_alteracao($atual);
+    $chaves = array_unique(array_merge(array_keys($antes), array_keys($depois)));
+    sort($chaves, SORT_NATURAL | SORT_FLAG_CASE);
+
+    $mudancas = [];
+    foreach ($chaves as $chave) {
+        $existe_antes = array_key_exists($chave, $antes);
+        $existe_depois = array_key_exists($chave, $depois);
+        $valor_antes = $existe_antes ? cc_minha_conta_normalizar_valor_alteracao($antes[$chave]) : '';
+        $valor_depois = $existe_depois ? cc_minha_conta_normalizar_valor_alteracao($depois[$chave]) : '';
+
+        if ($existe_antes && $existe_depois && $valor_antes === $valor_depois) {
+            continue;
+        }
+
+        $mudancas[] = [
+            'tipo' => !$existe_antes ? __('Adicionado', 'cadastro-comunidades') : (!$existe_depois ? __('Removido', 'cadastro-comunidades') : __('Alterado', 'cadastro-comunidades')),
+            'campo' => cc_minha_conta_formatar_caminho_alteracao($chave),
+            'antes' => $existe_antes ? $valor_antes : __('Não existia', 'cadastro-comunidades'),
+            'depois' => $existe_depois ? $valor_depois : __('Removido', 'cadastro-comunidades'),
+        ];
+    }
+
+    if (empty($mudancas)) {
+        $mudancas[] = [
+            'tipo' => __('Sem diferença', 'cadastro-comunidades'),
+            'campo' => __('Dados enviados', 'cadastro-comunidades'),
+            'antes' => __('A versão anterior e esta alteração possuem os mesmos dados registrados.', 'cadastro-comunidades'),
+            'depois' => '',
+        ];
+    }
+
+    return $mudancas;
+}
+
 function cc_shortcode_minha_conta_mapa($atts = []) {
     cc_enqueue_auth_ui_assets();
 
@@ -336,9 +467,19 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
                                 <strong><?php echo esc_html($alteracao->comunidade_nome ?: 'Local removida'); ?></strong>
                                 <span class="text-gray-500 break-words"> — <?php echo esc_html($alteracao->usuario_nome ?: 'Usuário removido'); ?> — <?php echo esc_html(mysql2date('d/m/Y H:i', $alteracao->created_at)); ?></span>
                             </p>
-                            <?php if (!empty($alteracao->comunidade_id)): ?>
-                                <a href="<?php echo esc_url(get_permalink((int) $alteracao->comunidade_id)); ?>" target="_blank" rel="noopener noreferrer" class="<?php echo esc_attr(cc_auth_button_class('secondary')); ?>"><?php esc_html_e('Ver detalhes', 'cadastro-comunidades'); ?></a>
-                            <?php endif; ?>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <?php $analise_alteracao = cc_minha_conta_analisar_alteracao($alteracao->dados_json_anterior ?? '', $alteracao->dados_json ?? ''); ?>
+                                <button
+                                    type="button"
+                                    class="<?php echo esc_attr(cc_auth_button_class('secondary')); ?> cc-analisar-alteracao"
+                                    data-local="<?php echo esc_attr($alteracao->comunidade_nome ?: __('Local removida', 'cadastro-comunidades')); ?>"
+                                    data-data="<?php echo esc_attr(mysql2date('d/m/Y H:i', $alteracao->created_at)); ?>"
+                                    data-mudancas="<?php echo esc_attr(wp_json_encode($analise_alteracao, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>"
+                                ><?php esc_html_e('Analisar mudanças', 'cadastro-comunidades'); ?></button>
+                                <?php if (!empty($alteracao->comunidade_id)): ?>
+                                    <a href="<?php echo esc_url(get_permalink((int) $alteracao->comunidade_id)); ?>" target="_blank" rel="noopener noreferrer" class="<?php echo esc_attr(cc_auth_button_class('secondary')); ?>"><?php esc_html_e('Ver detalhes', 'cadastro-comunidades'); ?></a>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </li>
                 <?php endforeach; ?>
@@ -377,6 +518,18 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
             </section>
         <?php endif; ?>
 
+        <div id="cc-modal-analise-alteracao" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="cc-modal-analise-titulo">
+            <div class="w-full max-w-3xl rounded-2xl bg-white shadow-xl border border-gray-200 max-h-[85vh] overflow-hidden">
+                <div class="flex items-start justify-between gap-4 border-b border-gray-200 p-5">
+                    <div>
+                        <h5 id="cc-modal-analise-titulo" class="text-xl font-semibold text-gray-900"><?php esc_html_e('Análise de mudanças', 'cadastro-comunidades'); ?></h5>
+                        <p id="cc-modal-analise-subtitulo" class="mt-1 text-sm text-gray-600"></p>
+                    </div>
+                    <button type="button" class="cc-fechar-modal-analise rounded-lg px-3 py-2 text-gray-500 hover:bg-gray-100" aria-label="<?php esc_attr_e('Fechar análise de mudanças', 'cadastro-comunidades'); ?>">&times;</button>
+                </div>
+                <div id="cc-modal-analise-conteudo" class="max-h-[65vh] overflow-auto p-5 space-y-3"></div>
+            </div>
+        </div>
 
         <datalist id="cc-paroquias-datalist">
             <option value=""><?php esc_html_e('Sem vínculo de paróquia', 'cadastro-comunidades'); ?></option>
@@ -415,6 +568,74 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
                 const filtroId = document.getElementById('cc-filtro-comunidade-id');
                 filtroName?.closest('form')?.addEventListener('submit', function () {
                     if (filtroId) filtroId.value = extractComunidadeId(filtroName?.value) || '0';
+                });
+
+                const modalAnalise = document.getElementById('cc-modal-analise-alteracao');
+                const modalSubtitulo = document.getElementById('cc-modal-analise-subtitulo');
+                const modalConteudo = document.getElementById('cc-modal-analise-conteudo');
+
+                function escapeHtml(value) {
+                    return String(value ?? '').replace(/[&<>"']/g, function (char) {
+                        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char];
+                    });
+                }
+
+                function fecharModalAnalise() {
+                    modalAnalise?.classList.add('hidden');
+                    modalAnalise?.classList.remove('flex');
+                }
+
+                document.querySelectorAll('.cc-analisar-alteracao').forEach(function (botao) {
+                    botao.addEventListener('click', function () {
+                        let mudancas = [];
+                        try {
+                            mudancas = JSON.parse(botao.dataset.mudancas || '[]');
+                        } catch (error) {
+                            mudancas = [];
+                        }
+
+                        if (modalSubtitulo) {
+                            modalSubtitulo.textContent = (botao.dataset.local || '') + ' — ' + (botao.dataset.data || '');
+                        }
+
+                        if (modalConteudo) {
+                            modalConteudo.innerHTML = mudancas.length ? mudancas.map(function (mudanca) {
+                                return `
+                                    <article class="rounded-xl border border-gray-200 p-4 space-y-2">
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <span class="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">${escapeHtml(mudanca.tipo)}</span>
+                                            <strong class="text-gray-900">${escapeHtml(mudanca.campo)}</strong>
+                                        </div>
+                                        <div class="grid md:grid-cols-2 gap-3 text-sm">
+                                            <div class="rounded-lg bg-red-50 border border-red-100 p-3">
+                                                <p class="font-semibold text-red-800"><?php echo esc_js(__('Antes', 'cadastro-comunidades')); ?></p>
+                                                <p class="mt-1 whitespace-pre-wrap break-words text-gray-700">${escapeHtml(mudanca.antes)}</p>
+                                            </div>
+                                            <div class="rounded-lg bg-green-50 border border-green-100 p-3">
+                                                <p class="font-semibold text-green-800"><?php echo esc_js(__('Depois', 'cadastro-comunidades')); ?></p>
+                                                <p class="mt-1 whitespace-pre-wrap break-words text-gray-700">${escapeHtml(mudanca.depois)}</p>
+                                            </div>
+                                        </div>
+                                    </article>
+                                `;
+                            }).join('') : '<p class="text-gray-600"><?php echo esc_js(__('Nenhuma mudança encontrada para exibir.', 'cadastro-comunidades')); ?></p>';
+                        }
+
+                        modalAnalise?.classList.remove('hidden');
+                        modalAnalise?.classList.add('flex');
+                    });
+                });
+
+                document.querySelectorAll('.cc-fechar-modal-analise').forEach(function (botao) {
+                    botao.addEventListener('click', fecharModalAnalise);
+                });
+
+                modalAnalise?.addEventListener('click', function (event) {
+                    if (event.target === modalAnalise) fecharModalAnalise();
+                });
+
+                document.addEventListener('keydown', function (event) {
+                    if (event.key === 'Escape') fecharModalAnalise();
                 });
             });
         </script>

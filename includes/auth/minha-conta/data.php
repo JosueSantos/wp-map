@@ -34,7 +34,15 @@ function cc_get_alteracoes_do_usuario($user_id, $filtros = [], $paginacao = []) 
     $is_admin = user_can($user_id, 'manage_options');
 
     $query = "
-        SELECT a.id, a.comunidade_id, p.post_title AS comunidade_nome, u.display_name AS usuario_nome, a.created_at
+        SELECT a.id, a.comunidade_id, p.post_title AS comunidade_nome, u.display_name AS usuario_nome, a.created_at, a.dados_json,
+            (
+                SELECT ap.dados_json
+                FROM $table ap
+                WHERE ap.comunidade_id = a.comunidade_id
+                    AND (ap.created_at < a.created_at OR (ap.created_at = a.created_at AND ap.id < a.id))
+                ORDER BY ap.created_at DESC, ap.id DESC
+                LIMIT 1
+            ) AS dados_json_anterior
         FROM $table a
         LEFT JOIN {$wpdb->posts} p ON p.ID = a.comunidade_id
         LEFT JOIN {$wpdb->users} u ON u.ID = a.user_id
