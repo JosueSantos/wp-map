@@ -403,7 +403,10 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
             ? '<span class="inline-flex items-center justify-center px-3 py-2 rounded-lg border border-gray-200 text-gray-400">' . esc_html__('Anterior', 'cadastro-comunidades') . '</span>'
             : '<a href="' . esc_url($prev_url) . '" class="inline-flex items-center justify-center px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">' . esc_html__('Anterior', 'cadastro-comunidades') . '</a>';
 
-        for ($i = 1; $i <= $total_pages; $i++) {
+        $start_page = max(1, (int) $current_page - 3);
+        $end_page = min((int) $total_pages, (int) $current_page + 3);
+
+        for ($i = $start_page; $i <= $end_page; $i++) {
             $active = (int) $i === (int) $current_page;
             $classes = $active
                 ? 'inline-flex items-center justify-center px-3 py-2 rounded-lg border border-indigo-600 bg-indigo-600 text-white'

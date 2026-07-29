@@ -32,7 +32,7 @@ get_header();
                 <?php endwhile; ?>
             </div>
             <div class="cc-author-pagination">
-                <?php echo paginate_links(['total' => $q->max_num_pages, 'current' => $paged]); ?>
+                <?php echo paginate_links(['total' => $q->max_num_pages, 'current' => $paged, 'mid_size' => 3, 'end_size' => 0, 'prev_next' => true]); ?>
             </div>
         <?php endif; ?>
         <?php wp_reset_postdata(); ?>

@@ -1722,8 +1722,7 @@ function mapaExibirModalSucesso(resp) {
     }
 
     botaoNovo.onclick = function () {
-        const baseFormUrl = MAPA_API?.form_url || window.location.pathname;
-        window.location.href = String(baseFormUrl).split('?')[0];
+        window.location.href = resp?.permalink || MAPA_API?.map_url || '/';
     };
 
     botaoMapa.onclick = function () {
