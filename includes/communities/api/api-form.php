@@ -357,6 +357,11 @@ function cc_api_salvar_eventos($comunidade_id, $eventos = []) {
                 continue;
             }
 
+            $evento_comunidade_id = (int) get_post_meta($evento_id, 'comunidade_id', true);
+            if ($evento_comunidade_id > 0 && $evento_comunidade_id !== (int) $comunidade_id) {
+                continue;
+            }
+
             wp_update_post([
                 'ID' => $evento_id,
                 'post_title' => $titulo_base,
@@ -571,6 +576,8 @@ function cc_api_cadastrar_comunidade($request) {
 
     if (!empty($data['tipo'])) {
         wp_set_object_terms($comunidade_id, [(int) $data['tipo']], 'tipo_comunidade');
+    } else {
+        wp_set_object_terms($comunidade_id, [], 'tipo_comunidade');
     }
 
     update_post_meta($comunidade_id, 'latitude', $latitude);
@@ -583,10 +590,8 @@ function cc_api_cadastrar_comunidade($request) {
         delete_post_meta($comunidade_id, 'parent_paroquia');
     }
 
-    if (!empty($data['contatos']) && is_array($data['contatos'])) {
-
-        $contatos_limpos = [];
-
+    $contatos_limpos = [];
+    if (isset($data['contatos']) && is_array($data['contatos'])) {
         foreach ($data['contatos'] as $c) {
             if (empty($c['tipo']) || empty($c['valor'])) continue;
 
@@ -596,14 +601,18 @@ function cc_api_cadastrar_comunidade($request) {
                 return new WP_Error('contato_invalido', 'Um ou mais contatos possuem formato inválido para o tipo selecionado.', ['status' => 400]);
             }
 
-            $contatos_limpos[] = [
+            $contato_limpo = [
                 'tipo'  => $tipo,
                 'valor' => $valor_normalizado
             ];
-        }
 
-        update_post_meta($comunidade_id, 'contatos', $contatos_limpos);
+            if (!in_array($contato_limpo, $contatos_limpos, true)) {
+                $contatos_limpos[] = $contato_limpo;
+            }
+        }
     }
+
+    update_post_meta($comunidade_id, 'contatos', $contatos_limpos);
 
     cc_api_salvar_eventos($comunidade_id, $data['eventos'] ?? []);
     cc_api_remover_eventos($comunidade_id, $data['eventos_removidos'] ?? []);
@@ -632,7 +641,8 @@ function cc_api_cadastrar_comunidade($request) {
         'status' => 'ok',
         'comunidade_id' => $comunidade_id,
         'imagem_id' => $imagem_id,
-        'modo' => $is_edicao ? 'edicao' : 'criacao'
+        'modo' => $is_edicao ? 'edicao' : 'criacao',
+        'permalink' => get_permalink($comunidade_id)
     ]);
 }
 
