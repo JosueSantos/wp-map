@@ -1,5 +1,87 @@
 <?php
 
+function cc_minha_conta_normalizar_nome_duplicidade($nome) {
+    $nome = strtolower(remove_accents((string) $nome));
+    $nome = preg_replace('/[^a-z0-9\s]/u', ' ', $nome);
+
+    $termos_comuns = [
+        'capela', 'paroquia', 'paróquia', 'matriz', 'igreja', 'comunidade', 'santuário', 'santuario',
+        'sao', 'são', 'santa', 'santo', 'nossa', 'senhora', 'nsra', 'de', 'da', 'do', 'das', 'dos',
+    ];
+
+    $partes = array_filter(preg_split('/\s+/', $nome));
+    $partes = array_values(array_filter($partes, function ($parte) use ($termos_comuns) {
+        return strlen($parte) > 2 && !in_array($parte, $termos_comuns, true);
+    }));
+
+    return trim(implode(' ', $partes));
+}
+
+function cc_minha_conta_listar_possiveis_duplicadas($distancia_km = 0.5, $similaridade_minima = 65) {
+    $posts = get_posts([
+        'post_type' => 'comunidade',
+        'post_status' => 'publish',
+        'posts_per_page' => -1,
+        'orderby' => 'title',
+        'order' => 'ASC',
+    ]);
+
+    $locais = [];
+    foreach ($posts as $post) {
+        $lat = get_post_meta($post->ID, 'latitude', true);
+        $lng = get_post_meta($post->ID, 'longitude', true);
+
+        if ($lat === '' || $lng === '' || !is_numeric($lat) || !is_numeric($lng)) {
+            continue;
+        }
+
+        $locais[] = [
+            'id' => (int) $post->ID,
+            'nome' => $post->post_title,
+            'nome_normalizado' => cc_minha_conta_normalizar_nome_duplicidade($post->post_title),
+            'latitude' => (float) $lat,
+            'longitude' => (float) $lng,
+            'endereco' => get_post_meta($post->ID, 'endereco', true),
+        ];
+    }
+
+    $duplicadas = [];
+    $total = count($locais);
+
+    for ($i = 0; $i < $total; $i++) {
+        for ($j = $i + 1; $j < $total; $j++) {
+            $distancia = cc_calcular_distancia($locais[$i]['latitude'], $locais[$i]['longitude'], $locais[$j]['latitude'], $locais[$j]['longitude']);
+            if ($distancia > $distancia_km) {
+                continue;
+            }
+
+            $nome_a = $locais[$i]['nome_normalizado'] ?: $locais[$i]['nome'];
+            $nome_b = $locais[$j]['nome_normalizado'] ?: $locais[$j]['nome'];
+            similar_text($nome_a, $nome_b, $percentual);
+
+            if ($percentual < $similaridade_minima) {
+                continue;
+            }
+
+            $duplicadas[] = [
+                'principal' => $locais[$i],
+                'duplicado' => $locais[$j],
+                'distancia_km' => round($distancia, 3),
+                'similaridade' => round($percentual, 1),
+            ];
+        }
+    }
+
+    usort($duplicadas, function ($a, $b) {
+        if ($a['distancia_km'] === $b['distancia_km']) {
+            return $b['similaridade'] <=> $a['similaridade'];
+        }
+        return $a['distancia_km'] <=> $b['distancia_km'];
+    });
+
+    return $duplicadas;
+}
+
 function cc_shortcode_minha_conta_mapa($atts = []) {
     cc_enqueue_auth_ui_assets();
 
@@ -25,6 +107,7 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
     $pagina_criadas = max(1, absint($_GET['pg_criadas'] ?? 1));
     $pagina_observadas = max(1, absint($_GET['pg_observadas'] ?? 1));
     $pagina_alteracoes = max(1, absint($_GET['pg_alteracoes'] ?? 1));
+    $pagina_duplicadas = max(1, absint($_GET['pg_duplicadas'] ?? 1));
     $por_pagina_padrao = 10;
 
     $build_page_url = static function ($overrides = [], $anchor = '') {
@@ -101,6 +184,12 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
     $alteracoes = $alteracoes_paginadas['items'] ?? [];
     $pagina_alteracoes = (int) ($alteracoes_paginadas['page'] ?? 1);
     $total_paginas_alteracoes = (int) ($alteracoes_paginadas['total_pages'] ?? 1);
+
+    $duplicadas = current_user_can('manage_options') ? cc_minha_conta_listar_possiveis_duplicadas() : [];
+    $total_duplicadas = count($duplicadas);
+    $total_paginas_duplicadas = max(1, (int) ceil($total_duplicadas / $por_pagina_padrao));
+    $pagina_duplicadas = min($pagina_duplicadas, $total_paginas_duplicadas);
+    $duplicadas_paginadas = array_slice($duplicadas, ($pagina_duplicadas - 1) * $por_pagina_padrao, $por_pagina_padrao);
 
     $all_comunidades = get_posts([
         'post_type' => 'comunidade',
@@ -257,6 +346,36 @@ function cc_shortcode_minha_conta_mapa($atts = []) {
             </ul>
             <?php $render_pagination($pagina_alteracoes, $total_paginas_alteracoes, 'pg_alteracoes', 'sec-observacao-alteracoes', $build_page_url); ?>
         </section>
+
+
+        <?php if (current_user_can('manage_options')): ?>
+            <section id="sec-duplicadas" class="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 space-y-4">
+                <div>
+                    <h4 class="text-xl font-semibold text-gray-800"><?php esc_html_e('Possíveis locais duplicados', 'cadastro-comunidades'); ?></h4>
+                    <p class="text-gray-600"><?php esc_html_e('A lista compara locais publicados em até 500 metros e nomes parecidos após remover termos comuns.', 'cadastro-comunidades'); ?></p>
+                </div>
+
+                <ul class="space-y-2">
+                    <?php foreach ($duplicadas_paginadas as $par): ?>
+                        <li class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-gray-800 space-y-3">
+                            <div class="grid md:grid-cols-2 gap-3">
+                                <?php foreach (['principal', 'duplicado'] as $chave_local): ?>
+                                    <?php $local = $par[$chave_local]; ?>
+                                    <div class="rounded-lg bg-white border border-amber-100 p-3">
+                                        <p class="font-semibold"><?php echo esc_html($local['nome']); ?> (#<?php echo (int) $local['id']; ?>)</p>
+                                        <p class="text-sm text-gray-600"><?php echo esc_html($local['endereco'] ?: __('Sem endereço cadastrado', 'cadastro-comunidades')); ?></p>
+                                        <a href="<?php echo esc_url(get_permalink((int) $local['id'])); ?>" target="_blank" rel="noopener noreferrer" class="<?php echo esc_attr(cc_auth_button_class('secondary')); ?> mt-2"><?php esc_html_e('Ver detalhes', 'cadastro-comunidades'); ?></a>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <p class="text-sm text-amber-900"><?php echo esc_html(sprintf(__('Distância: %s km • Similaridade: %s%%', 'cadastro-comunidades'), number_format_i18n($par['distancia_km'], 3), number_format_i18n($par['similaridade'], 1))); ?></p>
+                        </li>
+                    <?php endforeach; ?>
+                    <?php if (empty($duplicadas_paginadas)): ?><li class="text-gray-600"><?php esc_html_e('Nenhum possível local duplicado encontrado.', 'cadastro-comunidades'); ?></li><?php endif; ?>
+                </ul>
+                <?php $render_pagination($pagina_duplicadas, $total_paginas_duplicadas, 'pg_duplicadas', 'sec-duplicadas', $build_page_url); ?>
+            </section>
+        <?php endif; ?>
 
 
         <datalist id="cc-paroquias-datalist">

@@ -32,6 +32,26 @@ add_action('rest_api_init', function () {
         'permission_callback' => '__return_true',
     ]);
 
+    register_rest_route('mapa/v1', '/locais-proximos', [
+        'methods'  => 'GET',
+        'callback' => 'cc_api_mapa_locais_proximos',
+        'permission_callback' => '__return_true',
+        'args' => [
+            'lat' => [
+                'required' => true,
+                'validate_callback' => 'is_numeric',
+            ],
+            'lng' => [
+                'required' => true,
+                'validate_callback' => 'is_numeric',
+            ],
+            'distancia' => [
+                'required' => true,
+                'validate_callback' => 'is_numeric',
+            ],
+        ],
+    ]);
+
     register_rest_route('mapa/v1', '/paroquias', [
         'methods'  => 'GET',
         'callback' => function ($request) {
@@ -67,6 +87,74 @@ add_action('rest_api_init', function () {
 
 });
 
+
+function cc_api_mapa_locais_proximos($request) {
+    $lat = (float) $request->get_param('lat');
+    $lng = (float) $request->get_param('lng');
+    $distancia = (float) $request->get_param('distancia');
+    $limite = max(0, (int) $request->get_param('limite'));
+
+    if ($lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) {
+        return new WP_Error('coords_fora_do_intervalo', 'Latitude/longitude fora do intervalo válido.', ['status' => 400]);
+    }
+
+    if ($distancia <= 0) {
+        return new WP_Error('distancia_invalida', 'Informe uma distância maior que zero em quilômetros.', ['status' => 400]);
+    }
+
+    $locais = cc_mapa_buscar_locais_no_raio($lat, $lng, $distancia, $limite);
+
+    return rest_ensure_response([
+        'centro' => [
+            'latitude' => $lat,
+            'longitude' => $lng,
+        ],
+        'distancia_km' => $distancia,
+        'total' => count($locais),
+        'locais' => $locais,
+    ]);
+}
+
+function cc_mapa_buscar_locais_no_raio($lat, $lng, $distancia_km, $limite = 0, $post_status = 'publish') {
+    $posts = get_posts([
+        'post_type' => 'comunidade',
+        'post_status' => $post_status,
+        'posts_per_page' => -1,
+        'fields' => 'ids',
+    ]);
+
+    $locais = [];
+
+    foreach ($posts as $post_id) {
+        $local_lat = get_post_meta($post_id, 'latitude', true);
+        $local_lng = get_post_meta($post_id, 'longitude', true);
+
+        if ($local_lat === '' || $local_lng === '' || !is_numeric($local_lat) || !is_numeric($local_lng)) {
+            continue;
+        }
+
+        $distancia = cc_calcular_distancia((float) $lat, (float) $lng, (float) $local_lat, (float) $local_lng);
+        if ($distancia > (float) $distancia_km) {
+            continue;
+        }
+
+        $locais[] = [
+            'id' => (int) $post_id,
+            'nome' => get_the_title($post_id),
+            'latitude' => (float) $local_lat,
+            'longitude' => (float) $local_lng,
+            'endereco' => get_post_meta($post_id, 'endereco', true),
+            'distancia_km' => round($distancia, 3),
+            'permalink' => get_permalink($post_id),
+        ];
+    }
+
+    usort($locais, function ($a, $b) {
+        return $a['distancia_km'] <=> $b['distancia_km'];
+    });
+
+    return $limite > 0 ? array_slice($locais, 0, $limite) : $locais;
+}
 
 function cc_mapa_comunidade_publicada_existe($comunidade_id) {
     $comunidade_id = (int) $comunidade_id;
