@@ -11,6 +11,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     const buscaEl = document.getElementById("filtro-nome-local");
     const buscaListEl = document.getElementById("mapa-comunidades-list");
     const buscaBtn = document.getElementById("mapa-buscar-comunidade");
+    const enderecoBuscaEl = document.getElementById("filtro-endereco-bairro");
+    const enderecoStatusEl = document.getElementById("mapa-endereco-status");
     const filtroEventoPeriodoEl = document.getElementById("filtro-evento-periodo");
     const filtroTagMissaEl = document.getElementById("filtro-tag-missa");
     const filtroTagAcaoEl = document.getElementById("filtro-tag-acao-caritativa");
@@ -55,6 +57,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     const state = {
         userLocation: null,
         userMarker: null,
+        searchLocation: null,
+        searchMarker: null,
         markers: [],
         comunidades: [],
         requestId: 0,
@@ -600,6 +604,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         const linkSingle = comunidade.permalink || "";
         const shareUrl = encodeURIComponent(linkSingle || window.location.href);
         const shareText = encodeURIComponent(`Confira este local: ${comunidade.nome || "Comunidade"}`);
+        const distanciaReferencia = distanciaReferenciaComunidade(comunidade);
 
         detalhesEl.innerHTML = `
             <button type="button" class="cc-panel-toggle" aria-expanded="true" aria-controls="cc-panel-detalhes-body">
@@ -612,7 +617,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                     <h4 class="text-lg font-semibold text-slate-900 text-center">${escapeHtml(comunidade.nome || "Comunidade")}</h4>
                     ${comunidade.endereco ? `<p class="text-sm text-slate-600 leading-snug text-center max-w-xs mx-auto">${escapeHtml(comunidade.endereco)}</p>` : ""}
                     ${contatosFormatados ? `<div class="space-y-3">${contatosFormatados}</div>` : ""}
-                    ${comunidade.distancia_km ? `<p><small>Distância: ${Number(comunidade.distancia_km).toFixed(1)} km</small></p>` : ""}
+                    ${distanciaReferencia !== null ? `<p><small>Distância: ${distanciaReferencia.toFixed(1)} km</small></p>` : (comunidade.distancia_km ? `<p><small>Distância: ${Number(comunidade.distancia_km).toFixed(1)} km</small></p>` : "")}
                     <div class="cc-detalhes-acoes">
                         ${linkSingle ? `<a class="cc-btn-detalhes cc-btn-detalhes--primary" href="${escapeHtml(linkSingle)}"><i class="bi bi-info-circle"></i> Ver mais informações</a>` : ""}
                         <a class="cc-btn-detalhes cc-btn-detalhes--whatsapp" href="https://wa.me/?text=${shareText}%20${shareUrl}" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp"></i> Compartilhar no WhatsApp</a>
@@ -640,8 +645,32 @@ document.addEventListener("DOMContentLoaded", async function () {
         `;
     }
 
+    function setEnderecoStatus(mensagem, tipo = "") {
+        if (!enderecoStatusEl) return;
+        enderecoStatusEl.textContent = mensagem || "";
+        enderecoStatusEl.dataset.tipo = tipo;
+    }
+
+    function removerMarcadorBuscaEndereco() {
+        if (!state.searchMarker) return;
+        map.removeLayer(state.searchMarker);
+        state.searchMarker = null;
+    }
+
+    function atualizarMarcadorBuscaEndereco() {
+        removerMarcadorBuscaEndereco();
+        if (!state.searchLocation?.lat || !state.searchLocation?.lng) return;
+
+        state.searchMarker = L.circleMarker([state.searchLocation.lat, state.searchLocation.lng], {
+            radius: 8,
+            color: "#b45309",
+            fillColor: "#f59e0b",
+            fillOpacity: 0.9,
+        }).addTo(map).bindTooltip(state.searchLocation.label || "Local pesquisado", { direction: "top" });
+    }
+
     function aplicarBusca() {
-        limparFiltrosExceto({ manterBusca: true });
+        limparFiltrosExceto({ manterBusca: true, manterEndereco: true });
         state.termoBusca = buscaEl?.value || "";
         carregarComunidades();
     }
@@ -731,6 +760,11 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     function ajustarVisaoMapa() {
+        if (state.searchLocation?.lat && state.searchLocation?.lng) {
+            map.setView([state.searchLocation.lat, state.searchLocation.lng], userZoom);
+            return;
+        }
+
         if (state.userLocation?.lat && state.userLocation?.lng) {
             map.setView([state.userLocation.lat, state.userLocation.lng], userZoom);
             return;
@@ -754,20 +788,34 @@ document.addEventListener("DOMContentLoaded", async function () {
         return 2 * raioTerraKm * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
+    function distanciaReferenciaComunidade(comunidade) {
+        const origem = state.searchLocation || state.userLocation;
+        if (!origem?.lat || !origem?.lng) return null;
+
+        const lat = normalizarCoordenada(comunidade?.latitude);
+        const lng = normalizarCoordenada(comunidade?.longitude);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+        const distancia = distanciaKm(origem.lat, origem.lng, lat, lng);
+        return Number.isFinite(distancia) ? distancia : null;
+    }
+
     function ordenarComunidades(lista) {
         const copia = Array.isArray(lista) ? [...lista] : [];
 
-        if (state.userLocation?.lat && state.userLocation?.lng) {
+        const origem = state.searchLocation || state.userLocation;
+
+        if (origem?.lat && origem?.lng) {
             return copia.sort((a, b) => {
                 const alat = normalizarCoordenada(a?.latitude);
                 const alng = normalizarCoordenada(a?.longitude);
                 const blat = normalizarCoordenada(b?.latitude);
                 const blng = normalizarCoordenada(b?.longitude);
                 const da = (Number.isFinite(alat) && Number.isFinite(alng))
-                    ? distanciaKm(state.userLocation.lat, state.userLocation.lng, alat, alng)
+                    ? distanciaKm(origem.lat, origem.lng, alat, alng)
                     : Number.MAX_SAFE_INTEGER;
                 const db = (Number.isFinite(blat) && Number.isFinite(blng))
-                    ? distanciaKm(state.userLocation.lat, state.userLocation.lng, blat, blng)
+                    ? distanciaKm(origem.lat, origem.lng, blat, blng)
                     : Number.MAX_SAFE_INTEGER;
                 const va = Number.isFinite(da) ? da : Number.MAX_SAFE_INTEGER;
                 const vb = Number.isFinite(db) ? db : Number.MAX_SAFE_INTEGER;
@@ -806,12 +854,16 @@ document.addEventListener("DOMContentLoaded", async function () {
         const inicio = (state.paginaAtual - 1) * state.itensPorPagina;
         const paginaItens = state.comunidades.slice(inicio, inicio + state.itensPorPagina);
 
-        const itensHtml = paginaItens.map((c) => `
-            <article class="cc-local-item" data-id="${Number(c.id) || ''}" role="button" tabindex="0">
-                <h4>${escapeHtml(c.nome || 'Local')}</h4>
-                ${c.endereco ? `<p>${escapeHtml(c.endereco)}</p>` : ''}
-            </article>
-        `).join('');
+        const itensHtml = paginaItens.map((c) => {
+            const distancia = distanciaReferenciaComunidade(c);
+            return `
+                <article class="cc-local-item" data-id="${Number(c.id) || ''}" role="button" tabindex="0">
+                    <h4>${escapeHtml(c.nome || 'Local')}</h4>
+                    ${c.endereco ? `<p>${escapeHtml(c.endereco)}</p>` : ''}
+                    ${distancia !== null ? `<p><small>Distância: ${distancia.toFixed(1)} km</small></p>` : ''}
+                </article>
+            `;
+        }).join('');
 
         listaLocaisEl.innerHTML = `${itensHtml}<div class="cc-lista-pagination"><button type="button" data-page="prev" ${state.paginaAtual <= 1 ? 'disabled' : ''}>Anterior</button><span>Página ${state.paginaAtual} de ${totalPaginas}</span><button type="button" data-page="next" ${state.paginaAtual >= totalPaginas ? 'disabled' : ''}>Próxima</button></div>`;
 
@@ -852,12 +904,14 @@ document.addEventListener("DOMContentLoaded", async function () {
             manterBusca = false,
             manterTipoComunidade = false,
             manterEventoPeriodo = false,
+            manterEndereco = false,
         } = opcoes;
 
         const tipoComunidadeEl = document.getElementById('filtro-tipo-comunidade');
         const valorBusca = manterBusca ? String(buscaEl?.value || '') : '';
         const valorTipoComunidade = manterTipoComunidade ? String(tipoComunidadeEl?.value || '') : '';
         const valorEventoPeriodo = manterEventoPeriodo ? String(filtroEventoPeriodoEl?.value || '|') : '|';
+        const valorEndereco = manterEndereco ? String(enderecoBuscaEl?.value || '') : '';
 
         filtrosForm?.reset();
 
@@ -866,6 +920,12 @@ document.addEventListener("DOMContentLoaded", async function () {
         if (filtroTagMissaEl) filtroTagMissaEl.value = '';
         if (filtroTagAcaoEl) filtroTagAcaoEl.value = '';
         if (buscaEl) buscaEl.value = valorBusca;
+        if (enderecoBuscaEl) enderecoBuscaEl.value = valorEndereco;
+        if (!valorEndereco) {
+            state.searchLocation = null;
+            removerMarcadorBuscaEndereco();
+            setEnderecoStatus("");
+        }
 
         sincronizarFiltrosEventoPeriodo();
         sincronizarFiltroTag();
@@ -921,6 +981,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             state.comunidades = ordenarComunidades(filtrados);
             state.paginaAtual = 1;
             state.comunidades.forEach(addMarker);
+            atualizarMarcadorBuscaEndereco();
             renderListaLocais();
 
             ajustarVisaoMapa();
@@ -1085,6 +1146,56 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
     }
 
+
+    async function geocodificarEnderecoOuBairro() {
+        const termo = String(enderecoBuscaEl?.value || '').trim();
+        if (!termo) {
+            state.searchLocation = null;
+            removerMarcadorBuscaEndereco();
+            setEnderecoStatus("");
+            carregarComunidades();
+            return;
+        }
+
+        setEnderecoStatus("Buscando localização...", "info");
+
+        try {
+            const params = new URLSearchParams({
+                q: termo,
+                format: "json",
+                limit: "1",
+                addressdetails: "1",
+                countrycodes: "br",
+            });
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
+                headers: { Accept: "application/json" },
+            });
+            const resultados = await res.json();
+            const resultado = Array.isArray(resultados) ? resultados[0] : null;
+            const lat = normalizarCoordenada(resultado?.lat);
+            const lng = normalizarCoordenada(resultado?.lon);
+
+            if (!resultado || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+                state.searchLocation = null;
+                removerMarcadorBuscaEndereco();
+                setEnderecoStatus("Local não encontrado. Tente informar cidade e estado.", "erro");
+                carregarComunidades();
+                return;
+            }
+
+            state.searchLocation = {
+                lat,
+                lng,
+                label: resultado.display_name || termo,
+            };
+            setEnderecoStatus("Comunidades ordenadas por proximidade deste local.", "sucesso");
+            carregarComunidades();
+        } catch (err) {
+            console.error("Erro ao buscar endereço ou bairro:", err);
+            setEnderecoStatus("Não foi possível buscar a localização agora.", "erro");
+        }
+    }
+
     buscaEl?.addEventListener("input", () => {
         state.termoBusca = buscaEl.value || "";
 
@@ -1106,6 +1217,14 @@ document.addEventListener("DOMContentLoaded", async function () {
     });
 
     buscaBtn?.addEventListener("click", aplicarBusca);
+
+    enderecoBuscaEl?.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        geocodificarEnderecoOuBairro();
+    });
+
+    enderecoBuscaEl?.addEventListener("change", geocodificarEnderecoOuBairro);
 
     filtroTagMissaEl?.addEventListener("change", () => {
         if (filtroTagMissaEl?.value && filtroTagAcaoEl) filtroTagAcaoEl.value = "";
