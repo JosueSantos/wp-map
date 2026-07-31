@@ -621,16 +621,19 @@ get_header();
                         maxZoom: 19,
                         attribution: '&copy; OpenStreetMap contributors'
                     }).addTo(map);
-                    const markers = L.markerClusterGroup();
+                    const markers = L.layerGroup();
+                    const bounds = L.latLngBounds([]);
                     markersData.forEach((item) => {
                         const markerLat = Number(item.lat);
                         const markerLng = Number(item.lng);
                         if (!Number.isFinite(markerLat) || !Number.isFinite(markerLng)) return;
-                        markers.addLayer(L.marker([markerLat, markerLng]).bindPopup(String(item.nome || 'Comunidade')));
+                        const markerLatLng = [markerLat, markerLng];
+                        markers.addLayer(L.marker(markerLatLng).bindPopup(String(item.nome || 'Comunidade')));
+                        bounds.extend(markerLatLng);
                     });
                     map.addLayer(markers);
-                    if (markers.getBounds().isValid()) {
-                        map.fitBounds(markers.getBounds(), { padding: [24, 24], maxZoom: 15 });
+                    if (bounds.isValid()) {
+                        map.fitBounds(bounds, { padding: [24, 24], maxZoom: 15 });
                     }
                 });
             </script>

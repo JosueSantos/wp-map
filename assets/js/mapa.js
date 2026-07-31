@@ -760,6 +760,15 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     function ajustarVisaoMapa() {
+        const buscaPorNomeAtiva = String(state.termoBusca || '').trim() !== '';
+        if (buscaPorNomeAtiva && state.markers.length) {
+            const bounds = L.latLngBounds(state.markers.map((marker) => marker.getLatLng()));
+            if (bounds.isValid()) {
+                map.fitBounds(bounds, { padding: [32, 32], maxZoom: userZoom });
+                return;
+            }
+        }
+
         if (state.searchLocation?.lat && state.searchLocation?.lng) {
             map.setView([state.searchLocation.lat, state.searchLocation.lng], userZoom);
             return;
