@@ -633,3 +633,20 @@
     background: #1d4ed8;
     color: #fff;
 }
+
+#mapa-igrejas .cc-campo-ajuda {
+    display: block;
+    min-height: 1rem;
+    margin-top: .3rem;
+    color: #64748b;
+    font-size: .78rem;
+    line-height: 1.25;
+}
+
+#mapa-igrejas .cc-campo-ajuda[data-tipo="sucesso"] {
+    color: #15803d;
+}
+
+#mapa-igrejas .cc-campo-ajuda[data-tipo="erro"] {
+    color: #b91c1c;
+}

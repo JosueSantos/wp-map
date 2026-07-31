@@ -55,6 +55,12 @@
                                         <datalist id="mapa-comunidades-list"></datalist>
                                     </label>
 
+                                    <label>
+                                        <span>Endereço ou bairro</span>
+                                        <input type="search" id="filtro-endereco-bairro" placeholder="Digite um endereço ou bairro" autocomplete="off">
+                                        <small id="mapa-endereco-status" class="cc-campo-ajuda" aria-live="polite"></small>
+                                    </label>
+
                                     <?php if (!empty($exibir_filtros_completos)) : ?>
                                         <label>
                                             <span>Tipo de Local</span>
